@@ -8,8 +8,10 @@
 #
 # Installs Caddy, PHP 8.3-FPM and MariaDB, creates the khana user, database,
 # queue worker and scheduler, and prints the three GitHub secrets the deploy
-# workflow needs. Safe to run again: the .env, app key and database password
-# are kept. Every run issues a new deploy key, so update KHANA_TEST_SSH_KEY.
+# workflow needs. Safe to run again: the .env, app key, database password,
+# deploy key and domain are all kept, so moving to a domain later is just a
+# re-run with the domain. NEW_DEPLOY_KEY=1 issues a new deploy key, after which
+# KHANA_TEST_SSH_KEY in GitHub has to be updated.
 #
 # Other apps on this server get their own user, database and file in
 # /etc/caddy/sites/, so nothing here needs to change when one is added.
@@ -22,6 +24,11 @@ APP_USER=khana
 WWW=/var/www/khana
 DATA=/var/lib/khana
 ENV_FILE="$DATA/.env"
+
+# A re-run without a domain keeps the one already configured.
+if [ -z "$DOMAIN" ] && [ -f "$ENV_FILE" ]; then
+  DOMAIN="$(grep -E '^APP_URL=https://' "$ENV_FILE" | cut -d/ -f3 || true)"
+fi
 
 if [ "$(id -u)" -ne 0 ]; then
   echo "Run this as root: sudo bash $0 $DOMAIN" >&2
@@ -227,14 +234,25 @@ visudo -cf /etc/sudoers.d/khana >/dev/null
 echo "==> Deploy key for GitHub Actions"
 KEY_DIR="$(mktemp -d)"
 trap 'rm -rf "$KEY_DIR"' EXIT
-ssh-keygen -q -t ed25519 -N "" -C "github-actions-khana" -f "$KEY_DIR/key"
 install -d -o "$APP_USER" -g "$APP_USER" -m 700 "/home/$APP_USER/.ssh"
-touch "/home/$APP_USER/.ssh/authorized_keys"
-{
-  grep -v 'github-actions-khana$' "/home/$APP_USER/.ssh/authorized_keys" || true
-  echo "no-pty,no-port-forwarding,no-agent-forwarding,no-X11-forwarding $(cat "$KEY_DIR/key.pub")"
-} > "$KEY_DIR/authorized_keys"
-install -o "$APP_USER" -g "$APP_USER" -m 600 "$KEY_DIR/authorized_keys" "/home/$APP_USER/.ssh/authorized_keys"
+AUTHORIZED_KEYS="/home/$APP_USER/.ssh/authorized_keys"
+NEW_KEY=no
+if [ "${NEW_DEPLOY_KEY:-0}" = "1" ] || ! grep -qs 'github-actions-khana$' "$AUTHORIZED_KEYS"; then
+  NEW_KEY=yes
+  ssh-keygen -q -t ed25519 -N "" -C "github-actions-khana" -f "$KEY_DIR/key"
+  {
+    grep -vs 'github-actions-khana$' "$AUTHORIZED_KEYS" || true
+    echo "no-pty,no-port-forwarding,no-agent-forwarding,no-X11-forwarding $(cat "$KEY_DIR/key.pub")"
+  } > "$KEY_DIR/authorized_keys"
+  install -o "$APP_USER" -g "$APP_USER" -m 600 "$KEY_DIR/authorized_keys" "$AUTHORIZED_KEYS"
+fi
+
+if [ -f "$WWW/current/artisan" ]; then
+  echo "==> Refreshing the live build's cached config"
+  sudo -u "$APP_USER" php "$WWW/current/artisan" optimize >/dev/null
+  systemctl reload "php$PHP_VERSION-fpm"
+  systemctl restart khana-queue
+fi
 
 echo "==> Firewall"
 # sshd -T fails until the first SSH login creates /run/sshd, so fall back to 22.
@@ -245,6 +263,19 @@ ufw allow "$SSH_PORT/tcp" >/dev/null
 ufw allow 80/tcp >/dev/null
 ufw allow 443/tcp >/dev/null
 ufw --force enable >/dev/null
+
+if [ "$NEW_KEY" = no ]; then
+  cat <<EOF
+
+================================================================================
+ Khana-CRM test server updated.
+
+ Site:            $APP_URL
+ GitHub secrets:  unchanged - nothing to update in GitHub.
+================================================================================
+EOF
+  exit 0
+fi
 
 cat <<EOF
 
