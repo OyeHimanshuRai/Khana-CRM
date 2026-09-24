@@ -237,7 +237,9 @@ touch "/home/$APP_USER/.ssh/authorized_keys"
 install -o "$APP_USER" -g "$APP_USER" -m 600 "$KEY_DIR/authorized_keys" "/home/$APP_USER/.ssh/authorized_keys"
 
 echo "==> Firewall"
-SSH_PORT="$(sshd -T 2>/dev/null | awk '$1 == "port" { print $2; exit }')"
+# sshd -T fails until the first SSH login creates /run/sshd, so fall back to 22.
+SSH_PORT="$(sshd -T 2>/dev/null | awk '$1 == "port" { print $2 }' || true)"
+SSH_PORT="${SSH_PORT%%$'\n'*}"
 SSH_PORT="${SSH_PORT:-22}"
 ufw allow "$SSH_PORT/tcp" >/dev/null
 ufw allow 80/tcp >/dev/null
