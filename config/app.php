@@ -68,6 +68,14 @@ return [
     'timezone' => 'UTC',
 
     /*
+    | Scheduled commands run on the outlets' clock, not the server's. Stored
+    | times stay UTC (see App\Support\BusinessDay); only the "daily at 08:30"
+    | and "between 09:00 and 20:00" in routes/console.php read this zone.
+    */
+
+    'schedule_timezone' => env('SCHEDULE_TIMEZONE', 'Asia/Kolkata'),
+
+    /*
     |--------------------------------------------------------------------------
     | Application Locale Configuration
     |--------------------------------------------------------------------------

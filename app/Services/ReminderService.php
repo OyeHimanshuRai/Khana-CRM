@@ -8,6 +8,7 @@ use App\Models\PaymentReminder;
 use App\Models\Setting;
 use App\Models\Shop;
 use App\Mail\PaymentReminderMail;
+use App\Support\BusinessDay;
 use Carbon\CarbonInterface;
 use Illuminate\Database\UniqueConstraintViolationException;
 use Illuminate\Support\Carbon;
@@ -158,7 +159,7 @@ class ReminderService
                 // shows in the log as such.
                 'status' => $recipient ? PaymentReminder::PENDING : PaymentReminder::SKIPPED,
                 'skip_reason' => $recipient ? null : 'No '.$channel.' address on the customer record',
-                'scheduled_for' => $this->nextSendableMoment(),
+                'scheduled_for' => $this->nextSendableMoment($shop),
                 'recipient' => $recipient,
                 'subject' => $subject,
                 'amount_due' => (float) $invoice->due_total,
@@ -360,10 +361,13 @@ class ReminderService
      *
      * Nobody wants a demand for money at half past five in the morning, and
      * a shop that sends them stops being read.
+     *
+     * The hours are the shop's own, so the window is drawn in its zone and the
+     * moment handed back in the application's - UTC, which is how it is stored.
      */
-    private function nextSendableMoment(): CarbonInterface
+    private function nextSendableMoment(Shop $shop): CarbonInterface
     {
-        $now = now();
+        $now = Carbon::now(BusinessDay::zone($shop));
 
         $from = Carbon::parse(config('reminders.send_between.from', '09:00'));
         $to = Carbon::parse(config('reminders.send_between.to', '19:00'));
@@ -371,15 +375,13 @@ class ReminderService
         $openAt = $now->copy()->setTime($from->hour, $from->minute);
         $closeAt = $now->copy()->setTime($to->hour, $to->minute);
 
-        if ($now->lt($openAt)) {
-            return $openAt;
-        }
+        $moment = match (true) {
+            $now->lt($openAt) => $openAt,
+            $now->gt($closeAt) => $openAt->addDay(),
+            default => $now,
+        };
 
-        if ($now->gt($closeAt)) {
-            return $openAt->addDay();
-        }
-
-        return $now;
+        return $moment->setTimezone(config('app.timezone'));
     }
 
     /**
