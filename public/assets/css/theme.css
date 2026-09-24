@@ -1,0 +1,1871 @@
+/*
+|------------------------------------------------------------------------------
+| Design system
+|------------------------------------------------------------------------------
+| Tokens + reusable components (buttons, forms, cards, tables, badges,
+| breadcrumbs, dropdowns, avatars). Shell/chrome lives in layout.css.
+|
+| Theming: the light palette is defined on bare :root. Dark is redefined in
+| two places - a prefers-color-scheme block guarded against an explicit light
+| choice, and a [data-theme="dark"] block so the toggle wins either way.
+*/
+
+/* ------------------------------------------------------------- tokens */
+:root {
+    --sidebar-w: 252px;
+    --sidebar-w-collapsed: 78px;
+    --header-h: 62px;
+    --radius: 8px;
+    --radius-lg: 8px;
+
+    --bg: #f6f7f9;
+    --panel: #ffffff;
+    --panel-alt: #fafbfc;
+    --border: #e6e9ef;
+    --border-strong: #d6dbe4;
+
+    --heading: #111827;
+    --text: #374151;
+    --muted: #7b8493;
+    --faint: #9aa3b2;
+
+    --brand: #f97316;
+    --brand-strong: #ea6a0c;
+    --brand-soft: rgba(249, 115, 22, .12);
+    --on-brand: #ffffff;
+
+    --success: #16a34a;
+    --success-soft: rgba(22, 163, 74, .12);
+    --danger: #dc2626;
+    --danger-soft: rgba(220, 38, 38, .12);
+    --warning: #d97706;
+    --warning-soft: rgba(217, 119, 6, .13);
+    --info: #2563eb;
+    --info-soft: rgba(37, 99, 235, .12);
+
+    --ring: rgba(249, 115, 22, .3);
+    --shadow-sm: 0 1px 2px rgba(16, 24, 40, .05);
+    --shadow: 0 1px 3px rgba(16, 24, 40, .06), 0 8px 24px rgba(16, 24, 40, .06);
+    --shadow-lg: 0 12px 40px rgba(16, 24, 40, .16);
+}
+
+@media (prefers-color-scheme: dark) {
+    :root:not([data-theme="light"]) {
+        --bg: #0d1117;
+        --panel: #151b23;
+        --panel-alt: #1b222c;
+        --border: #262d38;
+        --border-strong: #333c49;
+
+        --heading: #f3f4f6;
+        --text: #d3d8e0;
+        --muted: #98a1b0;
+        --faint: #79828f;
+
+        --brand: #fb8b3c;
+        --brand-strong: #f97316;
+        --brand-soft: rgba(251, 139, 60, .16);
+
+        --success: #4ade80;
+        --success-soft: rgba(74, 222, 128, .14);
+        --danger: #f87171;
+        --danger-soft: rgba(248, 113, 113, .14);
+        --warning: #fbbf24;
+        --warning-soft: rgba(251, 191, 36, .14);
+        --info: #60a5fa;
+        --info-soft: rgba(96, 165, 250, .14);
+
+        --ring: rgba(251, 139, 60, .35);
+        --shadow-sm: 0 1px 2px rgba(0, 0, 0, .4);
+        --shadow: 0 1px 3px rgba(0, 0, 0, .45), 0 8px 24px rgba(0, 0, 0, .35);
+        --shadow-lg: 0 12px 40px rgba(0, 0, 0, .55);
+    }
+}
+
+:root[data-theme="dark"] {
+    --bg: #0d1117;
+    --panel: #151b23;
+    --panel-alt: #1b222c;
+    --border: #262d38;
+    --border-strong: #333c49;
+
+    --heading: #f3f4f6;
+    --text: #d3d8e0;
+    --muted: #98a1b0;
+    --faint: #79828f;
+
+    --brand: #fb8b3c;
+    --brand-strong: #f97316;
+    --brand-soft: rgba(251, 139, 60, .16);
+
+    --success: #4ade80;
+    --success-soft: rgba(74, 222, 128, .14);
+    --danger: #f87171;
+    --danger-soft: rgba(248, 113, 113, .14);
+    --warning: #fbbf24;
+    --warning-soft: rgba(251, 191, 36, .14);
+    --info: #60a5fa;
+    --info-soft: rgba(96, 165, 250, .14);
+
+    --ring: rgba(251, 139, 60, .35);
+    --shadow-sm: 0 1px 2px rgba(0, 0, 0, .4);
+    --shadow: 0 1px 3px rgba(0, 0, 0, .45), 0 8px 24px rgba(0, 0, 0, .35);
+    --shadow-lg: 0 12px 40px rgba(0, 0, 0, .55);
+}
+
+/* --------------------------------------------------------------- base */
+*, *::before, *::after { box-sizing: border-box; }
+
+html { -webkit-text-size-adjust: 100%; }
+
+body {
+    margin: 0;
+    min-height: 100vh;
+    background: var(--bg);
+    color: var(--text);
+    font-family: "Inter", ui-sans-serif, system-ui, -apple-system, "Segoe UI",
+                 Roboto, "Helvetica Neue", Arial, sans-serif;
+    font-size: 13px;
+    line-height: 1.55;
+    -webkit-font-smoothing: antialiased;
+}
+
+h1, h2, h3, h4, h5 {
+    margin: 0;
+    color: var(--heading);
+    font-weight: 650;
+    letter-spacing: -.01em;
+    line-height: 1.3;
+}
+
+h1 { font-size: 19px; }
+h2 { font-size: 16.5px; }
+h3 { font-size: 15px; }
+h4 { font-size: 13.5px; }
+
+p { margin: 0 0 12px; }
+p:last-child { margin-bottom: 0; }
+
+/* Links sit in body text colour; brand colour is the hover affordance. */
+a { color: inherit; text-decoration: none; }
+a:hover { color: var(--brand); }
+
+svg { display: block; flex: none; }
+
+hr {
+    border: 0;
+    border-top: 1px solid var(--border);
+    margin: 20px 0;
+}
+
+.text-muted { color: var(--muted); }
+.text-sm { font-size: 12.5px; }
+.text-xs { font-size: 11.5px; }
+
+.sr-only {
+    position: absolute;
+    width: 1px; height: 1px;
+    padding: 0; margin: -1px;
+    overflow: hidden;
+    clip: rect(0, 0, 0, 0);
+    white-space: nowrap; border: 0;
+}
+
+/* ------------------------------------------------------------ buttons */
+.btn {
+    display: inline-flex;
+    align-items: center;
+    justify-content: center;
+    gap: 7px;
+    padding: 8px 15px;
+    font: inherit;
+    font-size: 12.5px;
+    font-weight: 600;
+    line-height: 1.2;
+    color: var(--text);
+    background: var(--panel);
+    border: 1px solid var(--border-strong);
+    /* border-radius: var(--radius); */
+    cursor: pointer;
+    white-space: nowrap;
+    transition: background-color .15s, border-color .15s, color .15s, filter .15s;
+}
+
+.btn:hover { background: var(--panel-alt); color: var(--heading); }
+.btn:focus-visible { outline: 2px solid var(--brand); outline-offset: 2px; }
+.btn:disabled { opacity: .6; cursor: not-allowed; }
+
+.btn-primary {
+    color: var(--on-brand);
+    background: var(--brand);
+    border-color: var(--brand);
+}
+
+.btn-primary:hover {
+    color: var(--on-brand);
+    background: var(--brand-strong);
+    border-color: var(--brand-strong);
+}
+
+.btn-ghost {
+    background: transparent;
+    border-color: transparent;
+    color: var(--muted);
+}
+
+.btn-ghost:hover { background: var(--panel-alt); color: var(--heading); }
+
+.btn-danger {
+    color: #fff;
+    background: var(--danger);
+    border-color: var(--danger);
+}
+
+.btn-block { width: 100%; }
+.btn-sm { padding: 5px 11px; font-size: 11.5px; }
+.btn-lg { padding: 10px 18px; font-size: 13.5px; }
+
+.btn-icon {
+    padding: 0;
+    width: 36px;
+    height: 36px;
+    /* border-radius: var(--radius); */
+}
+
+/* -------------------------------------------------------------- forms */
+.form-row {
+    display: grid;
+    grid-template-columns: repeat(auto-fit, minmax(220px, 1fr));
+    gap: 0 18px;
+}
+
+.field { margin-bottom: 16px; }
+
+label,
+.form-label {
+    display: block;
+    font-size: 12.5px;
+    font-weight: 600;
+    color: var(--heading);
+    margin-bottom: 6px;
+}
+
+/*
+ | Listed by type rather than a bare `input`, so checkboxes, radios and file
+ | pickers keep their native look. Every text-like type the app uses must be
+ | in here - a missing one renders completely unstyled.
+ */
+.form-control,
+input[type="text"],
+input[type="email"],
+input[type="password"],
+input[type="number"],
+input[type="search"],
+input[type="date"],
+input[type="datetime-local"],
+input[type="time"],
+input[type="month"],
+input[type="week"],
+input[type="url"],
+input[type="tel"],
+select,
+textarea {
+    width: 100%;
+    padding: 8px 11px;
+    font: inherit;
+    font-size: 12.5px;
+    color: var(--text);
+    background: var(--panel);
+    border: 1px solid var(--border-strong);
+    /* border-radius: var(--radius); */
+    outline: none;
+    transition: border-color .15s, box-shadow .15s;
+}
+
+textarea { min-height: 96px; resize: vertical; }
+
+.form-control:focus,
+input:focus,
+select:focus,
+textarea:focus {
+    border-color: var(--brand);
+    box-shadow: 0 0 0 3px var(--ring);
+}
+
+input::placeholder, textarea::placeholder { color: var(--faint); }
+
+input[aria-invalid="true"], .is-invalid { border-color: var(--danger) !important; }
+
+.form-hint { margin-top: 5px; font-size: 12px; color: var(--muted); }
+
+.check {
+    display: inline-flex;
+    align-items: center;
+    gap: 8px;
+    font-size: 12.5px;
+    font-weight: 500;
+    color: var(--muted);
+    cursor: pointer;
+    user-select: none;
+    margin: 0;
+}
+
+.check input { width: 15px; height: 15px; margin: 0; }
+
+/* -------------------------------------------------------------- cards */
+.card {
+    background: var(--panel);
+    border: 1px solid var(--border);
+    /* border-radius: var(--radius); */
+    box-shadow: var(--shadow-sm);
+}
+
+.card + .card { margin-top: 20px; }
+
+.card-header {
+    display: flex;
+    align-items: center;
+    justify-content: space-between;
+    gap: 14px;
+    padding: 16px 20px;
+    border-bottom: 1px solid var(--border);
+}
+
+.card-title { font-size: 14px; font-weight: 650; color: var(--heading); }
+.card-body { padding: 20px; }
+.card-footer { padding: 14px 20px; border-top: 1px solid var(--border); }
+
+/* stat tiles */
+.stat-grid {
+    display: grid;
+    grid-template-columns: repeat(auto-fit, minmax(215px, 1fr));
+    gap: 20px;
+    margin-bottom: 20px;
+}
+
+.stat {
+    display: flex;
+    align-items: flex-start;
+    gap: 14px;
+    padding: 18px;
+    background: var(--panel);
+    border: 1px solid var(--border);
+    /* border-radius: var(--radius); */
+    box-shadow: var(--shadow-sm);
+}
+
+.stat-icon {
+    width: 44px;
+    height: 44px;
+    /* border-radius: var(--radius); */
+    display: grid;
+    place-items: center;
+    background: var(--brand-soft);
+    color: var(--brand);
+}
+
+.stat-icon.is-success { background: var(--success-soft); color: var(--success); }
+.stat-icon.is-info    { background: var(--info-soft);    color: var(--info); }
+.stat-icon.is-warning { background: var(--warning-soft); color: var(--warning); }
+
+.stat-body { min-width: 0; }
+.stat-label { font-size: 12px; color: var(--muted); margin-bottom: 2px; }
+.stat-value { font-size: 20px; font-weight: 700; color: var(--heading); line-height: 1.2; }
+
+.stat-trend {
+    display: inline-flex;
+    align-items: center;
+    gap: 3px;
+    margin-top: 4px;
+    font-size: 12px;
+    font-weight: 600;
+}
+
+.stat-trend.up { color: var(--success); }
+.stat-trend.down { color: var(--danger); }
+
+/* ------------------------------------------------------------- tables */
+.table-wrap { width: 100%; overflow-x: auto; }
+
+.table {
+    width: 100%;
+    border-collapse: collapse;
+    font-size: 12.5px;
+}
+
+.table th {
+    padding: 10px 18px;
+    text-align: left;
+    font-weight: 650;
+    font-size: 11px;
+    text-transform: uppercase;
+    letter-spacing: .03em;
+    color: var(--muted);
+    background: var(--panel-alt);
+    border-bottom: 1px solid var(--border);
+    white-space: nowrap;
+}
+
+.table td {
+    padding: 11px 18px;
+    border-bottom: 1px solid var(--border);
+    vertical-align: middle;
+}
+
+.table tbody tr:last-child td { border-bottom: 0; }
+.table tbody tr:hover td { background: var(--panel-alt); }
+.table .num { text-align: right; font-variant-numeric: tabular-nums; }
+
+/* ------------------------------------------------------------- badges */
+.badge {
+    display: inline-flex;
+    align-items: center;
+    padding: 3px 9px;
+    /* border-radius: 999px; */
+    font-size: 11px;
+    font-weight: 650;
+    line-height: 1.5;
+    background: var(--panel-alt);
+    color: var(--muted);
+}
+
+.badge-success { background: var(--success-soft); color: var(--success); }
+.badge-danger  { background: var(--danger-soft);  color: var(--danger); }
+.badge-warning { background: var(--warning-soft); color: var(--warning); }
+.badge-info    { background: var(--info-soft);    color: var(--info); }
+.badge-brand   { color: var(--brand); }
+
+/* ------------------------------------------------------------ avatars */
+.avatar {
+    width: 32px;
+    height: 32px;
+    flex: none;
+    /* border-radius: 50%; */
+    display: grid;
+    place-items: center;
+    background: var(--border);
+    color: var(--muted);
+    font-size: 12px;
+    font-weight: 700;
+    text-transform: uppercase;
+}
+
+.avatar-sm { width: 26px; height: 26px; font-size: 10.5px; }
+.avatar-lg { width: 42px; height: 42px; font-size: 14px; }
+.avatar-xl { width: 84px; height: 84px; font-size: 26px; }
+
+/* An uploaded picture fills the same box the initials occupy, so swapping
+   between the two never reflows the row around it. */
+.avatar img {
+    width: 100%;
+    height: 100%;
+    object-fit: cover;
+    border-radius: inherit;
+}
+
+.avatar-upload {
+    display: flex;
+    align-items: center;
+    gap: 18px;
+    flex-wrap: wrap;
+}
+
+.avatar-upload-actions {
+    display: flex;
+    align-items: flex-start;
+    gap: 9px;
+    flex-wrap: wrap;
+}
+
+/* ------------------------------------------------------------ categories */
+.cat-thumb {
+    display: grid;
+    place-items: center;
+    width: 42px;
+    height: 42px;
+    flex: none;
+    overflow: hidden;
+    background: var(--border);
+    color: var(--muted);
+    font-size: 13px;
+    font-weight: 700;
+    text-transform: uppercase;
+}
+
+.cat-thumb img { width: 100%; height: 100%; object-fit: cover; }
+
+/*
+ | The status badge is the button. Styled to read as a badge rather than a
+ | control, because the row is a table and a row of real buttons would shout
+ | louder than the data.
+ */
+.status-toggle {
+    display: inline-flex;
+    align-items: center;
+    gap: 6px;
+    padding: 3px 9px;
+    font: inherit;
+    font-size: 11px;
+    font-weight: 650;
+    line-height: 1.5;
+    color: var(--danger);
+    background: var(--danger-soft);
+    border: 1px solid transparent;
+    cursor: pointer;
+    transition: filter .15s, border-color .15s;
+}
+
+.status-toggle .badge-dot { background: currentColor; }
+.status-toggle.is-on { color: var(--success); background: var(--success-soft); }
+.status-toggle:hover { filter: brightness(.95); border-color: currentColor; }
+.status-toggle:focus-visible { outline: 2px solid var(--brand); outline-offset: 1px; }
+.status-toggle:disabled { opacity: .6; cursor: progress; }
+
+/* -------------------------------------------------------------- sliders */
+.slider-thumb {
+    display: grid;
+    place-items: center;
+    width: 58px;
+    height: 38px;
+    flex: none;
+    overflow: hidden;
+    background: var(--border);
+    color: var(--muted);
+}
+
+.slider-thumb img { width: 100%; height: 100%; object-fit: cover; }
+
+/* A labelled block of related fields inside a long modal form. */
+.form-section { margin-top: 22px; }
+.form-section:first-child { margin-top: 0; }
+
+.form-section-title {
+    font-size: 11.5px;
+    font-weight: 700;
+    letter-spacing: .07em;
+    text-transform: uppercase;
+    color: var(--muted);
+    padding-bottom: 8px;
+    margin-bottom: 14px;
+    border-bottom: 1px solid var(--border);
+}
+
+.media-grid {
+    display: grid;
+    grid-template-columns: repeat(auto-fit, minmax(260px, 1fr));
+    gap: 18px;
+}
+
+.media-field { min-width: 0; }
+
+.media-field-head {
+    display: flex;
+    align-items: baseline;
+    justify-content: space-between;
+    gap: 10px;
+    margin-bottom: 7px;
+}
+
+.media-formats {
+    font-size: 10.5px;
+    font-weight: 650;
+    letter-spacing: .05em;
+    color: var(--faint);
+    white-space: nowrap;
+}
+
+/*
+ | The drop zone is a <label> wrapping the file input, so one element is
+ | both the click target and the drop target - no duplicate wiring, and it
+ | stays keyboard reachable through the input itself.
+ */
+.media-dropzone {
+    position: relative;
+    display: grid;
+    place-items: center;
+    min-height: 132px;
+    padding: 14px;
+    background: var(--panel-alt);
+    border: 1px dashed var(--border-strong);
+    cursor: pointer;
+    transition: border-color .15s, background-color .15s;
+}
+
+.media-dropzone:hover { border-color: var(--brand); }
+
+.media-dropzone.is-dragging {
+    border-color: var(--brand);
+    background: var(--brand-soft);
+}
+
+/* Focus lands on the visually hidden input; show it on the zone instead. */
+.media-dropzone:focus-within { outline: 2px solid var(--brand); outline-offset: 2px; }
+
+.media-preview { display: contents; }
+
+.media-preview img,
+.media-preview video {
+    max-width: 100%;
+    /* contain, not cover: artwork must not be cropped to fill the box. */
+    max-height: 190px;
+    object-fit: contain;
+}
+
+.media-empty {
+    display: flex;
+    flex-direction: column;
+    align-items: center;
+    gap: 5px;
+    text-align: center;
+    color: var(--muted);
+}
+
+.media-empty-title { font-size: 12px; font-weight: 600; }
+.media-link { color: var(--brand); text-decoration: underline; }
+
+/* With media in place the empty prompt steps aside. */
+.media-dropzone.has-media .media-empty { display: none; }
+
+.media-actions {
+    display: flex;
+    flex-wrap: wrap;
+    gap: 7px;
+    margin-top: 9px;
+}
+
+.media-actions [hidden] { display: none; }
+
+/* Icon name on the left, what it actually draws on the right. */
+.icon-picker { display: flex; align-items: center; gap: 10px; }
+
+.icon-picker-preview {
+    display: grid;
+    place-items: center;
+    width: 38px;
+    height: 38px;
+    flex: none;
+    background: var(--panel-alt);
+    border: 1px solid var(--border-strong);
+    color: var(--brand);
+}
+
+.icon-picker select { min-width: 0; }
+
+.cat-view { display: flex; gap: 22px; flex-wrap: wrap; }
+
+.cat-view-image {
+    display: grid;
+    place-items: center;
+    width: 190px;
+    height: 150px;
+    flex: none;
+    padding: 8px;
+    background: var(--panel-alt);
+    border: 1px dashed var(--border-strong);
+}
+
+.cat-view-image img { max-width: 100%; max-height: 100%; object-fit: contain; }
+.cat-view-body { flex: 1 1 260px; min-width: 0; }
+
+/* Footer for a form or detail rendered inside a modal. */
+.modal-actions {
+    display: flex;
+    justify-content: flex-end;
+    gap: 9px;
+    margin-top: 20px;
+    padding-top: 16px;
+    border-top: 1px solid var(--border);
+}
+
+/* ------------------------------------------------- presence + security */
+.presence {
+    display: inline-flex;
+    align-items: center;
+    gap: 6px;
+    font-size: 12px;
+    font-weight: 600;
+    color: var(--muted);
+    white-space: nowrap;
+}
+
+.presence-dot {
+    width: 7px;
+    height: 7px;
+    border-radius: 50%;
+    background: var(--faint);
+    flex: none;
+}
+
+.presence.is-online { color: var(--success); }
+
+.presence.is-online .presence-dot {
+    background: var(--success);
+    /* A soft halo, so the live one reads at a glance down a column. */
+    box-shadow: 0 0 0 3px var(--success-soft);
+}
+
+.sec-summary {
+    display: flex;
+    align-items: flex-start;
+    justify-content: space-between;
+    gap: 24px;
+    flex-wrap: wrap;
+    padding: 20px;
+    background: var(--panel);
+    border: 1px solid var(--border);
+}
+
+.sec-identity { display: flex; align-items: flex-start; gap: 16px; min-width: 0; }
+.sec-name { font-size: 16px; font-weight: 650; color: var(--heading); }
+
+.sec-facts {
+    display: grid;
+    grid-template-columns: repeat(auto-fit, minmax(120px, 1fr));
+    gap: 14px 24px;
+    margin: 0;
+    flex: 1 1 320px;
+}
+
+.sec-facts > div { min-width: 0; }
+.sec-facts dt { font-size: 11.5px; color: var(--muted); margin: 0 0 2px; }
+
+.sec-facts dd {
+    margin: 0;
+    font-size: 14px;
+    font-weight: 650;
+    color: var(--heading);
+}
+
+.sec-toolbar {
+    display: flex;
+    justify-content: flex-end;
+    gap: 9px;
+    padding: 12px 20px;
+    background: var(--panel-alt);
+    border: 1px solid var(--border);
+    border-top-width: 0;
+}
+
+/* ---------------------------------------------------------------- tabs */
+/*
+ | Driven by tabs.js. Panels are only hidden once [data-tabs-ready] is set,
+ | so without JavaScript every panel stays on the page and the screen keeps
+ | working as one long scroll.
+ |
+ | The bar is a single scrolling row rather than a wrapping one: wrapping
+ | moves every tab below it whenever a label grows, and the underline stops
+ | reading as one strip. tabs.js builds the .tabs-wrap + arrows around it
+ | and keeps the active tab scrolled into view.
+ */
+.tabs-wrap { position: relative; }
+
+/* Fades marking that the row continues past the edge. Toggled by tabs.js,
+   and never in the way of a click. */
+.tabs-wrap::before,
+.tabs-wrap::after {
+    content: "";
+    position: absolute;
+    top: 0;
+    bottom: 2px;
+    width: 44px;
+    pointer-events: none;
+    opacity: 0;
+    transition: opacity .15s;
+    z-index: 2;
+}
+
+.tabs-wrap::before {
+    left: 1px;
+    background: linear-gradient(to right, var(--panel), transparent);
+}
+
+.tabs-wrap::after {
+    right: 1px;
+    background: linear-gradient(to left, var(--panel), transparent);
+}
+
+.tabs-wrap.can-scroll-start::before,
+.tabs-wrap.can-scroll-end::after { opacity: 1; }
+
+.tabs {
+    display: flex;
+    align-items: stretch;
+    overflow-x: auto;
+    scroll-behavior: smooth;
+    background: var(--panel);
+    border: 1px solid var(--border);
+    border-bottom-width: 0;
+    /* The fades and arrows are the affordance; a scrollbar under the
+       underline would fight with it. */
+    scrollbar-width: none;
+    -ms-overflow-style: none;
+}
+
+.tabs::-webkit-scrollbar { display: none; }
+
+.tab {
+    display: inline-flex;
+    align-items: center;
+    justify-content: center;
+    gap: 9px;
+    /* Few tabs spread to fill the bar; many overflow into a scroll. */
+    flex: 1 0 auto;
+    padding: 14px 22px;
+    border: 0;
+    border-bottom: 2px solid var(--border);
+    background: transparent;
+    color: var(--muted);
+    font: inherit;
+    font-size: 11.5px;
+    font-weight: 700;
+    letter-spacing: .07em;
+    text-transform: uppercase;
+    white-space: nowrap;
+    cursor: pointer;
+    transition: color .15s, border-color .15s, background-color .15s;
+}
+
+.tab:hover { color: var(--heading); background: var(--panel-alt); }
+.tab:focus-visible { outline: 2px solid var(--brand); outline-offset: -3px; }
+
+.tab.is-active {
+    color: var(--heading);
+    border-bottom-color: var(--brand);
+}
+
+.tab.is-active svg { color: var(--brand); }
+
+.tab svg { color: var(--faint); transition: color .15s; }
+
+/* Scroll arrows, shown only while there is something to scroll to. */
+.tabs-nav {
+    position: absolute;
+    top: 0;
+    bottom: 2px;
+    z-index: 3;
+    display: grid;
+    place-items: center;
+    width: 32px;
+    padding: 0;
+    border: 0;
+    background: var(--panel);
+    color: var(--muted);
+    cursor: pointer;
+}
+
+.tabs-nav:hover { color: var(--heading); }
+.tabs-nav:focus-visible { outline: 2px solid var(--brand); outline-offset: -3px; }
+.tabs-nav[hidden] { display: none; }
+
+.tabs-nav.is-prev { left: 1px; box-shadow: 8px 0 10px -6px rgba(16, 24, 40, .16); }
+.tabs-nav.is-next { right: 1px; box-shadow: -8px 0 10px -6px rgba(16, 24, 40, .16); }
+
+[data-tabs-ready] .tab-panel { display: none; }
+[data-tabs-ready] .tab-panel.is-active { display: block; }
+
+/*
+ | Narrow viewports: tighten the tabs and drop the arrows - a touch user
+ | swipes the row, and the arrows would eat a third of the width.
+ */
+@media (max-width: 780px) {
+    .tab {
+        gap: 7px;
+        padding: 12px 14px;
+        font-size: 11px;
+        letter-spacing: .04em;
+    }
+
+    .tabs-nav { display: none; }
+    .tabs-wrap::before, .tabs-wrap::after { width: 28px; }
+}
+
+@media (max-width: 480px) {
+    /* Icon-only would be guesswork with ten similar sections, so the label
+       stays and the row keeps scrolling. */
+    .tab { padding: 11px 12px; font-size: 10.5px; }
+    .tab svg { display: none; }
+}
+
+/* --------------------------------------------------- settings screen */
+/*
+ | Two columns of fields, with textareas and image pickers spanning both.
+ | Same auto-fit behaviour as .form-row, so it collapses to one column on
+ | a narrow viewport without a media query.
+ */
+.settings-grid {
+    display: grid;
+    grid-template-columns: repeat(auto-fit, minmax(240px, 1fr));
+    gap: 0 18px;
+}
+
+.settings-grid .field-full { grid-column: 1 / -1; }
+
+/* No label-above-control split for a checkbox field - .check carries its
+   own label inline - so it needs its own baseline to sit level with the
+   labeled fields around it in the grid. */
+.settings-grid .field-checkbox { display: flex; align-items: center; min-height: 36px; }
+.field-checkbox .check { font-size: 13px; color: var(--text); }
+
+.setting-image {
+    display: flex;
+    align-items: flex-start;
+    gap: 16px;
+    flex-wrap: wrap;
+}
+
+.setting-image-preview {
+    display: grid;
+    place-items: center;
+    width: 160px;
+    height: 82px;
+    padding: 8px;
+    flex: none;
+    background: var(--panel-alt);
+    border: 1px dashed var(--border-strong);
+}
+
+.setting-image-preview img {
+    max-width: 100%;
+    max-height: 100%;
+    /* contain, not cover: a logo must not be cropped to fill the box. */
+    object-fit: contain;
+}
+
+.setting-image-controls {
+    display: flex;
+    flex-direction: column;
+    align-items: flex-start;
+    gap: 7px;
+    min-width: 0;
+}
+
+.setting-image input[type="file"],
+.avatar-upload input[type="file"] {
+    width: auto;
+    max-width: 100%;
+    padding: 6px 9px;
+    font-size: 12px;
+    color: var(--muted);
+    background: var(--panel);
+    border: 1px solid var(--border-strong);
+    cursor: pointer;
+}
+
+.setting-image input[type="file"]::file-selector-button,
+.avatar-upload input[type="file"]::file-selector-button {
+    margin-right: 9px;
+    padding: 4px 10px;
+    font: inherit;
+    font-size: 11.5px;
+    font-weight: 600;
+    color: var(--text);
+    background: var(--panel-alt);
+    border: 1px solid var(--border-strong);
+    cursor: pointer;
+}
+
+.user-cell { display: flex; align-items: center; gap: 10px; }
+.user-cell strong { display: block; color: var(--heading); font-weight: 600; }
+/* Sub-label only — must not reach the .avatar span, which sizes itself. */
+.user-cell > span > span { font-size: 12px; }
+
+.row-actions { display: flex; align-items: center; justify-content: flex-end; gap: 6px; }
+.row-actions .btn-icon { color: var(--muted); }
+.row-actions .btn-icon:hover { color: var(--heading); background: var(--panel-alt); }
+.row-actions .btn-icon.is-danger:hover { color: var(--danger); background: var(--danger-soft); }
+
+/* ---------------------------------------------------------- dropdowns */
+.dropdown { position: relative; }
+
+.dropdown-menu {
+    position: absolute;
+    top: calc(100% + 8px);
+    right: 0;
+    min-width: 208px;
+    /* However it is anchored, a menu stays inside the window. */
+    max-width: calc(100vw - 24px);
+    padding: 6px;
+    background: var(--panel);
+    border: 1px solid var(--border);
+    /* border-radius: var(--radius); */
+    box-shadow: var(--shadow-lg);
+    z-index: 200;
+    opacity: 0;
+    visibility: hidden;
+    transform: translateY(-4px);
+    transition: opacity .15s, transform .15s, visibility .15s;
+}
+
+.dropdown.is-open > .dropdown-menu {
+    opacity: 1;
+    visibility: visible;
+    transform: translateY(0);
+}
+
+/* A trigger sitting at the start of a row hangs its menu from the left
+   instead, so the panel opens into the page rather than off the edge. */
+.dropdown.is-start > .dropdown-menu {
+    left: 0;
+    right: auto;
+}
+
+.dropdown-header {
+    padding: 9px 11px;
+    border-bottom: 1px solid var(--border);
+    margin-bottom: 5px;
+}
+
+.dropdown-item {
+    display: flex;
+    align-items: center;
+    gap: 10px;
+    width: 100%;
+    padding: 7px 10px;
+    border: 0;
+    /* border-radius: var(--radius); */
+    background: transparent;
+    font: inherit;
+    font-size: 12.5px;
+    color: var(--text);
+    text-align: left;
+    cursor: pointer;
+}
+
+.dropdown-item:hover { background: var(--panel-alt); color: var(--heading); }
+.dropdown-item svg { color: var(--muted); }
+.dropdown-item.is-danger { color: var(--danger); }
+.dropdown-item.is-danger svg { color: var(--danger); }
+.dropdown-divider { height: 1px; background: var(--border); margin: 5px 0; }
+
+/* -------------------------------------------------- page header/crumbs */
+.page-header {
+    display: flex;
+    align-items: center;
+    justify-content: space-between;
+    flex-wrap: wrap;
+    gap: 12px;
+    margin-bottom: 22px;
+}
+
+.page-header .page-title { font-size: 18px; }
+.page-header .page-sub { font-size: 13px; color: var(--muted); margin-top: 2px; }
+.page-actions { display: flex; align-items: center; gap: 9px; flex-wrap: wrap; }
+
+.breadcrumb {
+    display: flex;
+    align-items: center;
+    flex-wrap: wrap;
+    gap: 7px;
+    margin: 0;
+    padding: 0;
+    list-style: none;
+    font-size: 12.5px;
+    color: var(--muted);
+}
+
+.breadcrumb li { display: flex; align-items: center; gap: 7px; }
+.breadcrumb li + li::before { content: "/"; color: var(--faint); }
+.breadcrumb a { color: var(--muted); }
+.breadcrumb a:hover { color: var(--brand); }
+.breadcrumb [aria-current="page"] { color: var(--heading); font-weight: 600; }
+
+/* ------------------------------------------------------------- alerts */
+.alert {
+    padding: 11px 14px;
+    /* border-radius: var(--radius); */
+    border: 1px solid transparent;
+    font-size: 13.5px;
+    margin-bottom: 16px;
+}
+
+.alert-success { background: var(--success-soft); border-color: var(--success); color: var(--success); }
+.alert-danger  { background: var(--danger-soft);  border-color: var(--danger);  color: var(--danger); }
+.alert-warning { background: var(--warning-soft); border-color: var(--warning); color: var(--warning); }
+.alert-info    { background: var(--info-soft);    border-color: var(--info);    color: var(--info); }
+
+/* --------------------------------------------------------- empty state */
+.empty {
+    padding: 44px 20px;
+    text-align: center;
+    color: var(--muted);
+}
+
+.empty svg { margin: 0 auto 12px; color: var(--faint); }
+.empty h3 { margin-bottom: 4px; }
+
+/* ------------------------------------------------------ listing tables */
+.list-toolbar {
+    display: flex;
+    align-items: center;
+    justify-content: space-between;
+    flex-wrap: wrap;
+    gap: 12px;
+    padding: 15px 20px;
+    border-bottom: 1px solid var(--border);
+}
+
+.list-search {
+    position: relative;
+    flex: 1 1 240px;
+    max-width: 320px;
+}
+
+.list-search svg {
+    position: absolute;
+    top: 50%;
+    left: 11px;
+    transform: translateY(-50%);
+    color: var(--faint);
+    pointer-events: none;
+}
+
+.list-search input { padding-left: 34px; }
+
+.list-filters {
+    display: flex;
+    align-items: center;
+    gap: 8px;
+    flex-wrap: wrap;
+}
+
+.list-filters select { width: auto; min-width: 130px; }
+
+.list-footer {
+    display: flex;
+    align-items: center;
+    justify-content: space-between;
+    flex-wrap: wrap;
+    gap: 14px;
+    padding: 14px 20px;
+    border-top: 1px solid var(--border);
+}
+
+.per-page {
+    display: flex;
+    align-items: center;
+    gap: 8px;
+    font-size: 12.5px;
+    color: var(--muted);
+}
+
+.per-page label { margin: 0; font-size: 12.5px; font-weight: 600; color: var(--muted); }
+.per-page select { width: auto; min-width: 72px; padding: 6px 9px; font-size: 12.5px; }
+
+/* Selection column + row highlight */
+.table-list .col-check { width: 1%; padding-right: 0; }
+.table-list .col-check input { width: 15px; height: 15px; accent-color: var(--brand); margin: 0; }
+.table-list .col-action { width: 1%; text-align: right; }
+.table-list tbody tr.is-selected td { background: var(--brand-soft); }
+
+.list-ref {
+    font-size: 12.5px;
+    font-variant-numeric: tabular-nums;
+}
+
+.table-list .user-cell a { color: var(--heading); }
+.table-list .user-cell a:hover { color: var(--brand); }
+
+/* Status pill with a leading dot, as used on the listing rows. */
+.badge-dot {
+    width: 6px;
+    height: 6px;
+    /* border-radius: 50%; */
+    background: currentColor;
+    margin-right: 5px;
+}
+
+/* Fragment being replaced by ajax-list.js. Dimmed and inert, but the old
+   rows stay in place so the table does not collapse and jump the page. */
+[data-ajax-list-content] { position: relative; transition: opacity .15s; }
+
+[data-ajax-list-content].is-loading {
+    opacity: .45;
+    pointer-events: none;
+}
+
+[data-ajax-list-content].is-loading::after {
+    content: "";
+    position: absolute;
+    top: 22px;
+    left: 50%;
+    width: 24px;
+    height: 24px;
+    margin-left: -12px;
+    border: 2.5px solid var(--brand);
+    border-right-color: transparent;
+    /* border-radius: 50%; */
+    animation: btn-spin .65s linear infinite;
+    z-index: 5;
+}
+
+/* Row action icons */
+.row-actions {
+    display: flex;
+    align-items: center;
+    gap: 6px;
+    justify-content: flex-end;
+}
+
+.row-actions form { margin: 0; }
+
+.row-actions .btn-icon {
+    width: 32px;
+    height: 32px;
+    /* border-radius: var(--radius); */
+    color: var(--muted);
+}
+
+.row-actions .btn-icon:hover { color: var(--brand); border-color: var(--brand); }
+
+.row-actions .btn-icon.is-danger:hover {
+    color: var(--danger);
+    border-color: var(--danger);
+    background: var(--danger-soft);
+}
+
+/* Revealed by app.js once rows are ticked. */
+.bulk-bar {
+    display: flex;
+    align-items: center;
+    justify-content: space-between;
+    flex-wrap: wrap;
+    gap: 12px;
+    padding: 10px 20px;
+    background: var(--brand-soft);
+    border-bottom: 1px solid var(--border);
+    font-size: 13px;
+    color: var(--heading);
+}
+
+.bulk-bar[hidden] { display: none; }
+.bulk-bar-form { margin: 0; }
+
+@media (max-width: 767.98px) {
+    .list-toolbar, .list-footer { flex-direction: column; align-items: stretch; }
+    .list-search { max-width: none; }
+    .list-filters select { flex: 1 1 auto; }
+}
+
+/* --------------------------------------------------------- pagination */
+.pager {
+    display: flex;
+    align-items: center;
+    justify-content: space-between;
+    flex-wrap: wrap;
+    gap: 12px;
+}
+
+.pager-summary { font-size: 12.5px; color: var(--muted); }
+.pager-summary strong { color: var(--heading); font-weight: 650; }
+
+.pager-list {
+    display: flex;
+    align-items: center;
+    gap: 5px;
+    margin: 0;
+    padding: 0;
+    list-style: none;
+    flex-wrap: wrap;
+}
+
+.pager-link {
+    display: inline-grid;
+    place-items: center;
+    min-width: 34px;
+    height: 34px;
+    padding: 0 10px;
+    border: 1px solid var(--border-strong);
+    /* border-radius: var(--radius); */
+    background: var(--panel);
+    color: var(--text);
+    font-size: 13px;
+    font-weight: 600;
+}
+
+.pager-link:hover { background: var(--panel-alt); color: var(--heading); }
+
+.pager-link.is-current {
+    background: var(--brand);
+    border-color: var(--brand);
+    color: var(--on-brand);
+}
+
+.pager-link.is-disabled { opacity: .45; pointer-events: none; }
+.pager-link.is-dots { border-color: transparent; background: transparent; }
+
+/* ---------------------------------------------------- permission matrix */
+.pmatrix-toolbar {
+    display: flex;
+    align-items: center;
+    justify-content: space-between;
+    flex-wrap: wrap;
+    gap: 12px;
+    margin-bottom: 16px;
+}
+
+.pmatrix-search {
+    position: relative;
+    flex: 1 1 260px;
+    max-width: 420px;
+}
+
+.pmatrix-search svg {
+    position: absolute;
+    top: 50%;
+    left: 11px;
+    transform: translateY(-50%);
+    color: var(--faint);
+    pointer-events: none;
+}
+
+.pmatrix-search input { padding-left: 34px; }
+
+.pmatrix-toolbar-actions {
+    display: flex;
+    align-items: center;
+    gap: 8px;
+    flex-wrap: wrap;
+}
+
+.pmatrix-modules { display: grid; gap: 14px; }
+
+.pmatrix-module {
+    border: 1px solid var(--border);
+    /* border-radius: var(--radius); */
+    overflow: hidden;
+}
+
+.pmatrix-module-head {
+    display: flex;
+    align-items: center;
+    justify-content: space-between;
+    gap: 12px;
+    padding: 11px 15px;
+    background: var(--panel-alt);
+    border-bottom: 1px solid var(--border);
+}
+
+.pmatrix-module-label {
+    font-weight: 650;
+    color: var(--heading);
+}
+
+.pmatrix-module-label svg { color: var(--brand); }
+
+.pmatrix-row {
+    display: grid;
+    grid-template-columns: 210px 1fr;
+    gap: 14px;
+    align-items: start;
+    padding: 11px 15px;
+    border-bottom: 1px solid var(--border);
+}
+
+.pmatrix-row:last-child { border-bottom: 0; }
+.pmatrix-row:hover { background: var(--panel-alt); }
+.pmatrix-row-head { padding-top: 3px; }
+.pmatrix-row-head .check { font-weight: 600; color: var(--text); }
+
+.pmatrix-chips {
+    display: flex;
+    flex-wrap: wrap;
+    gap: 7px;
+}
+
+/* Action toggle rendered as a chip. The native box stays in the DOM for
+   form submission and keyboard/AT support; :has() paints the label. */
+.pmchip {
+    display: inline-flex;
+    align-items: center;
+    gap: 6px;
+    padding: 4px 10px;
+    margin: 0;
+    border: 1px solid var(--border-strong);
+    /* border-radius: 999px; */
+    background: var(--panel);
+    font-size: 12px;
+    font-weight: 600;
+    color: var(--muted);
+    cursor: pointer;
+    user-select: none;
+    transition: background-color .13s, border-color .13s, color .13s;
+}
+
+.pmchip input {
+    width: 13px;
+    height: 13px;
+    margin: 0;
+    cursor: pointer;
+}
+
+.pmchip:hover { border-color: var(--brand); color: var(--heading); }
+
+.pmchip:has(input:checked) {
+    background: var(--brand-soft);
+    border-color: var(--brand);
+    color: var(--brand);
+}
+
+.pmchip:has(input:focus-visible) { outline: 2px solid var(--brand); outline-offset: 2px; }
+.pmchip:has(input:disabled) { opacity: .55; cursor: not-allowed; }
+
+.pmchip.tone-danger:has(input:checked) {
+    background: var(--danger-soft);
+    border-color: var(--danger);
+    color: var(--danger);
+}
+
+.pmchip.tone-success:has(input:checked) {
+    background: var(--success-soft);
+    border-color: var(--success);
+    color: var(--success);
+}
+
+.pmchip.tone-warning:has(input:checked) {
+    background: var(--warning-soft);
+    border-color: var(--warning);
+    color: var(--warning);
+}
+
+.pmchip.tone-info:has(input:checked) {
+    background: var(--info-soft);
+    border-color: var(--info);
+    color: var(--info);
+}
+
+/* Marks an action the subject already gets from a role. */
+.pmchip.is-inherited { border-style: dashed; }
+
+.pmchip-flag {
+    display: inline-grid;
+    place-items: center;
+    width: 14px;
+    height: 14px;
+    /* border-radius: 50%; */
+    background: var(--info-soft);
+    color: var(--info);
+    font-size: 9px;
+    font-weight: 800;
+}
+
+.pmatrix-empty {
+    padding: 40px 20px;
+    text-align: center;
+    color: var(--muted);
+}
+
+.pmatrix-empty svg { margin: 0 auto 10px; color: var(--faint); }
+
+@media (max-width: 767.98px) {
+    .pmatrix-row { grid-template-columns: 1fr; gap: 8px; }
+}
+
+/* -------------------------------------------------------- auth screens */
+.auth-wrap {
+    min-height: 100vh;
+    display: flex;
+    align-items: center;
+    justify-content: center;
+    padding: 24px;
+}
+
+.auth-card {
+    width: 100%;
+    max-width: 410px;
+    padding: 34px;
+    background: var(--panel);
+    border: 1px solid var(--border);
+    /* border-radius: var(--radius); */
+    box-shadow: var(--shadow);
+}
+
+.brand { display: flex; align-items: center; gap: 11px; }
+
+.brand-mark {
+    width: 40px;
+    height: 40px;
+    flex: none;
+    /* border-radius: var(--radius); */
+    background: var(--brand);
+    color: var(--on-brand);
+    display: grid;
+    place-items: center;
+    font-size: 14px;
+    font-weight: 700;
+    letter-spacing: .5px;
+}
+
+/*
+ | With an uploaded Site Logo the box stops being a coloured lettermark and
+ | becomes a frame for the artwork: no brand fill to tint it, and `contain`
+ | so a wide logo is never cropped to fit a square.
+ |
+ | Wider than it is tall, because a logo usually is - but it keeps the same
+ | 40px height, so the header never shifts when one is added or removed.
+ */
+.brand-mark.has-logo {
+    width: auto;
+    min-width: 40px;
+    max-width: 148px;
+    padding: 2px;
+    background: transparent;
+    color: inherit;
+}
+
+.brand-mark.has-logo img {
+    max-width: 100%;
+    max-height: 100%;
+    object-fit: contain;
+}
+
+/* Collapsed to the rail there is no room for a wordmark, so the logo is
+   squared off to the icon column like everything else in it. */
+body.sidebar-collapsed .sidebar .brand-mark.has-logo {
+    width: 40px;
+    max-width: 40px;
+}
+
+.brand-name { font-weight: 650; color: var(--heading); line-height: 1.25; }
+.brand-sub { font-size: 12px; color: var(--muted); }
+
+.auth-card .brand { margin-bottom: 26px; }
+.auth-card .lede { margin: 4px 0 22px; color: var(--muted); font-size: 12.5px; }
+
+.pw-wrap { position: relative; }
+.pw-wrap input { padding-right: 68px; }
+
+.pw-toggle {
+    position: absolute;
+    top: 50%;
+    right: 6px;
+    transform: translateY(-50%);
+    border: 0;
+    background: transparent;
+    color: var(--muted);
+    font: inherit;
+    font-size: 12.5px;
+    font-weight: 600;
+    padding: 6px 8px;
+    /* border-radius: var(--radius); */
+    cursor: pointer;
+}
+
+.pw-toggle:hover { color: var(--heading); }
+.pw-toggle:focus-visible { outline: 2px solid var(--brand); outline-offset: 1px; }
+
+.row-between {
+    display: flex;
+    align-items: center;
+    justify-content: space-between;
+    gap: 12px;
+    margin: 18px 0 20px;
+}
+
+.auth-card .foot {
+    margin-top: 22px;
+    padding-top: 16px;
+    border-top: 1px solid var(--border);
+    text-align: center;
+    color: var(--muted);
+    font-size: 12.5px;
+}
+
+/* ------------------------------------------------------------- modals */
+/*
+ | Driven by modal.js. One root element is reused for every modal, so the
+ | markup below exists once per document however many triggers there are.
+ */
+.modal {
+    position: fixed;
+    inset: 0;
+    /* Above the shell (sidebar/header/drawer top out at 1040 in layout.css)
+       and below the toast stack, so a save still reports itself. */
+    z-index: 1050;
+    display: flex;
+    align-items: flex-start;
+    justify-content: center;
+    padding: 28px 16px;
+    overflow-y: auto;
+    /* Setting only overflow-y implicitly computes overflow-x to auto too
+       (the same mechanism pos.css documents and works around for
+       .pos-side) - without this a modal exactly as wide as the viewport
+       gets a phantom horizontal scrollbar it has nothing to scroll. */
+    overflow-x: hidden;
+}
+
+.modal[hidden] { display: none; }
+
+.modal-backdrop {
+    position: fixed;
+    inset: 0;
+    background: rgba(16, 24, 40, .45);
+    opacity: 0;
+    transition: opacity .18s ease;
+}
+
+.modal.is-open .modal-backdrop { opacity: 1; }
+
+:root[data-theme="dark"] .modal-backdrop { background: rgba(0, 0, 0, .62); }
+
+@media (prefers-color-scheme: dark) {
+    :root:not([data-theme="light"]) .modal-backdrop { background: rgba(0, 0, 0, .62); }
+}
+
+.modal-dialog {
+    position: relative;
+    width: 100%;
+    max-width: 720px;
+    margin: auto;
+    background: var(--panel);
+    border: 1px solid var(--border);
+    box-shadow: var(--shadow-lg);
+    opacity: 0;
+    transform: translateY(-8px);
+    transition: opacity .18s ease, transform .18s ease;
+}
+
+.modal.is-open .modal-dialog { opacity: 1; transform: none; }
+
+.modal-dialog.is-sm { max-width: 460px; }
+.modal-dialog.is-lg { max-width: 960px; }
+
+.modal-head {
+    display: flex;
+    align-items: center;
+    justify-content: space-between;
+    gap: 14px;
+    padding: 15px 20px;
+    border-bottom: 1px solid var(--border);
+    /* Sticky so a long modal keeps its close button reachable. */
+    position: sticky;
+    top: 0;
+    background: var(--panel);
+    z-index: 1;
+}
+
+.modal-title { font-size: 15px; font-weight: 650; color: var(--heading); margin: 0; }
+.modal-sub { font-size: 12px; color: var(--muted); margin-top: 2px; }
+
+/* The close glyph is a bare &times;, so it needs its own size. */
+.modal-head [data-modal-close] { font-size: 20px; line-height: 1; }
+
+.modal-body { padding: 20px; }
+
+/* Cards are the page-level container; inside a modal they are the content. */
+.modal-body > .card {
+    border-left: 0;
+    border-right: 0;
+    box-shadow: none;
+}
+
+.modal-body > .card:first-child { border-top: 0; }
+.modal-body > .card:last-child { border-bottom: 0; }
+.modal-body > .card + .card { margin-top: 0; }
+
+.modal-body > form:first-child > .card:first-child { border-top: 0; }
+.modal-body > form > .card { border-left: 0; border-right: 0; box-shadow: none; }
+.modal-body > form + form > .card { margin-top: 0; }
+
+.modal-loading {
+    display: grid;
+    place-items: center;
+    min-height: 180px;
+    color: var(--muted);
+    font-size: 12.5px;
+}
+
+body.modal-open { overflow: hidden; }
+
+@media (max-width: 640px) {
+    .modal { padding: 0; }
+    .modal-dialog { min-height: 100%; border: 0; }
+}
+
+/* ---------------------------------------------------------------------------
+   Touch targets
+   ---------------------------------------------------------------------------
+
+   Several controls are sized for a mouse pointer: the published/active
+   toggles in a listing come out 25px tall, and the icon buttons in a row's
+   action column are not much better. A cursor lands on those exactly; a
+   thumb does not, and the two that sit side by side in a row are the ones
+   somebody taps by mistake - "hide from the online store" is a click away
+   from "delete".
+
+   Keyed on `pointer: coarse` rather than on width, because the input device
+   is the actual question. A 1280px tablet is touched and a 700px window on a
+   laptop is not, so sizing this by screen width would miss the first and
+   inflate the second. The width query is the fallback for browsers that do
+   not report a pointer.
+
+   44px is the usual recommendation; 36 is what these can take without
+   rebuilding every listing, and it is a great deal better than 25.
+--------------------------------------------------------------------------- */
+
+@media (pointer: coarse), (max-width: 767.98px) {
+    .status-toggle {
+        min-height: 36px;
+        padding: 7px 12px;
+    }
+
+    .btn-icon {
+        min-width: 36px;
+        min-height: 36px;
+    }
+
+    /* Room between them, so the wrong one is not caught on the way past. */
+    .row-actions { gap: 8px; }
+
+    /* A select is tapped to open a native picker - it has to be findable. */
+    select.form-control,
+    .list-filters select {
+        min-height: 38px;
+    }
+}
+
+/* ---------------------------------------------------------------------------
+   Support thread (§2)
+   ---------------------------------------------------------------------------
+
+   A conversation, not a table. The two sides are told apart by the side the
+   message sits on and by its background - never by colour alone, because the
+   one reader who most needs to know which messages are internal is the agent
+   about to paste a refund reference into one.
+
+   Internal notes get a left bar and a warning tint on top of that, so they
+   stay obvious in a long thread and in a screenshot.
+--------------------------------------------------------------------------- */
+
+.support-msg {
+    border: 1px solid var(--border);
+    border-radius: var(--radius);
+    padding: 12px 14px;
+    margin-bottom: 12px;
+    background: var(--bg);
+    max-width: 90%;
+}
+
+/* The restaurant's messages sit left, the desk's right - the arrangement
+   every messaging app has trained people to read without a legend. */
+.support-msg.is-customer { margin-right: auto; }
+
+.support-msg.is-support {
+    margin-left: auto;
+    background: var(--brand-soft);
+    border-color: transparent;
+}
+
+.support-msg.is-internal {
+    background: var(--warning-soft);
+    border-color: transparent;
+    border-left: 3px solid var(--warning);
+}
+
+.support-msg-head {
+    display: flex;
+    flex-wrap: wrap;
+    align-items: center;
+    gap: 8px;
+    margin-bottom: 6px;
+}
+
+.support-msg-head strong {
+    font-size: 13px;
+    color: var(--heading);
+}
+
+.support-msg-body {
+    font-size: 14px;
+    line-height: 1.55;
+    color: var(--text);
+    /* Guests paste logs and order dumps into these. Long unbroken strings
+       must wrap rather than stretch the card off the screen. */
+    overflow-wrap: anywhere;
+}
+
+@media (max-width: 640px) {
+    /* Full width on a phone: 90% plus an alignment margin leaves a column too
+       narrow to read a reference number in. */
+    .support-msg { max-width: 100%; }
+}
+
+/* ===========================================================================
+   Phones and tablets: the list screens
+   ===========================================================================
+
+   The chrome around these screens was already responsive - the sidebar becomes
+   a drawer, the toolbars stack, a modal takes the whole screen. The tables
+   inside them were not, and a table is what most of this application is.
+
+   `.table-wrap` already scrolls sideways, which is the right answer: a list of
+   invoices with eight columns cannot be honestly folded into a phone, and
+   hiding columns loses the one somebody came to read. What was missing is
+   everything around that scroll - room for the columns, a hint that there are
+   more, and controls a thumb can hit.
+   ------------------------------------------------------------------------ */
+
+@media (max-width: 767.98px) {
+    /*
+     | 18px of side padding per cell is 36px per column of nothing. At six
+     | columns that is a whole column's worth of width spent on air, which is
+     | the difference between two columns visible and three.
+     */
+    .table th { padding: 9px 10px; }
+    .table td { padding: 10px 10px; }
+
+    /* Momentum scrolling on iOS, and a scrollbar that does not sit on top of
+       the last row on Android. */
+    .table-wrap {
+        -webkit-overflow-scrolling: touch;
+        scrollbar-width: thin;
+    }
+
+    /*
+     | A hint that the table continues.
+     |
+     | A shadow pinned to the right edge of the scroller, drawn with a local
+     | background attachment so it disappears exactly when the last column
+     | arrives - no script, and it cannot get out of step with the scroll.
+     */
+    .table-wrap {
+        background:
+            linear-gradient(to right, var(--panel) 30%, transparent) left center / 24px 100% no-repeat local,
+            linear-gradient(to left, var(--panel) 30%, transparent) right center / 24px 100% no-repeat local,
+            radial-gradient(farthest-side at 0 50%, rgba(0, 0, 0, .10), transparent) left center / 10px 100% no-repeat scroll,
+            radial-gradient(farthest-side at 100% 50%, rgba(0, 0, 0, .10), transparent) right center / 10px 100% no-repeat scroll;
+    }
+
+    /* Page-level buttons wrap instead of squeezing their labels to two
+       characters and an ellipsis. */
+    .page-actions { flex-wrap: wrap; gap: 8px; }
+    .page-actions .btn { flex: 1 1 auto; justify-content: center; }
+
+    /* A row's own actions are the smallest targets on the screen; on a touch
+       screen they get the 38px they need. */
+    .table-list .col-action .btn {
+        min-width: 38px;
+        min-height: 38px;
+    }
+
+    /* Pagination reads as one centred block rather than two stranded ends. */
+    .pager { justify-content: center; }
+    .pager-summary { width: 100%; text-align: center; }
+}
+
+@media (max-width: 575.98px) {
+    /*
+     | `.form-row` is already `auto-fit, minmax(220px, 1fr)`, so it folds to
+     | one column on its own and is deliberately not touched here. What it
+     | does not do is give the fields room once folded.
+     */
+    .field { margin-bottom: 13px; }
+
+    .card { border-radius: 10px; }
+}
+
+/*
+ | A tablet held sideways is a small desktop and gets the desktop layout; held
+ | upright it is a big phone, and the drawer sidebar at 991.98px already covers
+ | it. Nothing to add - this note is here so the next person does not add a
+ | breakpoint for a case that is already handled.
+ */

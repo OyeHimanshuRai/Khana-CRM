@@ -1,0 +1,440 @@
+/*
+|------------------------------------------------------------------------------
+| Kitchen display (§9)
+|------------------------------------------------------------------------------
+| The one screen in this system that is not read by somebody sitting down. It
+| is on a wall, two metres away, in a room that is hot and bright, and it is
+| glanced at by people whose hands are full. Everything below follows from
+| that: dark, large type, four colours and no decoration.
+|
+| Dark regardless of the theme toggle. The rest of the admin follows whatever
+| the operator picked; this does not, because a white board at this size in a
+| dim kitchen at eleven at night is genuinely hard to look at - and the people
+| reading it are not the people who set the theme.
+*/
+
+.kds {
+    --kds-bg: #12151a;
+    --kds-panel: #1b2029;
+    --kds-panel-2: #232935;
+    --kds-line: #2f3745;
+    --kds-text: #eef2f7;
+    --kds-dim: #93a0b4;
+    --kds-warm: #f0a326;
+    --kds-late: #ef4d4d;
+    --kds-go: #2fbf71;
+
+    background: var(--kds-bg);
+    border-color: var(--kds-line);
+    color: var(--kds-text);
+    padding: 0;
+    overflow: hidden;
+}
+
+/* ------------------------------------------------------------- the toolbar */
+
+.kds-toolbar {
+    background: var(--kds-panel);
+    border-bottom: 1px solid var(--kds-line);
+    gap: 12px;
+}
+
+.kds-tabs {
+    display: flex;
+    flex-wrap: wrap;
+    gap: 6px;
+    flex: 1 1 auto;
+}
+
+.kds-tab {
+    display: inline-flex;
+    align-items: center;
+    padding: 8px 16px;
+    border-radius: 999px;
+    border: 1px solid var(--kds-line);
+    background: var(--kds-panel-2);
+    color: var(--kds-dim);
+    font-size: 15px;
+    font-weight: 600;
+    text-decoration: none;
+    /* Wide enough for a thumb: this is tapped with the side of a hand. */
+    min-height: 40px;
+}
+
+.kds-tab:hover { color: var(--kds-text); }
+
+.kds-tab.is-on {
+    background: var(--kds-text);
+    border-color: var(--kds-text);
+    color: #12151a;
+}
+
+.kds-toolbar select {
+    background: var(--kds-panel-2);
+    border-color: var(--kds-line);
+    color: var(--kds-text);
+}
+
+/* --------------------------------------------------------------- the board */
+
+.kds-board {
+    display: grid;
+    grid-template-columns: repeat(4, minmax(240px, 1fr));
+    gap: 1px;
+    background: var(--kds-line);
+    min-height: 60vh;
+    /* The card clips, so whatever the breakpoints below do not catch - a
+       zoomed browser, a fifth lane one day - scrolls here instead of
+       disappearing off the right-hand edge in silence. */
+    overflow-x: auto;
+}
+
+.kds-col {
+    background: var(--kds-bg);
+    display: flex;
+    flex-direction: column;
+    min-width: 0;
+}
+
+.kds-col-head {
+    display: flex;
+    align-items: center;
+    justify-content: space-between;
+    gap: 8px;
+    padding: 10px 14px;
+    background: var(--kds-panel);
+    border-bottom: 1px solid var(--kds-line);
+    position: sticky;
+    top: 0;
+    z-index: 1;
+}
+
+.kds-col-head h2 {
+    margin: 0;
+    font-size: 13px;
+    font-weight: 700;
+    letter-spacing: .09em;
+    text-transform: uppercase;
+    color: var(--kds-dim);
+}
+
+.kds-col-count {
+    font-size: 13px;
+    font-weight: 700;
+    color: var(--kds-text);
+    background: var(--kds-panel-2);
+    border-radius: 999px;
+    padding: 2px 9px;
+}
+
+.kds-col-body {
+    padding: 10px;
+    display: flex;
+    flex-direction: column;
+    gap: 10px;
+    overflow-y: auto;
+    /* Tall enough to be worth scrolling, short enough that the columns stay
+       side by side rather than one running off the bottom of the wall. */
+    max-height: 72vh;
+}
+
+.kds-col-empty {
+    color: var(--kds-line);
+    text-align: center;
+    margin: 18px 0 0;
+    font-size: 20px;
+}
+
+/* -------------------------------------------------------------- the ticket */
+
+.kds-ticket {
+    background: var(--kds-panel);
+    border: 1px solid var(--kds-line);
+    border-left: 4px solid var(--kds-line);
+    border-radius: 10px;
+    padding: 10px 12px;
+    display: flex;
+    flex-direction: column;
+    gap: 8px;
+}
+
+/*
+ | Two states, not five. A cook needs to know "fine" from "hurry", and a
+ | gradient of ambers teaches everybody to ignore all of them.
+ */
+.kds-ticket.is-warm { border-left-color: var(--kds-warm); }
+
+.kds-ticket.is-late {
+    border-left-color: var(--kds-late);
+    background: linear-gradient(180deg, rgba(239, 77, 77, .13), transparent 60%), var(--kds-panel);
+}
+
+.kds-ticket-head {
+    display: flex;
+    align-items: flex-start;
+    justify-content: space-between;
+    gap: 10px;
+}
+
+.kds-no {
+    display: block;
+    font-size: 22px;
+    font-weight: 800;
+    line-height: 1.1;
+    letter-spacing: -.01em;
+}
+
+.kds-where {
+    display: block;
+    font-size: 13px;
+    color: var(--kds-dim);
+    margin-top: 1px;
+}
+
+.kds-timer {
+    font-variant-numeric: tabular-nums;
+    font-size: 19px;
+    font-weight: 700;
+    color: var(--kds-dim);
+    white-space: nowrap;
+}
+
+.is-warm .kds-timer { color: var(--kds-warm); }
+.is-late .kds-timer { color: var(--kds-late); }
+
+.kds-note {
+    margin: 0;
+    font-size: 13px;
+    color: var(--kds-warm);
+    background: rgba(240, 163, 38, .1);
+    border-radius: 6px;
+    padding: 5px 8px;
+}
+
+/* --------------------------------------------------------------- the lines */
+
+.kds-lines {
+    list-style: none;
+    margin: 0;
+    padding: 0;
+    display: flex;
+    flex-direction: column;
+    gap: 6px;
+}
+
+.kds-line {
+    display: flex;
+    align-items: flex-start;
+    gap: 9px;
+    padding: 5px 0;
+    border-top: 1px solid var(--kds-line);
+}
+
+.kds-line:first-child { border-top: 0; }
+
+/* A line already ahead of its ticket is still shown - the cook has to see it
+   is accounted for - but it steps back so the outstanding work reads first. */
+.kds-line.is-ahead { opacity: .5; }
+
+.kds-qty {
+    flex: 0 0 auto;
+    min-width: 28px;
+    height: 28px;
+    display: inline-flex;
+    align-items: center;
+    justify-content: center;
+    border-radius: 6px;
+    background: var(--kds-panel-2);
+    font-size: 16px;
+    font-weight: 800;
+    font-variant-numeric: tabular-nums;
+}
+
+.kds-what {
+    flex: 1 1 auto;
+    min-width: 0;
+    display: flex;
+    flex-direction: column;
+    gap: 1px;
+}
+
+.kds-dish {
+    font-size: 17px;
+    font-weight: 600;
+    line-height: 1.25;
+}
+
+.kds-mods {
+    font-size: 13px;
+    color: var(--kds-go);
+}
+
+/* A note is the one thing on this card somebody wrote by hand, so it is the
+   one thing that gets a colour of its own. */
+.kds-line-note {
+    font-size: 13px;
+    color: var(--kds-warm);
+    font-weight: 600;
+}
+
+.kds-at {
+    font-size: 11px;
+    letter-spacing: .06em;
+    color: var(--kds-dim);
+    text-transform: uppercase;
+}
+
+.kds-line-state {
+    flex: 0 0 auto;
+    font-size: 11px;
+    letter-spacing: .05em;
+    text-transform: uppercase;
+    color: var(--kds-dim);
+    padding-top: 6px;
+}
+
+.kds-line-bump {
+    flex: 0 0 auto;
+    width: 32px;
+    height: 32px;
+    display: inline-flex;
+    align-items: center;
+    justify-content: center;
+    border-radius: 8px;
+    border: 1px solid var(--kds-line);
+    background: var(--kds-panel-2);
+    color: var(--kds-dim);
+    cursor: pointer;
+}
+
+.kds-line-bump:hover {
+    color: var(--kds-text);
+    border-color: var(--kds-dim);
+}
+
+.kds-elsewhere {
+    margin: 0;
+    font-size: 12px;
+    color: var(--kds-dim);
+    border-top: 1px dashed var(--kds-line);
+    padding-top: 6px;
+}
+
+/* ------------------------------------------------------------- the actions */
+
+.kds-ticket-foot {
+    display: flex;
+    align-items: center;
+    gap: 8px;
+}
+
+.kds-bump-form { flex: 1 1 auto; }
+
+/*
+ | The only large control on the card, because it is the only one anybody
+ | presses in a hurry. Everything else is an icon in the corner on purpose.
+ */
+.kds-bump {
+    width: 100%;
+    min-height: 44px;
+    border: 0;
+    border-radius: 8px;
+    background: var(--kds-go);
+    color: #06210f;
+    font-size: 16px;
+    font-weight: 800;
+    letter-spacing: .01em;
+    cursor: pointer;
+}
+
+.kds-bump:hover { filter: brightness(1.08); }
+.kds-bump:active { transform: translateY(1px); }
+
+.kds-ticket-extras {
+    display: flex;
+    gap: 4px;
+}
+
+.kds-extra {
+    width: 34px;
+    height: 34px;
+    display: inline-flex;
+    align-items: center;
+    justify-content: center;
+    border-radius: 8px;
+    border: 1px solid var(--kds-line);
+    color: var(--kds-dim);
+    text-decoration: none;
+}
+
+.kds-extra:hover { color: var(--kds-text); border-color: var(--kds-dim); }
+
+/* ---------------------------------------------------------------- the rest */
+
+.kds-empty {
+    grid-column: 1 / -1;
+    padding: 64px 24px;
+    text-align: center;
+    color: var(--kds-dim);
+}
+
+.kds-empty h2 {
+    margin: 12px 0 4px;
+    font-size: 22px;
+    color: var(--kds-text);
+}
+
+.kds-empty p { margin: 0; font-size: 15px; }
+
+/* The refresh is not a page load and must not look like one: a spinner every
+   seven seconds on a wall screen is a strobe. */
+.kds [data-ajax-list-content].is-loading { opacity: 1; }
+
+.kds-counts .stat.is-late .stat-value { color: var(--danger); }
+
+/* --------------------------------------------------------------- full screen */
+
+/*
+ | In fullscreen the card is the whole viewport, so it drops the chrome it
+ | borrowed from the admin shell and the columns get the height back.
+ */
+.kds:fullscreen {
+    border-radius: 0;
+    border: 0;
+}
+
+.kds:fullscreen .kds-col-body { max-height: calc(100vh - 128px); }
+
+/* ------------------------------------------------------------------ narrow */
+
+/* Four lanes need 4*240 + 3px of gap, and the board only gets the viewport
+   less the 252px sidebar, 30px of content padding, the card's borders and a
+   scrollbar. From here down that no longer fits, so READY wraps onto a second
+   row where it can still be read, rather than hanging off the edge of a
+   landscape tablet - which is exactly what a wall screen is. */
+@media (max-width: 1280px) {
+    .kds-board { grid-template-columns: repeat(3, minmax(220px, 1fr)); }
+}
+
+/*
+ | Three lanes and four columns leaves two cells empty, and an empty cell is
+ | not blank here - the board draws its dividers by showing its own background
+ | through a 1px gap, so it renders as a slab of line colour two thirds the
+ | width of the board. READY takes the whole of the second row instead.
+ |
+ | Bounded at both ends on purpose: at two lanes the four columns already fill
+ | both rows exactly, and spanning the last one there would put the hole back
+ | one row higher.
+ */
+@media (min-width: 1101px) and (max-width: 1280px) {
+    .kds-board > .kds-col:nth-child(4):last-child { grid-column: 1 / -1; }
+}
+
+@media (max-width: 1100px) {
+    .kds-board { grid-template-columns: repeat(2, minmax(220px, 1fr)); }
+}
+
+@media (max-width: 640px) {
+    .kds-board { grid-template-columns: 1fr; }
+    .kds-col-body { max-height: none; }
+}

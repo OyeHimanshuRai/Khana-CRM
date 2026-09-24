@@ -1,0 +1,740 @@
+/* ---------------------------------------------------------------------------
+   The guest's page: what a phone shows after scanning a table sticker.
+
+   Standalone, like the print sheet - it shares nothing with the admin theme,
+   because this is the one screen in the product that a customer sees and it
+   should not inherit decisions made for a desk.
+
+   Mobile-first and mobile-only in practice (§14). It reads fine on a laptop,
+   but nothing here is designed for one.
+--------------------------------------------------------------------------- */
+
+:root {
+    --t-brand: #f97316;
+    --t-bg: #f8fafc;
+    --t-panel: #ffffff;
+    --t-ink: #0f172a;
+    --t-muted: #64748b;
+    --t-line: #e2e8f0;
+    --t-ok: #16a34a;
+    --t-radius: 14px;
+}
+
+@media (prefers-color-scheme: dark) {
+    :root {
+        --t-bg: #0b1220;
+        --t-panel: #111a2b;
+        --t-ink: #e8eefc;
+        --t-muted: #93a3bd;
+        --t-line: #1f2b41;
+    }
+}
+
+* { box-sizing: border-box; }
+
+.t-body {
+    margin: 0;
+    background: var(--t-bg);
+    color: var(--t-ink);
+    font: 16px/1.5 system-ui, -apple-system, "Segoe UI", Roboto, Arial, sans-serif;
+    /* Keeps content clear of a notch and of the home indicator. */
+    padding: env(safe-area-inset-top) env(safe-area-inset-right)
+             env(safe-area-inset-bottom) env(safe-area-inset-left);
+    -webkit-text-size-adjust: 100%;
+}
+
+.t-shell {
+    max-width: 520px;
+    margin: 0 auto;
+    padding: 20px 16px 40px;
+}
+
+/* ---------------------------------------------------------------- header */
+
+.t-head {
+    text-align: center;
+    padding: 8px 0 18px;
+}
+
+.t-head-brand {
+    font-size: 13px;
+    font-weight: 600;
+    letter-spacing: .06em;
+    text-transform: uppercase;
+    color: var(--t-brand);
+}
+
+.t-head-table {
+    margin: 6px 0 0;
+    font-size: 28px;
+    line-height: 1.15;
+    font-weight: 800;
+}
+
+.t-head-area {
+    margin: 2px 0 0;
+    font-size: 14px;
+    color: var(--t-muted);
+}
+
+/* ----------------------------------------------------------------- cards */
+
+.t-card {
+    background: var(--t-panel);
+    border: 1px solid var(--t-line);
+    border-radius: var(--t-radius);
+    padding: 16px;
+    margin-bottom: 14px;
+}
+
+.t-seated {
+    display: flex;
+    align-items: center;
+    gap: 9px;
+    font-weight: 600;
+}
+
+.t-dot {
+    width: 9px;
+    height: 9px;
+    border-radius: 50%;
+    background: var(--t-ok);
+    /* Colour is not the only signal - the words next to it say the same
+       thing, which is the point. */
+    flex: none;
+}
+
+.t-meta {
+    margin: 6px 0 0;
+    font-size: 14px;
+    color: var(--t-muted);
+}
+
+.t-soon h2 {
+    margin: 0 0 6px;
+    font-size: 17px;
+}
+
+.t-soon p {
+    margin: 0;
+    font-size: 15px;
+    color: var(--t-muted);
+}
+
+.t-notice {
+    text-align: center;
+    padding: 28px 18px;
+}
+
+.t-notice h1 {
+    margin: 0 0 8px;
+    font-size: 20px;
+}
+
+.t-notice p {
+    margin: 0;
+    color: var(--t-muted);
+}
+
+/* ------------------------------------------------------------- the card */
+
+/* Category chips. Sticky, because a card of ninety dishes is unusable on a
+   phone without a way back to the top of the sections. */
+.t-nav {
+    position: sticky;
+    top: 0;
+    z-index: 5;
+    display: flex;
+    gap: 8px;
+    overflow-x: auto;
+    padding: 10px 0;
+    margin-bottom: 4px;
+    background: var(--t-bg);
+    /* The scrollbar is noise on a touch device and the row is swipeable. */
+    scrollbar-width: none;
+}
+
+.t-nav::-webkit-scrollbar { display: none; }
+
+.t-chip {
+    flex: none;
+    padding: 7px 13px;
+    border: 1px solid var(--t-line);
+    border-radius: 999px;
+    background: var(--t-panel);
+    color: var(--t-ink);
+    font-size: 13px;
+    font-weight: 600;
+    text-decoration: none;
+    white-space: nowrap;
+}
+
+.t-section {
+    /* Clears the sticky chip row when a chip is tapped. */
+    scroll-margin-top: 58px;
+    margin-bottom: 22px;
+}
+
+.t-section-title {
+    margin: 14px 0 8px;
+    font-size: 19px;
+    font-weight: 800;
+}
+
+.t-subsection {
+    margin: 14px 0 6px;
+    font-size: 13px;
+    font-weight: 700;
+    letter-spacing: .04em;
+    text-transform: uppercase;
+    color: var(--t-muted);
+}
+
+.t-dish {
+    display: flex;
+    gap: 12px;
+    align-items: flex-start;
+    justify-content: space-between;
+    padding: 13px 14px;
+    margin-bottom: 10px;
+    background: var(--t-panel);
+    border: 1px solid var(--t-line);
+    border-radius: var(--t-radius);
+}
+
+/* Off the menu: dimmed, and it says why underneath. Dimming alone would
+   just look like a rendering bug. */
+.t-dish.is-off { opacity: .55; }
+
+.t-dish-main { min-width: 0; }
+
+.t-dish-head {
+    display: flex;
+    align-items: center;
+    gap: 7px;
+}
+
+/* The veg/non-veg mark: a square in a square, as it is printed. */
+.t-mark {
+    flex: none;
+    width: 13px;
+    height: 13px;
+    border: 1.5px solid var(--mark);
+    border-radius: 3px;
+    position: relative;
+}
+
+.t-mark::after {
+    content: "";
+    position: absolute;
+    inset: 2.5px;
+    border-radius: 50%;
+    background: var(--mark);
+}
+
+.t-dish-name {
+    margin: 0;
+    font-size: 16px;
+    font-weight: 700;
+    line-height: 1.25;
+}
+
+.t-dish-price {
+    margin-top: 3px;
+    font-size: 15px;
+    font-weight: 700;
+}
+
+.t-dish-note {
+    margin: 5px 0 0;
+    font-size: 13px;
+    color: var(--t-muted);
+}
+
+.t-dish-tags {
+    display: flex;
+    flex-wrap: wrap;
+    gap: 5px;
+    margin-top: 7px;
+}
+
+.t-tag {
+    font-size: 11px;
+    padding: 3px 8px;
+    border-radius: 999px;
+    background: var(--t-bg);
+    border: 1px solid var(--t-line);
+    color: var(--t-muted);
+}
+
+.t-dish-sizes {
+    display: flex;
+    flex-wrap: wrap;
+    gap: 6px;
+    margin-top: 8px;
+}
+
+.t-size {
+    font-size: 12px;
+    font-weight: 600;
+    padding: 4px 9px;
+    border-radius: 8px;
+    border: 1px solid var(--t-line);
+}
+
+.t-size.is-off {
+    opacity: .5;
+    text-decoration: line-through;
+}
+
+.t-dish-addons {
+    margin: 7px 0 0;
+    font-size: 12px;
+    color: var(--t-muted);
+}
+
+.t-dish-off {
+    margin: 7px 0 0;
+    font-size: 12px;
+    font-weight: 700;
+    color: var(--t-ink);
+}
+
+.t-dish-img {
+    flex: none;
+    width: 88px;
+    height: 88px;
+    object-fit: cover;
+    border-radius: 10px;
+    background: var(--t-bg);
+}
+
+/* ------------------------------------------------------- ordering */
+
+/* Every tap target on this page is at least 44px, because it is used
+   one-handed, standing, by somebody holding a menu in the other hand. */
+.t-add { margin-top: 10px; }
+
+.t-add-btn {
+    display: inline-block;
+    min-height: 40px;
+    padding: 9px 18px;
+    border: 0;
+    border-radius: 10px;
+    background: var(--t-brand);
+    color: #fff;
+    font: inherit;
+    font-weight: 700;
+    text-decoration: none;
+    cursor: pointer;
+}
+
+/* The <summary> that opens the choices. list-style:none on both selectors
+   because Safari uses the ::-webkit-details-marker pseudo and nothing else
+   does. */
+.t-add-btn-open { list-style: none; }
+.t-add-btn-open::-webkit-details-marker { display: none; }
+
+.t-choices[open] > .t-add-btn-open {
+    background: transparent;
+    color: var(--t-brand);
+    border: 1px solid var(--t-brand);
+    padding: 8px 17px;
+}
+
+.t-group {
+    margin-top: 12px;
+    padding: 0;
+    border: 0;
+}
+
+.t-group-title {
+    display: block;
+    padding: 0;
+    font-size: 13px;
+    font-weight: 700;
+    margin-bottom: 5px;
+}
+
+.t-group-rule {
+    font-weight: 500;
+    color: var(--t-muted);
+    margin-left: 6px;
+}
+
+.t-group-hint {
+    margin: 0 0 6px;
+    font-size: 12px;
+    color: var(--t-muted);
+}
+
+.t-opt {
+    display: flex;
+    align-items: center;
+    gap: 9px;
+    min-height: 40px;
+    padding: 7px 2px;
+    font-size: 14px;
+    cursor: pointer;
+}
+
+.t-opt.is-off { opacity: .5; cursor: not-allowed; }
+
+.t-opt input { width: 19px; height: 19px; flex: none; }
+
+.t-opt-name { flex: 1; }
+
+.t-opt-price { font-weight: 600; white-space: nowrap; }
+
+.t-opt-off {
+    font-size: 11px;
+    color: var(--t-muted);
+    white-space: nowrap;
+}
+
+.t-input,
+.t-qty {
+    width: 100%;
+    min-height: 40px;
+    padding: 9px 11px;
+    border: 1px solid var(--t-line);
+    border-radius: 9px;
+    background: var(--t-panel);
+    color: var(--t-ink);
+    /* 16px or iOS zooms the whole page when the field is focused. */
+    font: inherit;
+    font-size: 16px;
+}
+
+.t-qty { width: 76px; text-align: center; }
+
+.t-add-row {
+    display: flex;
+    align-items: center;
+    gap: 10px;
+    margin-top: 14px;
+}
+
+/* ----------------------------------------------------------- lines */
+
+.t-line {
+    display: flex;
+    gap: 12px;
+    justify-content: space-between;
+    padding: 12px 0;
+    border-bottom: 1px solid var(--t-line);
+}
+
+.t-line:last-of-type { border-bottom: 0; }
+
+.t-line.is-off { opacity: .6; }
+
+.t-line-main { min-width: 0; }
+
+.t-line-name { font-weight: 600; }
+
+.t-line-opt,
+.t-line-note {
+    font-size: 12px;
+    color: var(--t-muted);
+    margin-top: 2px;
+}
+
+.t-line-note { font-style: italic; }
+
+.t-line-off {
+    font-size: 12px;
+    font-weight: 700;
+    margin-top: 4px;
+}
+
+.t-line-side {
+    flex: none;
+    text-align: right;
+    display: flex;
+    flex-direction: column;
+    align-items: flex-end;
+    gap: 6px;
+}
+
+.t-line-total { font-weight: 700; white-space: nowrap; }
+
+.t-line-qty { display: flex; gap: 6px; }
+
+.t-line-btn {
+    min-height: 34px;
+    padding: 6px 10px;
+    border: 1px solid var(--t-line);
+    border-radius: 8px;
+    background: var(--t-panel);
+    color: var(--t-ink);
+    font: inherit;
+    font-size: 12px;
+    cursor: pointer;
+}
+
+.t-line-btn.is-danger { color: #b91c1c; border-color: #fca5a5; }
+
+.t-total {
+    display: flex;
+    justify-content: space-between;
+    align-items: baseline;
+    padding-top: 13px;
+    margin-top: 6px;
+    border-top: 2px solid var(--t-line);
+    font-size: 17px;
+}
+
+.t-total-note {
+    margin: 8px 0 0;
+    font-size: 12px;
+    color: var(--t-muted);
+}
+
+.t-send {
+    width: 100%;
+    min-height: 50px;
+    margin-top: 14px;
+    border: 0;
+    border-radius: 12px;
+    background: var(--t-brand);
+    color: #fff;
+    font: inherit;
+    font-size: 16px;
+    font-weight: 800;
+    cursor: pointer;
+}
+
+.t-send:disabled { opacity: .5; cursor: not-allowed; }
+
+/* ---------------------------------------------------------- orders */
+
+.t-order-head {
+    display: flex;
+    justify-content: space-between;
+    align-items: flex-start;
+    gap: 10px;
+    padding-bottom: 8px;
+    border-bottom: 1px solid var(--t-line);
+}
+
+.t-order-no { font-weight: 800; }
+
+.t-order-time { font-size: 12px; color: var(--t-muted); }
+
+/* The stage a ticket has reached. Colour plus the word, never colour on
+   its own. */
+.t-stage {
+    flex: none;
+    font-size: 12px;
+    font-weight: 700;
+    padding: 5px 10px;
+    border-radius: 999px;
+    background: var(--t-bg);
+    border: 1px solid var(--t-line);
+}
+
+.t-stage.is-pending   { border-color: #f59e0b; color: #b45309; }
+.t-stage.is-confirmed { border-color: #3b82f6; color: #1d4ed8; }
+.t-stage.is-preparing { border-color: #8b5cf6; color: #6d28d9; }
+.t-stage.is-ready     { border-color: var(--t-ok); color: var(--t-ok); }
+.t-stage.is-served    { border-color: var(--t-line); color: var(--t-muted); }
+.t-stage.is-cancelled { border-color: #fca5a5; color: #b91c1c; }
+
+/* ----------------------------------------------------------- flash */
+
+.t-flash {
+    padding: 11px 14px;
+    margin-bottom: 12px;
+    border-radius: 10px;
+    border: 1px solid var(--t-ok);
+    background: var(--t-panel);
+    font-size: 14px;
+    font-weight: 600;
+}
+
+.t-flash.is-error { border-color: #b91c1c; color: #b91c1c; }
+
+/* ----------------------------------------------------------- toasts */
+
+/*
+   What the flash says when the page did not reload - see
+   assets/js/table-forms.js. The flash above is still what a guest without
+   JavaScript sees, and neither replaces the other.
+
+   Anchored at the top rather than at the thumb, because the bottom of this
+   page belongs to the cart bar and a message that covers "View order" for
+   four seconds is a message that costs a round.
+*/
+.t-toasts {
+    position: fixed;
+    top: calc(10px + env(safe-area-inset-top));
+    left: 12px;
+    right: 12px;
+    /* Over the cart bar, which is 20. */
+    z-index: 30;
+    display: grid;
+    gap: 8px;
+    max-width: 496px;
+    margin: 0 auto;
+}
+
+.t-toast {
+    padding: 12px 15px;
+    border-radius: 11px;
+    border: 1px solid var(--t-line);
+    border-left-width: 4px;
+    background: var(--t-panel);
+    color: var(--t-ink);
+    font-size: 14px;
+    font-weight: 600;
+    box-shadow: 0 6px 22px rgba(0, 0, 0, .18);
+    cursor: pointer;
+
+    /* Moves in from above rather than fading: a fade on a menu somebody is
+       scrolling reads as part of the scroll, and a toast nobody notices is a
+       toast nobody acts on. */
+    transform: translateY(-12px);
+    opacity: 0;
+    transition: transform .22s ease, opacity .22s ease;
+}
+
+.t-toast.is-in { transform: translateY(0); opacity: 1; }
+
+.t-toast.is-ok { border-left-color: var(--t-ok); }
+.t-toast.is-error { border-left-color: #b91c1c; color: #b91c1c; }
+
+@media (prefers-reduced-motion: reduce) {
+    .t-toast { transition: none; transform: none; }
+}
+
+/* ------------------------------------------------------- cart bar */
+
+.t-bar {
+    position: fixed;
+    /* Clears the home indicator on a notched phone. */
+    left: 12px;
+    right: 12px;
+    bottom: calc(12px + env(safe-area-inset-bottom));
+    z-index: 20;
+    display: flex;
+    align-items: center;
+    justify-content: space-between;
+    gap: 12px;
+    max-width: 496px;
+    margin: 0 auto;
+    min-height: 52px;
+    padding: 12px 18px;
+    border-radius: 13px;
+    background: var(--t-brand);
+    color: #fff;
+    font-weight: 700;
+    text-decoration: none;
+    box-shadow: 0 6px 22px rgba(0, 0, 0, .18);
+}
+
+/* An empty cart renders the bar with `hidden` on it so a script can fill it
+   in and show it. `display: flex` above beats the browser's own rule for
+   [hidden], so it has to be said here or an empty cart shows a bar saying
+   nothing. */
+.t-bar[hidden] { display: none; }
+
+.t-bar-go { font-weight: 800; }
+
+/* The bar floats over the page, so the last section needs room under it or
+   it covers the final dish. */
+.t-shell { padding-bottom: 88px; }
+
+/* ---------------------------------------------------------------- footer */
+
+.t-foot {
+    text-align: center;
+    padding-top: 6px;
+}
+
+.t-foot p {
+    margin: 0;
+    font-size: 13px;
+    color: var(--t-muted);
+}
+
+/* ===========================================================================
+   Bigger screens
+   ===========================================================================
+
+   This page is built for a phone and that does not change here. What changes
+   is what happens on everything else, because "mobile-only in practice" was
+   being read by three audiences it was never drawn for:
+
+     - a restaurant putting the QR menu on a tablet by the door;
+     - a manager checking their own menu on a laptop before printing stickers;
+     - a phone turned sideways, which is a short wide screen, not a big one.
+
+   Nothing below changes the phone layout. Every rule is inside a min-width or
+   an orientation query.
+   ------------------------------------------------------------------------ */
+
+/* ------------------------------------------------------------- tablet -- */
+@media (min-width: 700px) {
+    /* Wider column, but nowhere near full width: a menu line that runs the
+       whole of a 1280px screen is a line nobody can scan. */
+    .t-shell { max-width: 680px; padding: 28px 24px 96px; }
+
+    .t-head { padding: 12px 0 22px; }
+    .t-head-table { font-size: 1.15em; }
+
+    /*
+     | The floating bar follows the column instead of the window.
+     |
+     | Pinned to `left: 12px; right: 12px` it spanned a whole desk monitor for
+     | a two-item cart, which reads as a system bar rather than as this
+     | page's own control.
+     */
+    .t-bar {
+        left: 50%;
+        right: auto;
+        transform: translateX(-50%);
+        width: min(680px, calc(100vw - 24px));
+    }
+}
+
+/* ------------------------------------------------------------ desktop -- */
+@media (min-width: 1000px) {
+    /*
+     | Two columns of dishes, because at this width one column is a narrow
+     | ribbon down the middle of an empty screen. The sections themselves stay
+     | in one flow - a guest reads "Starters" then "Mains", and a masonry of
+     | half-sections would break that order.
+     */
+    .t-shell { max-width: 900px; }
+
+    .t-section {
+        column-count: 2;
+        column-gap: 22px;
+    }
+
+    /* Headings span both columns, so "Starters" still introduces everything
+       under it rather than sitting on top of the left-hand half. */
+    .t-section-title,
+    .t-subsection {
+        column-span: all;
+    }
+
+    /* A dish is one card; splitting its name from its price across a column
+       break is the one thing multicol must never do here. */
+    .t-dish { break-inside: avoid; }
+
+    .t-bar { width: min(900px, calc(100vw - 24px)); }
+}
+
+/* -------------------------------------------------- phone, sideways -- */
+@media (max-height: 480px) and (orientation: landscape) {
+    /*
+     | A sideways phone has about 320px of height. The sticky chip row and the
+     | floating bar together take a third of it, so the chips give up their
+     | stickiness and the bar sits closer in.
+     */
+    .t-nav { position: static; }
+    .t-shell { padding-bottom: 76px; }
+    .t-bar { bottom: calc(8px + env(safe-area-inset-bottom)); padding-top: 8px; padding-bottom: 8px; }
+}

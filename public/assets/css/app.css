@@ -1,0 +1,323 @@
+/*
+| Shared UI styles: toast notifications + AJAX form states.
+| Pairs with public/assets/js/app.js. Every colour falls back to a literal,
+| so this file also works on pages that do not define the admin theme vars.
+*/
+
+/* ---------------------------------------------------------------- toasts */
+.toast-stack {
+    position: fixed;
+    top: 16px;
+    right: 16px;
+    z-index: 9999;
+    display: flex;
+    flex-direction: column;
+    gap: 10px;
+    width: min(360px, calc(100vw - 32px));
+    pointer-events: none;
+}
+
+.toast {
+    pointer-events: auto;
+    position: relative;
+    display: flex;
+    align-items: flex-start;
+    gap: 10px;
+    padding: 12px 12px 12px 14px;
+    /* border-radius: var(--radius); */
+    border: 1px solid var(--border, #e2e8f0);
+    border-left: 4px solid var(--toast-accent, #64748b);
+    background: var(--panel, #ffffff);
+    color: var(--text, #0f172a);
+    box-shadow: 0 8px 24px rgba(15, 23, 42, .14);
+    font-size: 14px;
+    line-height: 1.45;
+    overflow: hidden;
+    opacity: 0;
+    transform: translateX(12px);
+    transition: opacity .22s ease, transform .22s ease;
+}
+
+.toast.is-visible {
+    opacity: 1;
+    transform: translateX(0);
+}
+
+.toast.is-leaving {
+    opacity: 0;
+    transform: translateX(12px);
+}
+
+.toast-success { --toast-accent: #16a34a; }
+.toast-error   { --toast-accent: #dc2626; }
+.toast-warning { --toast-accent: #d97706; }
+.toast-info    { --toast-accent: #2563eb; }
+
+.toast-icon {
+    flex: none;
+    width: 18px;
+    height: 18px;
+    margin-top: 1px;
+    /* border-radius: 50%; */
+    background: var(--toast-accent);
+    color: #fff;
+    font-size: 12px;
+    font-weight: 700;
+    line-height: 18px;
+    text-align: center;
+}
+
+.toast-body { flex: 1 1 auto; min-width: 0; }
+
+.toast-title {
+    font-weight: 650;
+    margin-bottom: 1px;
+}
+
+.toast-message {
+    color: var(--muted, #64748b);
+    overflow-wrap: anywhere;
+}
+
+.toast-message ul {
+    margin: 4px 0 0;
+    padding-left: 18px;
+}
+
+.toast-close {
+    flex: none;
+    border: 0;
+    background: transparent;
+    color: var(--muted, #64748b);
+    font-size: 18px;
+    line-height: 1;
+    padding: 2px 4px;
+    /* border-radius: var(--radius); */
+    cursor: pointer;
+}
+
+.toast-close:hover { color: var(--text, #0f172a); }
+.toast-close:focus-visible { outline: 2px solid var(--toast-accent); outline-offset: 1px; }
+
+.toast-progress {
+    position: absolute;
+    left: 0;
+    bottom: 0;
+    height: 2px;
+    width: 100%;
+    background: var(--toast-accent);
+    transform-origin: left center;
+    animation: toast-countdown linear forwards;
+}
+
+@keyframes toast-countdown {
+    from { transform: scaleX(1); }
+    to   { transform: scaleX(0); }
+}
+
+@media (prefers-reduced-motion: reduce) {
+    .toast { transition: none; }
+    .toast-progress { animation: none; }
+}
+
+/* --------------------------------------------------------- line editor */
+/*
+| The repeating-rows control behind every document with line items.
+| Pairs with public/assets/js/line-items.js.
+*/
+.line-search {
+    position: relative;
+    display: flex;
+    align-items: center;
+    gap: 8px;
+}
+
+.line-search input {
+    flex: 1 1 auto;
+    min-width: 0;
+    width: 100%;
+}
+
+/* The camera trigger scanner.js wires up - see data-scanner-camera. Absent
+   on every screen but POS today, so this only ever sits beside the one
+   input that has a second flex child. */
+.scanner-camera-btn {
+    flex: none;
+    height: 46px;
+    width: 46px;
+    padding: 0;
+    justify-content: center;
+}
+
+/*
+| The same action as .scanner-camera-btn, sized for a thumb. Hidden by
+| default and swapped in for the icon on a phone (see pos.css) - a camera is
+| the exception on a counter screen and the rule on a handset, and one
+| button cannot be both without reading as clutter on the desk.
+|
+| Not display:none here: it must stay reachable for a screen reader on the
+| breakpoint that shows it, and pos.css is where that decision is made.
+*/
+.scanner-camera-cta {
+    display: none;
+    width: 100%;
+    margin-top: 10px;
+    height: 46px;
+    gap: 8px;
+    justify-content: center;
+    font-size: 15px;
+}
+
+/* The picker. Absolutely placed so adding a row never shifts the page
+   under a cashier's hands mid-scan. */
+.line-results {
+    position: absolute;
+    z-index: 40;
+    top: calc(100% + 4px);
+    left: 0;
+    right: 0;
+    max-height: 320px;
+    overflow-y: auto;
+    background: var(--panel, #fff);
+    border: 1px solid var(--border, #e2e8f0);
+    box-shadow: 0 10px 28px rgba(15, 23, 42, .14);
+}
+
+.line-result {
+    display: grid;
+    grid-template-columns: 1fr auto;
+    grid-template-areas: "name price" "meta stock";
+    gap: 1px 12px;
+    width: 100%;
+    padding: 9px 12px;
+    border: 0;
+    border-bottom: 1px solid var(--border, #e2e8f0);
+    background: transparent;
+    color: var(--text, #0f172a);
+    text-align: left;
+    font-size: 13.5px;
+    cursor: pointer;
+}
+
+.line-result:last-child { border-bottom: 0; }
+.line-result:hover,
+.line-result:focus-visible { background: var(--panel-alt, #f1f5f9); }
+
+.line-result.is-empty {
+    display: block;
+    color: var(--muted, #64748b);
+    cursor: default;
+}
+
+.line-result-name  { grid-area: name; font-weight: 600; }
+.line-result-meta  { grid-area: meta; font-size: 11.5px; color: var(--muted, #64748b); }
+.line-result-price { grid-area: price; font-weight: 600; white-space: nowrap; }
+
+.line-result-stock {
+    grid-area: stock;
+    font-size: 11.5px;
+    color: var(--muted, #64748b);
+    text-align: right;
+    white-space: nowrap;
+}
+
+.line-result-stock.is-out { color: var(--danger, #dc2626); }
+
+/* A quantity bumped by a repeat scan, so the eye catches which row moved. */
+@keyframes line-flash {
+    from { background: var(--brand-soft, #dbeafe); }
+    to   { background: transparent; }
+}
+
+[data-line-row].is-flash > td { animation: line-flash .45s ease-out; }
+
+[data-line-row] input[type="number"] { text-align: right; }
+
+/* ----------------------------------------------------------- reports */
+
+.report-card {
+    display: block;
+    text-decoration: none;
+    color: inherit;
+    transition: border-color .14s, transform .14s;
+}
+
+.report-card:hover {
+    border-color: var(--brand, #2563eb);
+    transform: translateY(-1px);
+}
+
+/*
+| Printing a report is the browser's job. A server-rendered PDF would be a
+| dependency and a font-embedding problem for something every browser
+| already does from the page - so the screen simply gets out of the way.
+*/
+@media print {
+    .sidebar,
+    .sidebar-backdrop,
+    .header,
+    .app-footer,
+    .no-print,
+    .page-actions,
+    .list-toolbar,
+    .list-footer,
+    .toast-stack { display: none !important; }
+
+    .app-main { margin: 0 !important; }
+    .app-content { padding: 0 !important; }
+
+    .card {
+        border: 0 !important;
+        box-shadow: none !important;
+        break-inside: avoid;
+    }
+
+    .table th,
+    .table td { padding: 4px 6px !important; font-size: 11px !important; }
+
+    body { background: #fff !important; }
+}
+
+/* ------------------------------------------------- ajax form validation */
+.is-invalid {
+    border-color: var(--danger, #dc2626) !important;
+}
+
+.is-invalid:focus {
+    box-shadow: 0 0 0 3px rgba(220, 38, 38, .28) !important;
+}
+
+/* Server-rendered errors use .field-error; JS-injected ones match it. */
+.field-error {
+    display: block;
+    margin-top: 6px;
+    font-size: 12.5px;
+    color: var(--danger, #dc2626);
+}
+
+/* Submit button while a request is in flight. */
+.is-busy {
+    position: relative;
+    cursor: progress;
+    opacity: .75;
+}
+
+.is-busy .btn-label { visibility: hidden; }
+
+.is-busy::after {
+    content: "";
+    position: absolute;
+    top: 50%;
+    left: 50%;
+    width: 16px;
+    height: 16px;
+    margin: -8px 0 0 -8px;
+    border: 2px solid currentColor;
+    border-right-color: transparent;
+    /* border-radius: 50%; */
+    animation: btn-spin .6s linear infinite;
+}
+
+@keyframes btn-spin {
+    to { transform: rotate(360deg); }
+}

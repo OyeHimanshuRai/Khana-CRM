@@ -1,0 +1,193 @@
+/* ---------------------------------------------------------------------------
+   The floor plan (§7).
+
+   One absolutely-positioned tile per table on a percentage grid, so the same
+   arrangement reads correctly on a counter monitor and on a tablet. Nothing
+   here is sized in pixels except the tile itself, which has to stay
+   thumb-sized whatever the canvas does.
+
+   Colour carries the status and so does the label underneath it. A plan that
+   only says "occupied" in orange is unreadable to about one man in twelve,
+   and this one is read across a room in a hurry.
+--------------------------------------------------------------------------- */
+
+.floor-plan {
+    position: relative;
+    width: 100%;
+    /* Tall enough to arrange a real room in, and it grows with the viewport
+       rather than being a fixed canvas somebody has to scroll. */
+    height: clamp(360px, 58vh, 620px);
+    margin: 0;
+    padding: 0;
+    overflow: hidden;
+    background:
+        linear-gradient(var(--border) 1px, transparent 1px) 0 0 / 40px 40px,
+        linear-gradient(90deg, var(--border) 1px, transparent 1px) 0 0 / 40px 40px,
+        var(--panel-alt);
+    border-top: 1px solid var(--border);
+    /* The grid is a placement aid, not decoration - kept faint so the tiles
+       stay the thing the eye lands on. */
+    background-blend-mode: normal;
+}
+
+.floor-plan[data-plan-editable] .plan-table {
+    cursor: grab;
+}
+
+.floor-plan[data-plan-editable] .plan-table.is-dragging {
+    cursor: grabbing;
+    z-index: 20;
+    box-shadow: var(--shadow-lg);
+}
+
+.plan-table {
+    position: absolute;
+    /* left/top are the anchor, so the tile is centred on its coordinate
+       rather than hanging off it to the bottom-right. */
+    transform: translate(-50%, -50%);
+    width: 116px;
+    border-radius: var(--radius);
+    background: var(--panel);
+    border: 1px solid var(--border-strong);
+    box-shadow: var(--shadow-sm);
+    overflow: hidden;
+    /* Only the drop is animated; dragging sets its own position each frame
+       and a transition there would lag the pointer. */
+    transition: box-shadow .15s ease, border-color .15s ease;
+}
+
+.plan-table:hover {
+    box-shadow: var(--shadow);
+}
+
+/* The status stripe. A border rather than a fill, so the text on the tile
+   keeps the panel's own contrast in both themes. */
+.plan-table.is-success { border-color: var(--success); border-top: 4px solid var(--success); }
+.plan-table.is-warning { border-color: var(--warning); border-top: 4px solid var(--warning); }
+.plan-table.is-info    { border-color: var(--info);    border-top: 4px solid var(--info); }
+.plan-table.is-brand   { border-color: var(--brand);   border-top: 4px solid var(--brand); }
+
+.plan-table-face {
+    display: block;
+    width: 100%;
+    padding: 9px 10px 7px;
+    border: 0;
+    background: transparent;
+    color: inherit;
+    font: inherit;
+    text-align: left;
+    cursor: pointer;
+}
+
+.plan-table-face:focus-visible {
+    outline: 2px solid var(--ring);
+    outline-offset: -2px;
+}
+
+.plan-table-name {
+    display: block;
+    font-size: 15px;
+    font-weight: 700;
+    color: var(--heading);
+    line-height: 1.2;
+}
+
+.plan-table-seats {
+    display: block;
+    font-size: 11px;
+    color: var(--muted);
+    margin-top: 1px;
+}
+
+.plan-table-status {
+    display: block;
+    font-size: 11px;
+    font-weight: 600;
+    color: var(--text);
+    margin-top: 3px;
+}
+
+/* How long the party has been sitting. Reads as a number the eye can scan
+   for, which is why it is set apart from the status text above it. */
+.plan-table-since {
+    display: block;
+    font-size: 11px;
+    font-weight: 700;
+    color: var(--muted);
+    margin-top: 2px;
+    font-variant-numeric: tabular-nums;
+}
+
+.plan-table-set {
+    border-top: 1px solid var(--border);
+    background: var(--panel-alt);
+}
+
+.plan-table-set select {
+    width: 100%;
+    border: 0;
+    background: transparent;
+    color: var(--text);
+    font-size: 11px;
+    padding: 5px 8px;
+    cursor: pointer;
+}
+
+.plan-table-set select:focus-visible {
+    outline: 2px solid var(--ring);
+    outline-offset: -2px;
+}
+
+/*
+ | The one control on a floor plan that is actually used mid-service - seat a
+ | party, mark a table for clearing - and at 27px it was the hardest thing on
+ | the screen to hit. A plan is read on a tablet at the host stand far more
+ | often than on a desktop, so the touch size is the one that matters here.
+ */
+@media (pointer: coarse), (max-width: 767.98px) {
+    .plan-table-set select {
+        min-height: 38px;
+        font-size: 12.5px;
+    }
+}
+
+@media (max-width: 575.98px) {
+    .floor-plan {
+        /* A phone cannot show a room's worth of tiles side by side, so the
+           canvas scrolls sideways at a usable tile size rather than shrinking
+           every table to something nobody can read or tap. */
+        overflow-x: auto;
+        height: clamp(320px, 62vh, 520px);
+    }
+
+    .plan-table { width: 100px; }
+}
+
+/*
+ | The bill shortcut on a seated tile.
+ |
+ | Tucked under the status control rather than beside it: a floor manager
+ | scanning the room reads colour and duration, and a third control competing
+ | for the eye on every seated table would make the plan harder to skim than
+ | the list it replaced.
+ */
+.plan-table-bill {
+    display: inline-flex;
+    align-items: center;
+    gap: 4px;
+    margin-top: 4px;
+    padding: 2px 8px;
+    border-radius: 999px;
+    border: 1px solid var(--border);
+    background: var(--panel);
+    color: var(--muted);
+    font-size: 11px;
+    font-weight: 600;
+    text-decoration: none;
+    white-space: nowrap;
+}
+
+.plan-table-bill:hover {
+    color: var(--brand);
+    border-color: var(--brand);
+}

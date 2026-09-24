@@ -1,0 +1,844 @@
+/*
+|------------------------------------------------------------------------------
+| The counter
+|------------------------------------------------------------------------------
+| Scoped under .till, which only the terminal wears, so the rest of the admin
+| keeps its square, dense chrome. Two columns: a menu somebody taps all day,
+| and the bill beside it, which must never scroll out of sight while a queue
+| is forming.
+|
+| Pairs with public/assets/js/pos-menu.js (the grid) and pos.js (the bill).
+| Surfaces and text come from the theme tokens, so both themes work.
+*/
+
+.till {
+    --till-radius: 14px;
+    --till-radius-sm: 10px;
+    --pill-radius: 999px;
+    --track: #eef1f6;
+}
+
+@media (prefers-color-scheme: dark) {
+    :root:where(:not([data-theme="light"])) .till { --track: #222a35; }
+}
+
+:root[data-theme="dark"] .till { --track: #222a35; }
+
+/* ============================================================ the panels */
+
+.till-card,
+.till-menu,
+.till-order,
+.ticket-card {
+    background: var(--panel);
+    border: 1px solid var(--border);
+    /* border-radius: var(--till-radius); */
+    box-shadow: 0 1px 2px rgba(16, 24, 40, .04);
+}
+
+/* ========================================================= recent orders */
+
+.till-recent { margin-bottom: 14px; }
+
+.till-recent-head {
+    display: flex;
+    align-items: center;
+    justify-content: space-between;
+    gap: 12px;
+    margin-bottom: 9px;
+}
+
+.till-recent-title { font-size: 14px; font-weight: 650; color: var(--heading); margin: 0; }
+
+/*
+| A strip that scrolls sideways rather than a grid that wraps: the newest
+| ticket must stay in the same place all shift, and a wrapping grid moves it
+| every time the count changes.
+*/
+.till-recent-strip {
+    display: flex;
+    gap: 10px;
+    overflow-x: auto;
+    padding-bottom: 4px;
+    scrollbar-width: none;
+}
+
+.till-recent-strip::-webkit-scrollbar { height: 0; }
+
+.ticket-card {
+    flex: 0 0 auto;
+    width: 224px;
+    padding: 11px 12px 10px;
+    display: flex;
+    flex-direction: column;
+    gap: 5px;
+    border-top: 3px solid var(--muted);
+}
+
+.ticket-card.is-success { border-top-color: var(--success); }
+.ticket-card.is-warning { border-top-color: var(--warning); }
+.ticket-card.is-danger  { border-top-color: var(--danger); }
+.ticket-card.is-info    { border-top-color: var(--info); }
+
+.ticket-card-top {
+    display: flex;
+    align-items: center;
+    justify-content: space-between;
+    gap: 8px;
+}
+
+.ticket-card-ref {
+    font-size: 11px;
+    font-weight: 700;
+    color: var(--muted);
+    font-variant-numeric: tabular-nums;
+}
+
+.ticket-card-who {
+    font-size: 13.5px;
+    font-weight: 650;
+    color: var(--heading);
+    white-space: nowrap;
+    overflow: hidden;
+    text-overflow: ellipsis;
+}
+
+.ticket-card-meta {
+    display: flex;
+    align-items: center;
+    gap: 5px;
+    font-size: 11.5px;
+    color: var(--muted);
+}
+
+.ticket-card-foot {
+    display: flex;
+    align-items: center;
+    justify-content: space-between;
+    gap: 8px;
+    margin-top: 2px;
+    padding-top: 7px;
+    border-top: 1px dashed var(--border);
+    font-size: 12px;
+    color: var(--heading);
+    font-variant-numeric: tabular-nums;
+}
+
+.ticket-card-age {
+    display: inline-flex;
+    align-items: center;
+    gap: 4px;
+    color: var(--muted);
+    font-size: 11px;
+}
+
+/* ========================================================== the two columns */
+
+/*
+| One column by default; two as soon as the bill can have 300px without
+| squeezing the menu below two dishes.
+|
+| 760px covers a tablet held upright, which is what most of these screens
+| are. The two cases it has to survive are not the same width: at 992px the
+| shell's rail is still there and takes 252px, leaving ~710px to split; at
+| 768px the rail has become a drawer and handed its width back, leaving
+| ~748px. Both fit two columns, which is why one breakpoint serves both -
+| and a till keeps its total beside the menu rather than a screen below it.
+*/
+.till-grid {
+    display: grid;
+    gap: 14px;
+    align-items: start;
+    grid-template-columns: minmax(0, 1fr);
+}
+
+@media (min-width: 760px) {
+    .till-grid { grid-template-columns: minmax(0, 1fr) minmax(300px, 360px); }
+}
+
+@media (min-width: 1500px) {
+    .till-grid { grid-template-columns: minmax(0, 1fr) minmax(360px, 410px); }
+}
+
+/* ================================================================== menu */
+
+/*
+| A container, so the grid inside can be sized by this column's own width
+| rather than by the viewport's. The two are not the same number: at 1024px
+| the shell's rail and the bill beside it take more than half the screen,
+| and a grid that asked the viewport how wide it was would lay one enormous
+| dish card into a 340px column.
+*/
+.till-menu {
+    display: flex;
+    flex-direction: column;
+    min-width: 0;
+    padding: 14px;
+    container-type: inline-size;
+    container-name: menu;
+}
+
+.till-menu-head {
+    display: flex;
+    align-items: flex-start;
+    justify-content: space-between;
+    flex-wrap: wrap;
+    gap: 10px;
+    margin-bottom: 11px;
+}
+
+.till-menu-title h2 { font-size: 15px; font-weight: 650; color: var(--heading); margin: 0; }
+.till-menu-sub { font-size: 11.5px; color: var(--muted); margin: 2px 0 0; }
+
+/* The food mark is the Indian convention, not decoration - see Product. */
+.till-marks { display: flex; flex-wrap: wrap; gap: 6px; }
+
+.mark-btn {
+    display: inline-flex;
+    align-items: center;
+    gap: 6px;
+    padding: 5px 11px;
+    border: 1px solid var(--border);
+    border-radius: var(--pill-radius);
+    background: var(--panel);
+    color: var(--text);
+    font-size: 11.5px;
+    font-weight: 600;
+    cursor: pointer;
+}
+
+.mark-btn:hover { border-color: var(--border-strong); }
+
+/*
+ | A till is a touchscreen far more often than it is a mouse, so these filter
+ | pills are sized for a finger wherever the pointer is coarse - 24px was a
+ | mouse target on a device that has no mouse.
+ */
+@media (pointer: coarse), (max-width: 767.98px) {
+    .mark-btn {
+        min-height: 36px;
+        padding: 7px 13px;
+    }
+}
+
+.mark-btn.is-on {
+    background: var(--brand-soft);
+    border-color: var(--brand);
+    color: var(--brand);
+}
+
+.mark-btn:focus-visible { outline: 2px solid var(--brand); outline-offset: 1px; }
+
+.mark-dot {
+    width: 11px;
+    height: 11px;
+    flex: none;
+    border: 1.5px solid var(--mark, var(--muted));
+    border-radius: 2px;
+    position: relative;
+}
+
+.mark-dot::after {
+    content: "";
+    position: absolute;
+    inset: 2px;
+    border-radius: 50%;
+    background: var(--mark, var(--muted));
+}
+
+.till-search { margin-bottom: 12px; }
+.till-search .line-search { position: relative; }
+
+/* ------------------------------------------------------ category chips */
+
+.till-chips {
+    display: flex;
+    gap: 8px;
+    overflow-x: auto;
+    padding-bottom: 6px;
+    margin-bottom: 12px;
+    scrollbar-width: none;
+}
+
+.till-chips::-webkit-scrollbar { height: 0; }
+
+.chip {
+    flex: 0 0 auto;
+    display: inline-flex;
+    align-items: center;
+    gap: 9px;
+    padding: 7px 14px 7px 7px;
+    border: 1px solid var(--border);
+    border-radius: var(--pill-radius);
+    background: var(--panel);
+    color: var(--text);
+    cursor: pointer;
+    text-align: left;
+}
+
+.chip:hover { border-color: var(--border-strong); }
+
+.chip.is-on {
+    border-color: var(--brand);
+    background: var(--brand-soft);
+}
+
+.chip:focus-visible { outline: 2px solid var(--brand); outline-offset: 1px; }
+
+.chip-face {
+    flex: none;
+    width: 34px;
+    height: 34px;
+    border-radius: 50%;
+    display: grid;
+    place-items: center;
+    object-fit: cover;
+    background: var(--panel-alt);
+    color: var(--muted);
+    font-size: 11.5px;
+    font-weight: 700;
+    overflow: hidden;
+}
+
+.chip.is-on .chip-face { background: var(--brand); color: var(--on-brand); }
+
+.chip-text { font-size: 12.5px; font-weight: 650; color: var(--heading); white-space: nowrap; }
+.chip-text small { display: block; font-size: 10.5px; font-weight: 500; color: var(--muted); }
+
+/* ---------------------------------------------------------- dish cards */
+
+/*
+| The floor on a card's width, stepped up as the column gets wider. auto-fill
+| decides the column count from there, so there is no breakpoint that says
+| "three across" - only how small a dish is allowed to get before it stops
+| being tappable.
+*/
+.dish-grid {
+    display: grid;
+    grid-template-columns: repeat(auto-fill, minmax(140px, 1fr));
+    gap: 12px;
+}
+
+@container menu (min-width: 480px) {
+    .dish-grid { grid-template-columns: repeat(auto-fill, minmax(156px, 1fr)); }
+}
+
+@container menu (min-width: 700px) {
+    .dish-grid { grid-template-columns: repeat(auto-fill, minmax(170px, 1fr)); }
+}
+
+@container menu (min-width: 1100px) {
+    .dish-grid { grid-template-columns: repeat(auto-fill, minmax(184px, 1fr)); }
+}
+
+.dish {
+    display: flex;
+    flex-direction: column;
+    min-width: 0;
+    border: 1px solid var(--border);
+    /* border-radius: var(--till-radius-sm); */
+    background: var(--panel);
+    overflow: hidden;
+    cursor: pointer;
+    transition: border-color .14s ease, box-shadow .14s ease, transform .14s ease;
+}
+
+.dish:hover {
+    border-color: var(--brand);
+    box-shadow: 0 8px 20px rgba(16, 24, 40, .10);
+    transform: translateY(-2px);
+}
+
+.dish.is-in-cart { border-color: var(--brand); }
+
+/*
+| A filtered-out dish is hidden by the hidden attribute, and the flex above
+| would otherwise beat the browser's own [hidden] rule and leave the whole
+| grid on screen however the filters are set.
+*/
+.dish[hidden] { display: none; }
+
+/* Sold out, off the menu, or outside its serving hours. Still readable -
+   a cashier asked for it, and "why not?" deserves an answer. */
+.dish.is-off { opacity: .55; cursor: not-allowed; }
+.dish.is-off:hover { border-color: var(--border); box-shadow: none; transform: none; }
+
+.dish-face {
+    position: relative;
+    display: block;
+    aspect-ratio: 16 / 10;
+    background: var(--panel-alt);
+    overflow: hidden;
+}
+
+.dish-face img {
+    width: 100%;
+    height: 100%;
+    object-fit: cover;
+    display: block;
+}
+
+/*
+| No photo uploaded: the dish still has to be told apart at a glance, so it
+| gets its initials over its own food-type tint rather than a grey box that
+| reads as a failed image.
+*/
+.dish-initials {
+    position: absolute;
+    inset: 0;
+    display: grid;
+    place-items: center;
+    font-size: 26px;
+    font-weight: 700;
+    letter-spacing: .02em;
+    color: var(--mark, var(--muted));
+    background: color-mix(in srgb, var(--mark, #94a3b8) 13%, var(--panel));
+}
+
+.dish-flag {
+    position: absolute;
+    top: 7px;
+    left: 7px;
+    display: inline-flex;
+    align-items: center;
+    gap: 4px;
+    padding: 3px 8px;
+    border-radius: var(--pill-radius);
+    background: var(--brand);
+    color: var(--on-brand);
+    font-size: 10px;
+    font-weight: 700;
+}
+
+.dish-off {
+    position: absolute;
+    inset: auto 0 0;
+    padding: 4px 8px;
+    background: var(--danger);
+    color: #fff;
+    font-size: 10.5px;
+    font-weight: 700;
+    text-align: center;
+}
+
+/* How many of this dish are on the bill - set by pos-menu.js. */
+.dish-count {
+    position: absolute;
+    top: 7px;
+    right: 7px;
+    min-width: 22px;
+    height: 22px;
+    padding: 0 6px;
+    border-radius: var(--pill-radius);
+    display: grid;
+    place-items: center;
+    background: var(--brand);
+    color: var(--on-brand);
+    font-size: 11.5px;
+    font-weight: 700;
+    font-variant-numeric: tabular-nums;
+    box-shadow: 0 0 0 2px var(--panel);
+}
+
+.dish-body {
+    display: flex;
+    flex-direction: column;
+    gap: 3px;
+    padding: 9px 10px 10px;
+    min-width: 0;
+}
+
+.dish-cat {
+    font-size: 10px;
+    font-weight: 700;
+    letter-spacing: .05em;
+    text-transform: uppercase;
+    color: var(--muted);
+    white-space: nowrap;
+    overflow: hidden;
+    text-overflow: ellipsis;
+}
+
+.dish-name {
+    display: flex;
+    align-items: center;
+    gap: 6px;
+    font-size: 13px;
+    font-weight: 650;
+    color: var(--heading);
+    line-height: 1.3;
+    min-height: 34px;
+}
+
+.dish-name .mark-dot { width: 10px; height: 10px; }
+
+.dish-foot {
+    display: flex;
+    align-items: center;
+    justify-content: space-between;
+    gap: 8px;
+    margin-top: 3px;
+}
+
+.dish-price {
+    font-size: 14px;
+    font-weight: 700;
+    color: var(--heading);
+}
+
+/* ------------------------------------------------- the card's stepper */
+/*
+| The +/- on the card drive the cart directly: + is one more of this dish on
+| the bill, - is one fewer, and the number between them is read back from the
+| cart rather than kept here. Two places holding the same count is how a till
+| ends up billing what is not on screen.
+*/
+.dish-step {
+    display: inline-flex;
+    align-items: center;
+    gap: 2px;
+    border: 1px solid var(--border);
+    border-radius: var(--pill-radius);
+    background: var(--panel-alt);
+    padding: 2px;
+}
+
+.dish-step button {
+    width: 24px;
+    height: 24px;
+    display: grid;
+    place-items: center;
+    border: 0;
+    border-radius: 50%;
+    background: transparent;
+    color: var(--text);
+    font-size: 15px;
+    line-height: 1;
+    cursor: pointer;
+}
+
+/*
+ | The two controls the till is tapped on more than anything else.
+ |
+ | 24px is a mouse target, and a counter terminal is a touchscreen - so on a
+ | coarse pointer they get a finger's worth of room. The two sit 2px apart
+ | inside one pill, which is exactly the arrangement where a near miss adds a
+ | dish instead of removing one, so the pill grows with them rather than
+ | packing bigger buttons into the same space.
+ */
+@media (pointer: coarse), (max-width: 767.98px) {
+    .dish-step { gap: 4px; padding: 3px; }
+
+    .dish-step button {
+        width: 34px;
+        height: 34px;
+        font-size: 17px;
+    }
+}
+
+.dish-step button:hover:not(:disabled) { background: var(--brand-soft); color: var(--brand); }
+.dish-step button:disabled { opacity: .4; cursor: default; }
+.dish-step button:focus-visible { outline: 2px solid var(--brand); outline-offset: 1px; }
+
+.dish-step output {
+    min-width: 18px;
+    text-align: center;
+    font-size: 12.5px;
+    font-weight: 700;
+    color: var(--heading);
+    font-variant-numeric: tabular-nums;
+}
+
+.dish-empty {
+    text-align: center;
+    padding: 40px 18px;
+    color: var(--muted);
+}
+
+.dish-empty svg { color: var(--faint); margin-bottom: 8px; }
+.dish-empty h3 { font-size: 14px; font-weight: 650; color: var(--heading); margin: 0 0 3px; }
+.dish-empty p { font-size: 12.5px; margin: 0; }
+
+/* ============================================================== the bill */
+
+.till-order {
+    display: flex;
+    flex-direction: column;
+    min-width: 0;
+    overflow: hidden;
+}
+
+/*
+| Beside the menu, the bill is its own scrolling column and stays put: a
+| total that scrolls out of sight while a queue is forming is the one thing
+| a till must not do. The actions ride the bottom of that column, so the
+| payable and the button are on screen whatever the bill's length.
+|
+| In one-column mode none of this applies - the panel is simply the next
+| thing down the page, and pos.css pins the button to the viewport instead.
+*/
+@media (min-width: 760px) {
+    .till-order {
+        position: sticky;
+        top: 78px;
+        max-height: calc(100vh - 96px);
+        overflow-y: auto;
+        scrollbar-width: thin;
+    }
+
+    .till-actions {
+        position: sticky;
+        bottom: 0;
+        border-top: 1px solid var(--border);
+    }
+}
+
+.till-order-head {
+    display: flex;
+    align-items: center;
+    justify-content: space-between;
+    gap: 10px;
+    padding: 13px 14px;
+    border-bottom: 1px solid var(--border);
+}
+
+.till-order-title { font-size: 14px; font-weight: 650; color: var(--heading); }
+
+.till-order-ref {
+    font-size: 11px;
+    color: var(--muted);
+    font-variant-numeric: tabular-nums;
+    margin-top: 1px;
+}
+
+.till-block { padding: 12px 14px; border-bottom: 1px solid var(--border); }
+
+.till-block-title {
+    font-size: 11px;
+    font-weight: 700;
+    letter-spacing: .05em;
+    text-transform: uppercase;
+    color: var(--muted);
+    margin-bottom: 8px;
+}
+
+.till-fields {
+    display: grid;
+    grid-template-columns: repeat(auto-fit, minmax(130px, 1fr));
+    gap: 10px;
+    margin-top: 10px;
+}
+
+.till-fields .field-full { grid-column: 1 / -1; }
+
+.till-note { font-size: 11px; color: var(--muted); margin: 8px 0 0; line-height: 1.45; }
+
+/* ---------------------------------------------------------- cart lines */
+
+/*
+| No scroll region of its own: the whole bill column already scrolls, and a
+| scrolling list inside a scrolling panel is a trap on a touchscreen - the
+| finger that meant to move the page moves the list instead.
+*/
+.till-lines {
+    display: flex;
+    flex-direction: column;
+    gap: 8px;
+    padding: 12px 14px;
+}
+
+/* An empty list must not hold open a 12px gap above the totals. */
+.till-lines:empty { display: none; }
+
+.till-line {
+    border: 1px solid var(--border);
+    border-radius: var(--till-radius-sm);
+    background: var(--panel-alt);
+    padding: 9px 10px;
+}
+
+.till-line-head {
+    display: flex;
+    align-items: flex-start;
+    justify-content: space-between;
+    gap: 8px;
+}
+
+.till-line-name { min-width: 0; }
+
+.till-line-name strong {
+    display: block;
+    font-size: 12.5px;
+    font-weight: 650;
+    color: var(--heading);
+    line-height: 1.35;
+    overflow-wrap: anywhere;
+}
+
+.till-line-name small { display: block; font-size: 10.5px; color: var(--muted); margin-top: 1px; }
+
+.till-line-foot {
+    display: grid;
+    grid-template-columns: auto minmax(0, 1fr) auto;
+    align-items: center;
+    gap: 8px;
+    margin-top: 8px;
+}
+
+.till-line-rate { height: 32px; font-size: 12.5px; text-align: right; }
+
+.till-line-amount {
+    font-size: 13.5px;
+    font-weight: 700;
+    color: var(--heading);
+    font-variant-numeric: tabular-nums;
+    white-space: nowrap;
+}
+
+.till-line .qty-stepper input[data-line-quantity] { width: 54px; height: 32px; font-size: 12.5px; }
+.till-line .qty-stepper button { width: 27px; }
+
+.till-empty { text-align: center; padding: 26px 18px; color: var(--muted); }
+.till-empty svg { color: var(--faint); margin-bottom: 6px; }
+.till-empty h3 { font-size: 13.5px; font-weight: 650; color: var(--heading); margin: 0 0 3px; }
+.till-empty p { font-size: 12px; margin: 0; line-height: 1.5; }
+
+/* -------------------------------------------------------------- totals */
+
+.till-totals { display: flex; flex-direction: column; margin: 0; }
+
+.till-totals > div {
+    display: flex;
+    align-items: baseline;
+    justify-content: space-between;
+    gap: 12px;
+    padding: 6px 0;
+}
+
+/* Change and On-account are hidden until pos.js has a reason to show them;
+   without this the flex above beats the hidden attribute and both sit there
+   reading zero from the moment the screen loads. */
+.till-totals > div[hidden] { display: none; }
+
+.till-totals dt { font-size: 12.5px; color: var(--muted); }
+
+.till-totals dd {
+    margin: 0;
+    font-size: 13px;
+    font-weight: 650;
+    color: var(--heading);
+    font-variant-numeric: tabular-nums;
+}
+
+.till-totals .is-total {
+    margin-top: 4px;
+    padding-top: 10px;
+    border-top: 1px solid var(--border);
+}
+
+.till-totals .is-total dt { font-size: 13px; font-weight: 650; color: var(--text); }
+.till-totals .is-total dd { font-size: 18px; font-weight: 700; }
+
+/* ------------------------------------------------------------ actions */
+
+.till-actions {
+    padding: 12px 14px;
+    background: var(--panel);
+    display: flex;
+    flex-direction: column;
+    gap: 8px;
+}
+
+.till-actions .pos-complete { width: 100%; justify-content: center; }
+.till-actions-row { display: grid; grid-template-columns: 1fr 1fr; gap: 8px; }
+.till-actions-row .btn { justify-content: center; }
+
+/* The counter's own controls keep the rounded language of its panels. */
+.till .btn { border-radius: 8px; }
+.till .form-control { border-radius: 8px; }
+
+.till .pill {
+    display: inline-flex;
+    align-items: center;
+    gap: 5px;
+    padding: 3px 9px;
+    border-radius: var(--pill-radius);
+    font-size: 11px;
+    font-weight: 650;
+    background: var(--panel-alt);
+    color: var(--muted);
+    white-space: nowrap;
+}
+
+.till .pill.is-success { background: var(--success-soft); color: var(--success); }
+.till .pill.is-warning { background: var(--warning-soft); color: var(--warning); }
+.till .pill.is-danger  { background: var(--danger-soft);  color: var(--danger); }
+.till .pill.is-info    { background: var(--info-soft);    color: var(--info); }
+.till .pill.is-brand   { background: var(--brand-soft);   color: var(--brand); }
+
+/* =========================================================== narrow view */
+
+/* Tablet, portrait: one column, so nothing needs to be pinned or clipped. */
+@media (max-width: 759.98px) {
+    .till-order { max-height: none; }
+    .till-menu-head { align-items: center; }
+}
+
+@media (max-width: 640px) {
+    .till-menu { padding: 12px; }
+    .dish-grid { gap: 10px; }
+    .dish-body { padding: 8px 9px 9px; }
+    .dish-name { font-size: 12.5px; min-height: 0; }
+    .dish-price { font-size: 13px; }
+    .dish-face { aspect-ratio: 4 / 3; }
+
+    .ticket-card { width: 196px; }
+    .till-order-head,
+    .till-block { padding: 11px 12px; }
+    .till-lines { padding: 11px 12px; }
+    .till-actions { padding: 10px 12px; }
+
+    /* One per row: two number boxes side by side on a phone are a mis-tap. */
+    .till-fields { grid-template-columns: minmax(0, 1fr); }
+
+    /*
+    | 16px stops iOS zooming the page on focus, which on a scan-driven screen
+    | leaves the cashier scrolled somewhere they never asked to be. pos.css
+    | says the same thing for the old .pos shell; this screen is .till.
+    */
+    .till .form-control,
+    .till .form-control-lg { font-size: 16px; }
+}
+
+/*
+| Below this the chip's picture costs more than it earns - the name is what
+| a thumb is aiming at, and three chips that fit beat five that need a
+| sideways scroll.
+*/
+@media (max-width: 480px) {
+    .chip { padding: 7px 12px; }
+    .chip-face { display: none; }
+    .till-marks { width: 100%; }
+    .mark-btn { flex: 1 1 auto; justify-content: center; }
+    .ticket-card { width: 178px; }
+}
+
+/*
+| A landscape phone has the width but almost none of the height. The bill
+| column must not try to be a sticky, scrolling thing in 380px of viewport -
+| pos.css unpins the action bar on the same query.
+*/
+@media (max-width: 991.98px) and (max-height: 460px) {
+    .till-order {
+        position: static;
+        max-height: none;
+        overflow: visible;
+    }
+
+    .till-actions { position: static; }
+}
+
+@media (prefers-reduced-motion: reduce) {
+    .dish { transition: none; }
+    .dish:hover { transform: none; }
+}

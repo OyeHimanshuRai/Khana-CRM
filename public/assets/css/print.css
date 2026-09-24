@@ -1,0 +1,275 @@
+/*
+| Printable documents: invoices and receipts.
+|
+| Standalone - this file is loaded by a bare page, not by the admin shell,
+| so it defines everything it needs and inherits nothing. Two widths from one
+| stylesheet: .print-a4 for a sheet, .print-receipt for an 80mm till roll.
+|
+| Deliberately plain. A printer has no colours worth relying on, thermal
+| paper has none at all, and a document that depends on shading is a document
+| that comes out blank on somebody's machine.
+*/
+
+:root {
+    --ink: #111;
+    --faint: #666;
+    --rule: #bbb;
+}
+
+* { box-sizing: border-box; }
+
+html, body {
+    margin: 0;
+    padding: 0;
+    background: #f1f5f9;
+    color: var(--ink);
+    font-family: "Segoe UI", system-ui, -apple-system, sans-serif;
+    -webkit-print-color-adjust: exact;
+    print-color-adjust: exact;
+}
+
+.doc {
+    background: #fff;
+    margin: 20px auto;
+    padding: 22px 26px;
+}
+
+.print-a4 .doc {
+    width: 210mm;
+    min-height: 297mm;
+    font-size: 12px;
+    line-height: 1.45;
+}
+
+/* An 80mm roll has about 72mm of printable width. */
+.print-receipt .doc {
+    width: 76mm;
+    padding: 8px 6px;
+    font-size: 11px;
+    line-height: 1.4;
+}
+
+/* ----------------------------------------------------------------- head */
+
+.doc-head {
+    text-align: center;
+    padding-bottom: 10px;
+    border-bottom: 1px solid var(--rule);
+}
+
+.doc-logo {
+    max-height: 56px;
+    max-width: 220px;
+    margin-bottom: 8px;
+}
+
+.doc-shop-name {
+    font-size: 17px;
+    font-weight: 700;
+    letter-spacing: .2px;
+}
+
+.print-receipt .doc-shop-name { font-size: 14px; }
+
+.doc-shop div { color: var(--faint); }
+.doc-shop div strong { color: var(--ink); }
+
+.doc-title {
+    margin-top: 10px;
+    font-size: 13px;
+    font-weight: 700;
+    text-transform: uppercase;
+    letter-spacing: 1.4px;
+}
+
+/* Unmissable, and it survives a black-and-white printer. */
+.doc-void {
+    display: inline-block;
+    margin-left: 8px;
+    padding: 1px 7px;
+    border: 2px solid var(--ink);
+    letter-spacing: 2px;
+}
+
+/* ----------------------------------------------------------------- meta */
+
+.doc-meta {
+    display: flex;
+    flex-wrap: wrap;
+    gap: 4px 22px;
+    padding: 9px 0;
+    border-bottom: 1px solid var(--rule);
+}
+
+.print-receipt .doc-meta { display: block; }
+
+.doc-label {
+    display: block;
+    font-size: 9.5px;
+    text-transform: uppercase;
+    letter-spacing: .7px;
+    color: var(--faint);
+}
+
+.doc-party {
+    padding: 9px 0;
+    border-bottom: 1px solid var(--rule);
+}
+
+.doc-party-name { font-weight: 700; }
+
+/* ---------------------------------------------------------------- items */
+
+.doc-items {
+    width: 100%;
+    border-collapse: collapse;
+    margin-top: 10px;
+}
+
+.doc-items th,
+.doc-items td {
+    padding: 5px 4px;
+    text-align: left;
+    vertical-align: top;
+    border-bottom: 1px solid #e4e4e4;
+}
+
+.doc-items thead th {
+    border-bottom: 1px solid var(--ink);
+    font-size: 9.5px;
+    text-transform: uppercase;
+    letter-spacing: .6px;
+    color: var(--faint);
+}
+
+.col-sn { width: 22px; color: var(--faint); }
+.col-hsn { width: 62px; }
+.col-num { text-align: right; white-space: nowrap; font-variant-numeric: tabular-nums; }
+
+.print-receipt .col-sn,
+.print-receipt .doc-items th:first-child { display: none; }
+
+.print-receipt .doc-items th,
+.print-receipt .doc-items td { padding: 3px 2px; }
+
+.doc-sub {
+    display: block;
+    font-size: 9.5px;
+    color: var(--faint);
+}
+
+/* --------------------------------------------------------------- totals */
+
+.doc-totals {
+    margin: 12px 0 0 auto;
+    width: 300px;
+}
+
+.print-receipt .doc-totals { width: 100%; }
+
+.doc-totals > div {
+    display: flex;
+    justify-content: space-between;
+    gap: 16px;
+    padding: 2.5px 0;
+    font-variant-numeric: tabular-nums;
+}
+
+.doc-totals .is-grand {
+    margin-top: 5px;
+    padding-top: 6px;
+    border-top: 1px solid var(--ink);
+    font-size: 14px;
+    font-weight: 700;
+}
+
+.doc-totals .is-due {
+    margin-top: 4px;
+    padding-top: 5px;
+    border-top: 1px dashed var(--ink);
+    font-weight: 700;
+}
+
+.doc-words {
+    margin-top: 12px;
+    padding-top: 8px;
+    border-top: 1px solid var(--rule);
+    font-size: 11px;
+}
+
+.doc-hsn { margin-top: 14px; }
+
+/* ----------------------------------------------------------------- foot */
+
+.doc-foot {
+    margin-top: 16px;
+    padding-top: 10px;
+    border-top: 1px solid var(--rule);
+}
+
+.doc-sign {
+    display: flex;
+    justify-content: space-between;
+    margin-top: 40px;
+    font-size: 10.5px;
+    color: var(--faint);
+}
+
+.doc-sign span {
+    border-top: 1px solid var(--rule);
+    padding-top: 4px;
+    min-width: 150px;
+    text-align: center;
+}
+
+.doc-thanks {
+    margin-top: 14px;
+    text-align: center;
+    font-size: 10px;
+    color: var(--faint);
+}
+
+/* ------------------------------------------------------------ on screen */
+
+.doc-actions {
+    display: flex;
+    justify-content: center;
+    gap: 10px;
+    margin: 0 0 28px;
+    font-size: 13px;
+}
+
+.doc-actions button,
+.doc-actions a {
+    padding: 7px 14px;
+    border: 1px solid #cbd5e1;
+    background: #fff;
+    color: #0f172a;
+    text-decoration: none;
+    cursor: pointer;
+}
+
+.doc-actions button { font: inherit; }
+.doc-actions button:hover,
+.doc-actions a:hover { background: #f1f5f9; }
+
+/* ---------------------------------------------------------------- print */
+
+@media print {
+    html, body { background: #fff; }
+
+    .no-print { display: none !important; }
+
+    .doc {
+        margin: 0;
+        padding: 0;
+        width: auto;
+        min-height: 0;
+    }
+
+    /* A line item split across a page break is unreadable. */
+    .doc-items tr { page-break-inside: avoid; }
+    .doc-totals { page-break-inside: avoid; }
+
+    @page { margin: 10mm; }
+}

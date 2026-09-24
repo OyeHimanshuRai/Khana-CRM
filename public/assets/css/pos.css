@@ -1,0 +1,532 @@
+/*
+| Point of sale
+|
+| Two columns on a counter screen, one on a tablet. The cart takes the room;
+| the tender panel stays put beside it so the total never scrolls out of
+| sight while a queue is forming.
+|
+| Pairs with public/assets/js/pos.js.
+*/
+
+.pos {
+    display: grid;
+    /* The tender column gives room back to the cart when it is squeezed,
+       rather than pushing the page sideways. */
+    grid-template-columns: minmax(0, 1fr) minmax(310px, 380px);
+    gap: 16px;
+    align-items: start;
+}
+
+/* The cart fills the viewport so the scan box never drifts off-screen. */
+.pos-cart {
+    display: flex;
+    flex-direction: column;
+    min-height: calc(100vh - 230px);
+}
+
+.pos-table {
+    flex: 1 1 auto;
+    overflow-y: auto;
+}
+
+.pos-side {
+    position: sticky;
+    top: 78px;
+    max-height: calc(100vh - 96px);
+    overflow-y: auto;
+}
+
+/* The scan box is the one control a cashier uses all day. */
+.form-control-lg {
+    height: 46px;
+    font-size: 15.5px;
+}
+
+/* -------------------------------------------------------- qty steppers */
+/*
+| +/- either side of the quantity box - see scanner.js and the row
+| template in terminal.blade.php. The number input stays the source of
+| truth (typing a value directly still works); the buttons just fire its
+| native step up/down so line-items.js's own 'input' listener picks up the
+| change exactly as if it had been typed.
+*/
+.qty-stepper {
+    display: flex;
+    align-items: stretch;
+    gap: 0;
+}
+
+.qty-stepper input[data-line-quantity] {
+    text-align: center;
+    border-left: 0;
+    border-right: 0;
+}
+
+.qty-stepper button {
+    flex: none;
+    width: 30px;
+    display: flex;
+    align-items: center;
+    justify-content: center;
+    background: var(--panel-alt, #f1f5f9);
+    border: 1px solid var(--border, #e2e8f0);
+    color: var(--text, #0f172a);
+    font-size: 15px;
+    line-height: 1;
+    cursor: pointer;
+}
+
+.qty-stepper button:first-child { border-right: 0; }
+.qty-stepper button:last-child { border-left: 0; }
+.qty-stepper button:hover { background: var(--border, #e2e8f0); }
+.qty-stepper button:active { background: var(--brand-soft, #dbeafe); }
+
+/* ------------------------------------------------------- camera scanner */
+/*
+| Reuses .modal/.modal-backdrop/.modal-dialog from theme.css for the shell
+| (same open/close animation, same light/dark tokens); only the bits
+| specific to hosting a camera stream live here. Built and torn down by
+| scanner.js, not present in the page markup.
+*/
+.scanner-camera-view {
+    position: relative;
+    width: 100%;
+    aspect-ratio: 4 / 3;
+    overflow: hidden;
+    background: #000;
+    border: 1px solid var(--border, #e2e8f0);
+}
+
+.scanner-camera-view video,
+.scanner-camera-view canvas {
+    width: 100% !important;
+    height: 100% !important;
+    object-fit: cover;
+}
+
+/* html5-qrcode draws its own scan-region border over the video; this app's
+   theme should be the only thing deciding that colour. */
+.scanner-camera-view #scanner-camera-view__scan_region { border-color: var(--brand, #2563eb) !important; }
+
+.scanner-camera-hint {
+    margin: 10px 0 0;
+    text-align: center;
+}
+
+/*
+| Icon on a counter screen, full-width "Scan Barcode" on a handset - the same
+| button either way (both carry data-scanner-camera), never both at once.
+|
+| The breakpoint is a proxy for "this is probably the device holding the
+| camera", not a capability test, because there is no way to ask whether a
+| camera exists without prompting for permission - and prompting to decide
+| whether to show the button that prompts is backwards. A tablet in landscape
+| keeps the icon and can still tap it.
+*/
+@media (max-width: 640px) {
+    .scanner-camera-btn { display: none; }
+    .scanner-camera-cta { display: inline-flex; }
+}
+
+/* ------------------------------------------------------------- customer */
+
+.pos-customer { position: relative; margin: 0; }
+
+.pos-chosen {
+    display: flex;
+    align-items: center;
+    justify-content: space-between;
+    gap: 10px;
+    padding: 9px 11px;
+    background: var(--panel-alt, #f1f5f9);
+    border: 1px solid var(--border, #e2e8f0);
+}
+
+/* The panel is hidden until a customer is picked. Without this the flex
+   above beats the hidden attribute and an empty box sits under the search
+   box from the moment the screen loads. */
+.pos-chosen[hidden] { display: none; }
+
+/* --------------------------------------------------------------- totals */
+
+.pos-totals { margin: 0; }
+
+.pos-totals > div {
+    display: flex;
+    align-items: baseline;
+    justify-content: space-between;
+    gap: 12px;
+    padding: 4px 0;
+}
+
+.pos-totals dt {
+    font-size: 13px;
+    color: var(--muted, #64748b);
+    margin: 0;
+}
+
+.pos-totals dd {
+    margin: 0;
+    font-size: 13.5px;
+    font-weight: 600;
+    color: var(--heading, #0f172a);
+    font-variant-numeric: tabular-nums;
+}
+
+/* The number the customer is about to be asked for. */
+.pos-totals .is-total {
+    margin-top: 6px;
+    padding-top: 8px;
+    border-top: 1px solid var(--border, #e2e8f0);
+}
+
+.pos-totals .is-total dt { font-size: 14px; color: var(--heading, #0f172a); font-weight: 600; }
+.pos-totals .is-total dd { font-size: 20px; }
+
+/* --------------------------------------------------------------- tender */
+
+.pos-tender {
+    display: grid;
+    grid-template-columns: 1fr 120px auto;
+    gap: 6px;
+    align-items: start;
+    margin-bottom: 6px;
+}
+
+.pos-tender-extra { grid-column: 1 / -1; }
+
+.pos-tender input[type="number"] { text-align: right; }
+
+/* --------------------------------------------------------------- states */
+
+.pos-warning {
+    margin: 10px 0 0;
+    padding: 8px 10px;
+    font-size: 12.5px;
+    line-height: 1.45;
+    color: var(--danger, #dc2626);
+    background: var(--danger-soft, #fef2f2);
+    border-left: 3px solid var(--danger, #dc2626);
+}
+
+.pos-complete {
+    width: 100%;
+    justify-content: center;
+    gap: 8px;
+    font-size: 15px;
+    font-weight: 650;
+}
+
+/*
+| Marked, not disabled. The server is the authority on whether a sale may
+| go through, and a dead button teaches the cashier nothing.
+*/
+.pos-complete.is-blocked {
+    background: var(--warning, #d97706);
+    border-color: var(--warning, #d97706);
+}
+
+/* ------------------------------------------------------------ responsive */
+
+/*
+| Four shapes, because the sidebar changes what "wide" means.
+|
+| Above 992px the sidebar is docked and eats 260px of the window; below it
+| the sidebar is a drawer and the content owns everything. So the width at
+| which two columns stop fitting is not one number:
+|
+|   >= 1101px            two columns, both pinned - nothing scrolls out from
+|                        under a queue
+|   992px - 1100px       one column: the sidebar is docked, so ~710px of
+|                        content is left and a tender panel beside the cart
+|                        would squeeze both
+|   800px - 991.98px     two columns again - the drawer gave the width back
+|   < 800px              one column
+|   <= 640px             the cart stops being a table (see below)
+|
+| No rule here uses a viewport width or a fixed pixel width, and every grid
+| track is minmax(0, …), so no child can push the page sideways.
+*/
+
+/* Docked sidebar, but not enough room left over for two columns. */
+@media (max-width: 1100px) and (min-width: 992px) {
+    .pos { grid-template-columns: minmax(0, 1fr); }
+}
+
+/* Drawer mode on a small tablet or a phone. */
+@media (max-width: 799.98px) {
+    .pos { grid-template-columns: minmax(0, 1fr); }
+}
+
+/*
+| Whenever the page is one column the tender panel is below the cart, not
+| beside it, so none of the pinning applies. overflow has to go back to
+| visible too: overflow-y:auto silently computes overflow-x to auto as well,
+| which left a scrollbar on a panel that had nothing to scroll.
+*/
+@media (max-width: 1100px) and (min-width: 992px),
+       (max-width: 799.98px) {
+    .pos-side {
+        position: static;
+        max-height: none;
+        overflow: visible;
+    }
+
+    .pos-cart { min-height: 0; }
+    .pos-table { overflow-y: visible; }
+}
+
+/*
+| The cart table.
+|
+| The columns were pixel-fixed inline, which on a tablet forced the table
+| wider than its own card and put a horizontal scrollbar inside the cart -
+| the cashier could see the rate or the amount, never both. Percentages let
+| the item name give up room instead.
+*/
+.pos-lines th:nth-child(2),
+.pos-lines td[data-cell="qty"]    { width: 15%; min-width: 92px; text-align: right; }
+
+.pos-lines th:nth-child(3),
+.pos-lines td[data-cell="rate"]   { width: 16%; min-width: 96px; text-align: right; }
+
+.pos-lines th:nth-child(4),
+.pos-lines td[data-cell="amount"] { width: 14%; min-width: 84px; text-align: right; }
+
+.pos-lines th:nth-child(5),
+.pos-lines td[data-cell="remove"] { width: 1%; white-space: nowrap; }
+
+/* The name column takes what is left and wraps rather than pushing. */
+.pos-lines td[data-cell="item"] { overflow-wrap: anywhere; }
+
+/* Tighter gutters once the table is the thing under pressure. */
+@media (max-width: 1100px) {
+    .pos-lines th,
+    .pos-lines td { padding-left: 11px; padding-right: 11px; }
+}
+
+@media (max-width: 640px) {
+    /* --------------------------------------------------- the cart, stacked */
+
+    /*
+    | Five columns do not fit a phone, and a sideways-scrolling cart is worse
+    | than no cart. Each line becomes a small card instead: name across the
+    | top, then quantity, rate and amount on one row where they can be
+    | compared at a glance.
+    */
+    .pos-table { overflow-x: hidden; }
+
+    .pos-lines thead { display: none; }
+
+    .pos-lines,
+    .pos-lines tbody,
+    .pos-lines tr { display: block; width: 100%; }
+
+    .pos-lines tr[data-line-row] {
+        display: grid;
+        grid-template-columns: minmax(0, 1fr) minmax(0, 1fr) auto;
+        grid-template-areas:
+            "item item remove"
+            "qty  rate amount";
+        gap: 9px 10px;
+        align-items: end;
+        padding: 12px 13px;
+        border-bottom: 1px solid var(--border, #e2e8f0);
+    }
+
+    .pos-lines tr[data-line-row]:last-child { border-bottom: 0; }
+
+    .pos-lines td {
+        display: block;
+        width: auto;
+        min-width: 0;
+        padding: 0;
+        border: 0;
+    }
+
+    .pos-lines td[data-cell="item"]   { grid-area: item; }
+    .pos-lines td[data-cell="qty"]    { grid-area: qty; }
+    .pos-lines td[data-cell="rate"]   { grid-area: rate; }
+    .pos-lines td[data-cell="remove"] { grid-area: remove; }
+
+    .pos-lines td[data-cell="amount"] {
+        grid-area: amount;
+        align-self: end;
+        padding-bottom: 10px;
+        white-space: nowrap;
+    }
+
+    /* The header row is gone, so each box has to say what it is. */
+    .pos-lines td[data-label]::before {
+        content: attr(data-label);
+        display: block;
+        margin-bottom: 3px;
+        font-size: 10.5px;
+        font-weight: 600;
+        letter-spacing: .03em;
+        text-transform: uppercase;
+        color: var(--muted, #64748b);
+    }
+
+    /* Thumbs, not a mouse pointer. */
+    .pos-lines .form-control {
+        min-height: 42px;
+        text-align: right;
+    }
+
+    .pos-lines .btn-icon { min-height: 38px; min-width: 38px; }
+
+    /*
+    | 16px stops iOS zooming the page on focus, which on a scan-driven screen
+    | leaves the cashier scrolled somewhere they never asked to be.
+    */
+    .pos .form-control,
+    .pos .form-control-lg { font-size: 16px; }
+
+    /* -------------------------------------------------------- the panels */
+
+    .pos-tender {
+        grid-template-columns: minmax(0, 1fr) minmax(0, 104px) auto;
+        gap: 8px;
+    }
+
+    .pos-side .settings-grid { grid-template-columns: minmax(0, 1fr); }
+
+    /* ------------------------------------------------- the payable, pinned */
+
+    /*
+    | Fixed rather than sticky: the button is the last thing in the document,
+    | so sticky would only engage on the final scroll - exactly when it is no
+    | longer needed. The cashier wants the total in view from the first scan.
+    */
+    .pos-actions {
+        position: fixed;
+        left: 0;
+        right: 0;
+        bottom: 0;
+        z-index: 30;
+        padding: 10px 12px calc(10px + env(safe-area-inset-bottom, 0px));
+        background: var(--panel, #fff);
+        border-top: 1px solid var(--border, #e2e8f0);
+        box-shadow: 0 -4px 16px rgba(15, 23, 42, .12);
+    }
+
+    /* Room for it, so the last field is never trapped underneath. */
+    body.pos-mode .app-main { padding-bottom: 86px; }
+
+    /* The drawer owns the screen while it is open. */
+    body.pos-mode.sidebar-open .pos-actions { display: none; }
+}
+
+/*
+| A landscape phone has the width but almost none of the height; a pinned bar
+| would eat what little is left.
+*/
+@media (max-width: 900px) and (max-height: 460px) {
+    .pos-actions { position: static; box-shadow: none; padding: 13px; }
+    body.pos-mode .app-main { padding-bottom: 0; }
+}
+
+/* ============================================================== dashboard */
+/*
+| Shares this file because it shares the .pos-totals list, and because both
+| are the same idea: dense figures somebody scans rather than reads.
+*/
+
+.dash-columns {
+    display: grid;
+    grid-template-columns: repeat(auto-fit, minmax(300px, 1fr));
+    gap: 16px;
+    align-items: start;
+}
+
+/* -------------------------------------------------------------- alerts */
+
+.dash-alert {
+    display: flex;
+    align-items: center;
+    gap: 10px;
+    padding: 10px 12px;
+    border-left: 3px solid var(--muted, #64748b);
+    background: var(--panel-alt, #f1f5f9);
+    color: var(--text, #0f172a);
+    font-size: 13.5px;
+    text-decoration: none;
+}
+
+.dash-alert:hover { background: var(--border, #e2e8f0); }
+
+.dash-alert.is-danger  { border-left-color: var(--danger, #dc2626);  color: var(--danger, #dc2626); }
+.dash-alert.is-warning { border-left-color: var(--warning, #d97706); color: var(--warning, #d97706); }
+.dash-alert.is-info    { border-left-color: var(--info, #2563eb);    color: var(--info, #2563eb); }
+
+.dash-alert-text { flex: 1 1 auto; min-width: 0; }
+
+.dash-alert-action {
+    flex: none;
+    font-size: 12px;
+    font-weight: 600;
+    opacity: .85;
+}
+
+/*
+|------------------------------------------------------------------------------
+| Taking an order at the table (§6)
+|------------------------------------------------------------------------------
+| The captain's menu, inside the bill's dialog. Denser than the guest's card
+| because it is read on a tablet held at arm's length by somebody who already
+| knows the menu, rather than by a guest deciding.
+*/
+
+.staff-menu-section {
+    border: 1px solid var(--border);
+    border-radius: var(--radius);
+    margin-bottom: 8px;
+    background: var(--panel);
+}
+
+.staff-menu-section > summary {
+    padding: 10px 12px;
+    cursor: pointer;
+    font-weight: 600;
+    display: flex;
+    justify-content: space-between;
+    align-items: center;
+    gap: 8px;
+}
+
+.staff-dish {
+    padding: 10px 12px;
+    border-top: 1px solid var(--border);
+}
+
+.staff-dish-head {
+    display: flex;
+    justify-content: space-between;
+    align-items: baseline;
+    gap: 10px;
+}
+
+.staff-dish-form { margin-top: 6px; }
+
+.staff-dish-form select { margin-bottom: 6px; }
+
+.staff-dish-mods {
+    margin: 4px 0 6px;
+    padding-left: 10px;
+    border-left: 2px solid var(--border);
+}
+
+.staff-dish-add {
+    display: grid;
+    /* Quantity is small, the note takes what is left, the button is fixed -
+       a captain types a note far more often than a quantity above one. */
+    grid-template-columns: 72px 1fr auto;
+    gap: 6px;
+    align-items: center;
+}
+
+@media (max-width: 560px) {
+    .staff-dish-add { grid-template-columns: 72px 1fr; }
+    .staff-dish-add button { grid-column: 1 / -1; }
+}

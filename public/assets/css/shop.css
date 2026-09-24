@@ -1,0 +1,539 @@
+/*
+| Storefront design system.
+|
+| Deliberately its own stylesheet, not a reuse of the admin chrome
+| (theme.css/layout.css) - the storefront is a different audience (a
+| customer, not staff) and gets its own green agri-retail palette rather
+| than the admin's orange brand colour. Depends on public/assets/js/app.js
+| for the toast/data-ajax behaviour used throughout (see that file's header).
+*/
+
+:root {
+    --shop-radius: 10px;
+    --shop-header-h: 64px;
+
+    --shop-bg: #f7f8f5;
+    --shop-panel: #ffffff;
+    --shop-border: #e3e7dd;
+
+    --shop-heading: #16241a;
+    --shop-text: #3c4a3f;
+    --shop-muted: #768273;
+
+    --shop-brand: #2f7a3d;
+    --shop-brand-strong: #24602f;
+    --shop-brand-soft: rgba(47, 122, 61, .1);
+    --shop-on-brand: #ffffff;
+
+    --shop-danger: #c0392b;
+    --shop-danger-soft: rgba(192, 57, 43, .1);
+    --shop-warning: #b7791f;
+    --shop-warning-soft: rgba(183, 121, 31, .12);
+
+    --shop-shadow: 0 1px 2px rgba(22, 36, 26, .05), 0 8px 24px rgba(22, 36, 26, .06);
+}
+
+* { box-sizing: border-box; }
+
+body.shop-body {
+    margin: 0;
+    background: var(--shop-bg);
+    color: var(--shop-text);
+    font-family: -apple-system, BlinkMacSystemFont, 'Segoe UI', Roboto, Helvetica, Arial, sans-serif;
+    font-size: 15px;
+    line-height: 1.5;
+}
+
+a { color: inherit; text-decoration: none; }
+img { max-width: 100%; display: block; }
+
+.shop-container {
+    max-width: 1180px;
+    margin: 0 auto;
+    padding: 0 20px;
+}
+
+/* -------------------------------------------------------------- header */
+.shop-header {
+    background: var(--shop-panel);
+    border-bottom: 1px solid var(--shop-border);
+    position: sticky;
+    top: 0;
+    z-index: 40;
+}
+
+.shop-header-row {
+    display: flex;
+    align-items: center;
+    gap: 20px;
+    height: var(--shop-header-h);
+}
+
+.shop-logo {
+    font-weight: 700;
+    font-size: 19px;
+    color: var(--shop-brand-strong);
+    white-space: nowrap;
+}
+
+.shop-nav {
+    display: flex;
+    gap: 18px;
+    flex: 1;
+    overflow-x: auto;
+    font-size: 14px;
+    font-weight: 500;
+}
+
+.shop-nav a:hover { color: var(--shop-brand-strong); }
+
+.shop-header-actions {
+    display: flex;
+    align-items: center;
+    flex-wrap: wrap;
+    row-gap: 8px;
+    min-width: 0;
+    gap: 14px;
+    white-space: nowrap;
+}
+
+/*
+ | The only item in the header with no bound on it: a customer's name is
+ | free text, and `nowrap` makes its min-content its full width, so a long
+ | one pushed the whole row past the edge of the phone.
+ */
+.shop-header-actions > a[href*='/account'] {
+    max-width: 10ch;
+    overflow: hidden;
+    text-overflow: ellipsis;
+}
+
+.shop-search {
+    flex: 1;
+    max-width: 360px;
+}
+
+.shop-search input {
+    width: 100%;
+}
+
+.shop-cart-badge {
+    position: relative;
+    font-weight: 600;
+}
+
+.shop-cart-count {
+    position: absolute;
+    top: -8px;
+    right: -12px;
+    background: var(--shop-brand);
+    color: #fff;
+    border-radius: 999px;
+    font-size: 11px;
+    padding: 1px 6px;
+    min-width: 18px;
+    text-align: center;
+}
+
+/* --------------------------------------------------------------- footer */
+.shop-footer {
+    margin-top: 48px;
+    padding: 28px 0 40px;
+    border-top: 1px solid var(--shop-border);
+    color: var(--shop-muted);
+    font-size: 13px;
+}
+
+/* ---------------------------------------------------------------- misc */
+.shop-page { padding: 28px 0 56px; }
+
+.shop-h1 { font-size: 24px; font-weight: 700; color: var(--shop-heading); margin: 0 0 18px; }
+.shop-h2 { font-size: 18px; font-weight: 700; color: var(--shop-heading); margin: 0 0 14px; }
+
+.shop-crumbs {
+    font-size: 13px;
+    color: var(--shop-muted);
+    margin-bottom: 16px;
+}
+
+.shop-crumbs a:hover { color: var(--shop-brand-strong); }
+
+.shop-empty {
+    padding: 48px 20px;
+    text-align: center;
+    color: var(--shop-muted);
+    background: var(--shop-panel);
+    border: 1px dashed var(--shop-border);
+    border-radius: var(--shop-radius);
+}
+
+/* -------------------------------------------------------------- layout */
+.shop-layout {
+    display: grid;
+    grid-template-columns: 220px 1fr;
+    gap: 28px;
+    align-items: start;
+}
+
+/*
+ | The side column's width, as a class rather than a style attribute.
+ |
+ | Cart, checkout, the order receipt and both account pages each set their
+ | own `style="grid-template-columns:1fr 340px"`, and an inline style beats
+ | any stylesheet: the collapse below never fired for them, so on a 360px
+ | phone the summary panel kept its 340px and the items beside it kept the
+ | width of their own widest row. The page overflowed by roughly the width
+ | of the panel, which is the one thing the reader has to scroll past to
+ | reach the pay button.
+ */
+.shop-layout.is-side-260 { grid-template-columns: 1fr 260px; }
+.shop-layout.is-side-320 { grid-template-columns: 1fr 320px; }
+.shop-layout.is-side-340 { grid-template-columns: 1fr 340px; }
+.shop-layout.is-side-360 { grid-template-columns: 1fr 360px; }
+
+@media (max-width: 860px) {
+    /*
+     | Named again here rather than relying on source order: these carry a
+     | second class and so outrank a bare `.shop-layout`, and a rule that
+     | works only because of where it sits in the file is one that breaks
+     | the first time somebody appends to the stylesheet.
+     */
+    .shop-layout,
+    .shop-layout[class*='is-side-'] { grid-template-columns: 1fr; }
+
+    /* A grid child's default min-width is auto, which is its widest
+       unbreakable content - a 64px thumbnail beside a long dish name - so
+       the track refuses to shrink to the column it was given. */
+    .shop-layout > * { min-width: 0; }
+}
+
+/* -------------------------------------------------------------- panel */
+.shop-panel {
+    background: var(--shop-panel);
+    border: 1px solid var(--shop-border);
+    border-radius: var(--shop-radius);
+    box-shadow: var(--shop-shadow);
+}
+
+.shop-panel-pad { padding: 20px; }
+
+/* ------------------------------------------------------------- filters */
+.shop-filters .shop-filter-group { margin-bottom: 18px; }
+.shop-filters label { display: block; font-size: 12px; text-transform: uppercase; letter-spacing: .04em; color: var(--shop-muted); margin-bottom: 6px; }
+.shop-filters .shop-filter-links { display: flex; flex-direction: column; gap: 6px; font-size: 14px; }
+.shop-filters .shop-filter-links a.active { color: var(--shop-brand-strong); font-weight: 600; }
+
+/* --------------------------------------------------------- product grid */
+.shop-grid {
+    display: grid;
+    grid-template-columns: repeat(auto-fill, minmax(210px, 1fr));
+    gap: 18px;
+}
+
+.shop-card {
+    background: var(--shop-panel);
+    border: 1px solid var(--shop-border);
+    border-radius: var(--shop-radius);
+    overflow: hidden;
+    display: flex;
+    flex-direction: column;
+    transition: box-shadow .15s ease, transform .15s ease;
+}
+
+.shop-card:hover { box-shadow: var(--shop-shadow); transform: translateY(-1px); }
+
+.shop-card-media {
+    aspect-ratio: 1 / 1;
+    background: var(--shop-bg);
+    display: flex;
+    align-items: center;
+    justify-content: center;
+    overflow: hidden;
+}
+
+.shop-card-media img { width: 100%; height: 100%; object-fit: cover; }
+
+.shop-card-body { padding: 12px 14px 14px; display: flex; flex-direction: column; gap: 6px; flex: 1; }
+.shop-card-name { font-size: 14px; font-weight: 600; color: var(--shop-heading); }
+.shop-card-name:hover { color: var(--shop-brand-strong); }
+.shop-card-meta { font-size: 12px; color: var(--shop-muted); }
+
+.shop-price { font-weight: 700; color: var(--shop-heading); }
+.shop-price-mrp { text-decoration: line-through; color: var(--shop-muted); font-weight: 400; font-size: 12px; margin-left: 6px; }
+
+.shop-stock-out { color: var(--shop-danger); font-size: 12px; font-weight: 600; }
+.shop-stock-low { color: var(--shop-warning); font-size: 12px; font-weight: 600; }
+
+/* -------------------------------------------------------------- buttons */
+.shop-btn {
+    display: inline-flex;
+    align-items: center;
+    justify-content: center;
+    gap: 6px;
+    border-radius: 8px;
+    border: 1px solid transparent;
+    padding: 9px 16px;
+    font-size: 14px;
+    font-weight: 600;
+    cursor: pointer;
+    background: var(--shop-brand);
+    color: var(--shop-on-brand);
+}
+
+.shop-btn:hover { background: var(--shop-brand-strong); }
+.shop-btn:disabled { opacity: .5; cursor: not-allowed; }
+
+.shop-btn-outline {
+    background: transparent;
+    color: var(--shop-brand-strong);
+    border-color: var(--shop-brand);
+}
+
+.shop-btn-outline:hover { background: var(--shop-brand-soft); }
+
+.shop-btn-sm { padding: 6px 12px; font-size: 13px; }
+.shop-btn-block { width: 100%; }
+.shop-btn-danger { background: var(--shop-danger); }
+.shop-btn-danger:hover { background: #a5271b; }
+
+/* --------------------------------------------------------------- forms */
+.shop-field { margin-bottom: 16px; }
+.shop-field label { display: block; font-size: 13px; font-weight: 600; color: var(--shop-heading); margin-bottom: 6px; }
+
+.shop-field input[type="text"],
+.shop-field input[type="email"],
+.shop-field input[type="tel"],
+.shop-field input[type="password"],
+.shop-field input[type="number"],
+.shop-field select,
+.shop-field textarea {
+    width: 100%;
+    padding: 9px 12px;
+    border: 1px solid var(--shop-border);
+    border-radius: 8px;
+    font-size: 14px;
+    background: #fff;
+    color: var(--shop-text);
+}
+
+.shop-field input:focus, .shop-field select:focus, .shop-field textarea:focus {
+    outline: none;
+    border-color: var(--shop-brand);
+    box-shadow: 0 0 0 3px var(--shop-brand-soft);
+}
+
+/* .field-error / .is-invalid come from app.css, shared with the admin forms. */
+.shop-field-row { display: grid; grid-template-columns: 1fr 1fr; gap: 14px; }
+@media (max-width: 560px) { .shop-field-row { grid-template-columns: 1fr; } }
+
+.shop-check { display: flex; align-items: center; gap: 8px; font-size: 14px; }
+
+/* --------------------------------------------------------------- badges */
+.shop-badge {
+    display: inline-flex;
+    align-items: center;
+    padding: 3px 10px;
+    border-radius: 999px;
+    font-size: 12px;
+    font-weight: 600;
+}
+
+.shop-badge-success { background: var(--shop-brand-soft); color: var(--shop-brand-strong); }
+.shop-badge-warning { background: var(--shop-warning-soft); color: var(--shop-warning); }
+.shop-badge-danger { background: var(--shop-danger-soft); color: var(--shop-danger); }
+.shop-badge-muted { background: var(--shop-bg); color: var(--shop-muted); border: 1px solid var(--shop-border); }
+
+/* --------------------------------------------------------- cart / lines */
+.shop-line {
+    display: grid;
+    grid-template-columns: 72px 1fr auto auto;
+    gap: 14px;
+    align-items: center;
+    padding: 16px 0;
+    border-bottom: 1px solid var(--shop-border);
+}
+
+.shop-line:last-child { border-bottom: none; }
+
+.shop-line-thumb {
+    width: 72px;
+    height: 72px;
+    border-radius: 8px;
+    overflow: hidden;
+    background: var(--shop-bg);
+    display: flex;
+    align-items: center;
+    justify-content: center;
+}
+
+.shop-line-thumb img { width: 100%; height: 100%; object-fit: cover; }
+
+.shop-qty {
+    display: inline-flex;
+    align-items: center;
+    border: 1px solid var(--shop-border);
+    border-radius: 8px;
+    overflow: hidden;
+}
+
+.shop-qty input {
+    width: 48px;
+    border: none;
+    text-align: center;
+    padding: 7px 0;
+    font-size: 14px;
+}
+
+.shop-qty button {
+    border: none;
+    background: var(--shop-bg);
+    width: 30px;
+    height: 32px;
+    cursor: pointer;
+    font-size: 15px;
+}
+
+.shop-summary-row { display: flex; justify-content: space-between; padding: 6px 0; font-size: 14px; }
+.shop-summary-row.total { font-size: 16px; font-weight: 700; border-top: 1px solid var(--shop-border); margin-top: 6px; padding-top: 12px; }
+
+/* -------------------------------------------------------------- orders */
+.shop-order-row {
+    display: flex;
+    justify-content: space-between;
+    align-items: center;
+    padding: 16px 20px;
+    border-bottom: 1px solid var(--shop-border);
+}
+
+.shop-order-row:last-child { border-bottom: none; }
+
+/* ------------------------------------------------------------- product */
+.shop-pdp {
+    display: grid;
+    grid-template-columns: 420px 1fr;
+    gap: 36px;
+}
+
+@media (max-width: 860px) {
+    .shop-pdp { grid-template-columns: 1fr; }
+}
+
+.shop-pdp-media {
+    aspect-ratio: 1 / 1;
+    background: var(--shop-panel);
+    border: 1px solid var(--shop-border);
+    border-radius: var(--shop-radius);
+    display: flex;
+    align-items: center;
+    justify-content: center;
+    overflow: hidden;
+}
+
+.shop-pdp-media img { width: 100%; height: 100%; object-fit: contain; }
+
+/* --------------------------------------------------------------- auth */
+.shop-auth-wrap {
+    max-width: 420px;
+    margin: 40px auto;
+}
+
+/* ===========================================================================
+   Small screens
+   ===========================================================================
+
+   The storefront is where a customer buys from a phone, so this is not a
+   courtesy: the header alone held a wordmark, a nav, a search box and up to
+   five links in one 64px flex row, which on a 360px screen pushed the cart
+   off the side of the page.
+
+   Three sizes, and each one solves a different problem:
+
+     980px   the header runs out of room first — the search box is squeezed
+             to nothing long before anything else breaks.
+     720px   the header becomes two rows and the cart line loses its
+             four-column grid.
+     560px   one thumb, one column, and controls big enough for a thumb.
+   ------------------------------------------------------------------------ */
+
+@media (max-width: 980px) {
+    /* The search box shrinks before the links do: a narrow field is still
+       usable, a wrapped row of links is not. */
+    .shop-search { max-width: 220px; }
+    .shop-header-row { gap: 14px; }
+}
+
+@media (max-width: 720px) {
+    /*
+     | Two rows, and the search gets the whole of the second.
+     |
+     | `height` becomes `min-height`, because the fixed 64px was what cropped
+     | the second row rather than making room for it.
+     */
+    .shop-header-row {
+        flex-wrap: wrap;
+        height: auto;
+        min-height: var(--shop-header-h);
+        padding-top: 10px;
+        padding-bottom: 10px;
+        row-gap: 10px;
+    }
+
+    .shop-search {
+        order: 3;
+        flex: 1 0 100%;
+        max-width: none;
+    }
+
+    /* The nav scrolls sideways rather than wrapping into three lines. */
+    .shop-nav {
+        flex: 1;
+        gap: 14px;
+        -webkit-overflow-scrolling: touch;
+        scrollbar-width: none;
+    }
+    .shop-nav::-webkit-scrollbar { display: none; }
+
+    .shop-header-actions { gap: 10px; font-size: 14px; }
+
+    /*
+     | The cart line: thumb, then everything else stacked beneath it.
+     |
+     | The old four-column grid put a price and a quantity stepper into
+     | whatever was left of 360px after a 72px picture, which is about
+     | ninety pixels for both.
+     */
+    .shop-line {
+        grid-template-columns: 64px 1fr;
+        column-gap: 12px;
+        row-gap: 10px;
+        align-items: start;
+    }
+    .shop-line-thumb { width: 64px; height: 64px; grid-row: span 2; }
+    .shop-line > :nth-child(n + 3) { grid-column: 2; }
+
+    .shop-container { padding: 0 16px; }
+}
+
+@media (max-width: 560px) {
+    .shop-logo { font-size: 17px; }
+
+    /* A single column of cards reads better than two 140px ones. */
+    .shop-grid { grid-template-columns: repeat(auto-fill, minmax(150px, 1fr)); gap: 12px; }
+
+    /* Room for a thumb, not a mouse pointer. */
+    .shop-qty input { width: 40px; padding: 9px 0; }
+    .shop-btn { padding: 10px 14px; }
+
+    .shop-panel-pad { padding: 16px; }
+
+    /* Totals read as label-left / amount-right at any width. */
+    .shop-summary-row { display: flex; justify-content: space-between; gap: 12px; }
+}
+
+/*
+ | A phone in landscape, and a small tablet, are the same problem: plenty of
+ | width, very little height. Nothing should be pinned to the viewport.
+ */
+@media (max-height: 520px) and (orientation: landscape) {
+    .shop-header { position: static; }
+}
