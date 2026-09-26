@@ -151,7 +151,7 @@ class ShopController extends Controller
 
         return view('admin.shops._form', [
             'shop' => $shop,
-            'staff' => $this->assignableUsers(),
+            'staff' => $this->assignableUsers($shop),
             'assigned' => $shop->users()->pluck('users.id')->all(),
             'modules' => Modules::catalogue(),
             'enabled' => Modules::forShop($shop),
@@ -332,6 +332,8 @@ class ShopController extends Controller
 
     public function destroyLogo(Shop $shop): JsonResponse
     {
+        $this->authorise($shop);
+
         if (blank($shop->logo_path)) {
             return ApiResponse::success('There was no logo to remove.', ['logo' => null]);
         }
@@ -360,9 +362,12 @@ class ShopController extends Controller
     {
         $ids = collect($userIds)->map(fn ($id) => (int) $id)->filter()->unique();
 
-        // Only real admin accounts, so a stray id in the payload cannot
-        // enrol something that should never see the back office.
-        $valid = User::whereIn('id', $ids)->where('is_admin', true)->pluck('id');
+        // Only real admin accounts of this shop's own business, so a stray -
+        // or deliberate - id in the payload cannot enrol a stranger.
+        $valid = User::whereIn('id', $ids)
+            ->where('is_admin', true)
+            ->where('tenant_id', $shop->tenant_id)
+            ->pluck('id');
 
         $shop->users()->sync($valid->all());
 
@@ -375,10 +380,19 @@ class ShopController extends Controller
             ->update(['current_shop_id' => null]);
     }
 
-    /** Admin accounts that can be put on a shop. */
-    private function assignableUsers()
+    /**
+     * Admin accounts that can be put on a shop: that shop's own business's
+     * staff, or - for a new shop - the staff of the businesses this reader
+     * may reach. Never the whole platform's names and email addresses.
+     */
+    private function assignableUsers(?Shop $shop = null)
     {
         return User::where('is_admin', true)
+            ->when($shop !== null, fn (Builder $q) => $q->where('tenant_id', $shop->tenant_id))
+            ->when(
+                $shop === null && ! auth()->user()?->isSuperAdmin(),
+                fn (Builder $q) => $q->whereIn('tenant_id', CurrentTenant::accessibleIds() ?: [0]),
+            )
             ->orderBy('name')
             ->get(['id', 'name', 'email']);
     }
