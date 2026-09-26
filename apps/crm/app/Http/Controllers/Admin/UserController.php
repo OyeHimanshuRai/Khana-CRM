@@ -9,6 +9,7 @@ use App\Models\User;
 use App\Models\UserSession;
 use App\Support\ApiResponse;
 use App\Support\CurrentTenant;
+use App\Support\GrantGuard;
 use App\Support\PermissionRegistry;
 use App\Support\PlanAccess;
 use App\Support\WelcomeMailer;
@@ -199,7 +200,7 @@ class UserController extends Controller
     {
         return view('admin.users.form', [
             'user' => new User(),
-            'roles' => Role::orderBy('name')->get(),
+            'roles' => GrantGuard::assignableRoles(auth()->user()),
             'tree' => PermissionRegistry::tree(),
             'assignedRoles' => [],
             'directPermissions' => [],
@@ -218,6 +219,8 @@ class UserController extends Controller
             'roles' => ['array'],
             'roles.*' => ['string', 'exists:roles,name'],
         ]);
+
+        GrantGuard::assertCanGiveRoles($request->user(), $data['roles'] ?? []);
 
         /*
          | The plan's staff allowance (§21).
@@ -327,7 +330,13 @@ class UserController extends Controller
 
         return view('admin.users.form', [
             'user' => $user,
-            'roles' => Role::orderBy('name')->get(),
+            // What this editor may give, plus what the account already has so
+            // the form still shows it.
+            'roles' => GrantGuard::assignableRoles(auth()->user())
+                ->merge($user->roles)
+                ->unique('id')
+                ->sortBy('name')
+                ->values(),
             'tree' => PermissionRegistry::tree(),
             'assignedRoles' => $user->roles->pluck('name')->all(),
             'directPermissions' => $user->getDirectPermissions()->pluck('name')->all(),
@@ -349,6 +358,8 @@ class UserController extends Controller
         ]);
 
         $this->guardSelfLockout($request, $user, $data['roles'] ?? []);
+
+        GrantGuard::assertCanGiveRoles($request->user(), $data['roles'] ?? [], $user->roles->pluck('name')->all());
 
         DB::transaction(function () use ($user, $data) {
             $user->fill([
@@ -410,6 +421,8 @@ class UserController extends Controller
             ->all();
 
         $before = $user->getDirectPermissions()->pluck('name')->sort()->values()->all();
+
+        GrantGuard::assertCanGivePermissions($request->user(), $permissions, $before);
 
         $user->syncPermissions($permissions);
 
