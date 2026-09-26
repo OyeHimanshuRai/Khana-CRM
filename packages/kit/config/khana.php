@@ -65,6 +65,28 @@ return [
     ],
 
     /*
+    | Where each Khana service lives, for links between them: the product
+    | switcher, the profile link, sign-in. Empty for a service this install
+    | does not run.
+    */
+    'urls' => [
+        'accounts' => env('KHANA_ACCOUNTS_URL'),
+        'crm' => env('KHANA_CRM_URL'),
+        'erp' => env('KHANA_ERP_URL'),
+    ],
+
+    /*
+    | The shared layout (khana::layouts.app): the route its logo and "home"
+    | links go to, and the POST route that signs out. The sidebar is the
+    | app's own config('menu').
+    */
+    'ui' => [
+        'home' => 'home',
+        'logout' => 'logout',
+        'favicon' => null,
+    ],
+
+    /*
     | Sign-in through Accounts, and the tokens services call each other with.
     */
     'sso' => [

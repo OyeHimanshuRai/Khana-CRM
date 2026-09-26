@@ -22,4 +22,13 @@ interface Directory
      * @return list<int|string>
      */
     public function outletKeys(int|string|null $tenantKey): array;
+
+    /**
+     * Display names for outlets, for the switcher. Keys it does not know are
+     * left out.
+     *
+     * @param  list<int|string>  $outletKeys
+     * @return array<int|string, string>
+     */
+    public function outletNames(array $outletKeys): array;
 }

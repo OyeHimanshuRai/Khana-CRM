@@ -15,7 +15,7 @@
     <meta name="viewport" content="width=device-width, initial-scale=1">
     <title>Statement · {{ $customer->name }}</title>
 
-    <link rel="stylesheet" href="{{ asset('assets/css/print.css') }}?v={{ filemtime(public_path('assets/css/print.css')) }}">
+    <link rel="stylesheet" href="{{ Khana\Kit\Ui\Ui::asset('css/print.css') }}">
 </head>
 <body class="print-a4">
 

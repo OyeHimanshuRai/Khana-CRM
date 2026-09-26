@@ -51,9 +51,14 @@
         })();
     </script>
 
+    {{-- The shared look, from the kit (packages/kit/ui). --}}
+    @foreach (Khana\Kit\Ui\Ui::STYLES as $file)
+        <link rel="stylesheet" href="{{ Khana\Kit\Ui\Ui::asset($file) }}">
+    @endforeach
+
     @php
-        // filemtime() cache-busts during development without a build step.
-        $assets = ['css/theme.css', 'css/layout.css', 'css/app.css', 'css/pos.css', 'css/floor-plan.css', 'css/kds.css'];
+        // CRM's own screens. filemtime() cache-busts without a build step.
+        $assets = ['css/pos.css', 'css/floor-plan.css', 'css/kds.css'];
     @endphp
 
     @foreach ($assets as $file)
@@ -97,7 +102,7 @@
     Live updates, if this install runs a socket server (§8, §9).
 
     The config block is rendered only when broadcasting is actually
-    configured; without it public/assets/js/realtime.js returns immediately
+    configured; without it the kit's ui/js/realtime.js returns immediately
     and every screen polls exactly as it did before. That is the default and
     it is a working configuration - see config/broadcasting.php.
 
@@ -127,11 +132,14 @@
     </script>
 @endif
 
+{{-- The shared behaviours, from the kit: forms, lists, modals, tabs, the
+     WebSocket client and the rest. --}}
+@foreach (Khana\Kit\Ui\Ui::SCRIPTS as $script)
+    <script src="{{ Khana\Kit\Ui\Ui::asset($script) }}"></script>
+@endforeach
+
 @foreach ([
-    'js/app.js', 'js/layout.js', 'js/modal.js', 'js/tabs.js',
-    'js/permission-matrix.js', 'js/ajax-list.js',
-    'js/settings.js', 'js/user-security.js', 'js/crud-forms.js',
-    'js/line-items.js', 'js/customer-picker.js', 'js/modifier-options.js',
+    'js/customer-picker.js', 'js/modifier-options.js',
     /*
      | The floor plan's drag-to-arrange. Loaded globally rather than per page
      | because the plan is also swapped in as an AjaxList fragment, and a
@@ -145,18 +153,8 @@
      */
     'js/campaigns.js',
     /*
-     | Reveals a newly created API token once. Sanctum stores a hash, so there
-     | is no second chance - see public/assets/js/api-tokens.js.
-     */
-    'js/api-tokens.js',
-    /*
-     | The WebSocket client, before kds.js so window.Realtime exists by the
-     | time the board asks whether a socket is live. Does nothing at all
-     | unless the config block above rendered, which is the default.
-     */
-    'js/realtime.js',
-    /*
-     | The kitchen display's poll, its timers and its bell. Global for the
+     | The kitchen display's poll. The kit's realtime.js (loaded above) has
+     | already defined window.Realtime by now. Its poll, its timers and its bell. Global for the
      | same reason as the floor plan: the board is swapped in as an AjaxList
      | fragment, and a <script> injected with that fragment would never run.
      */

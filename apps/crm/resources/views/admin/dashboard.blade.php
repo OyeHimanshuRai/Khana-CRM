@@ -5,7 +5,7 @@
 @push('styles')
     <link
         rel="stylesheet"
-        href="{{ asset('assets/css/dashboard.css') }}?v={{ filemtime(public_path('assets/css/dashboard.css')) }}"
+        href="{{ Khana\Kit\Ui\Ui::asset('css/dashboard.css') }}"
     >
 @endpush
 

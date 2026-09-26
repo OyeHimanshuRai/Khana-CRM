@@ -6,6 +6,7 @@ use Illuminate\Auth\Events\Login;
 use Illuminate\Auth\Events\Logout;
 use Illuminate\Console\Scheduling\Schedule;
 use Illuminate\Routing\Router;
+use Illuminate\Support\Facades\Blade;
 use Illuminate\Support\Facades\Event;
 use Illuminate\Support\Facades\Route;
 use Illuminate\Support\ServiceProvider;
@@ -38,12 +39,18 @@ use Khana\Kit\Tenancy\EnsureEntitled;
 use Khana\Kit\Tenancy\Entitlements;
 use Khana\Kit\Tenancy\ReferenceDirectory;
 use Khana\Kit\Tenancy\ReferenceHandlers;
+use Khana\Kit\Ui\AssetController;
+use Khana\Kit\Ui\EntitledProductSwitcher;
+use Khana\Kit\Ui\OutletController;
+use Khana\Kit\Ui\ProductSwitcher;
+use Khana\Kit\Ui\Ui;
 
 final class KitServiceProvider extends ServiceProvider
 {
     public function register(): void
     {
         $this->mergeConfigFrom(__DIR__.'/../config/khana.php', 'khana');
+        $this->mergeConfigFrom(__DIR__.'/../config/icons.php', 'icons');
 
         $this->app->singleton(Handlers::class);
         $this->app->bind(Transport::class, HttpTransport::class);
@@ -62,6 +69,10 @@ final class KitServiceProvider extends ServiceProvider
         $this->app->singleton(MachineTokens::class);
         $this->app->singleton(MachineTokenVerifier::class);
         $this->app->bindIf(RevokesSessions::class, DatabaseSessionRevoker::class);
+
+        if ($this->keepsReferenceCopy()) {
+            $this->app->bindIf(ProductSwitcher::class, EntitledProductSwitcher::class);
+        }
     }
 
     public function boot(): void
@@ -77,11 +88,23 @@ final class KitServiceProvider extends ServiceProvider
         $router->aliasMiddleware('entitled', EnsureEntitled::class);
         $router->aliasMiddleware('machine', RequireMachineToken::class);
 
+        $this->bootUi();
+
         if (! $this->app->routesAreCached()) {
             // No middleware group: a server calls this, so there is no
             // session to start and no CSRF token to check. The signature is
             // the authentication.
             Route::post('internal/events', InboxController::class)->name('khana.inbox');
+
+            // Only reached when public/vendor/khana has not been published.
+            Route::get('vendor/khana/{path}', AssetController::class)->where('path', '.*')->name('khana.ui.asset');
+
+            if ($this->keepsReferenceCopy()) {
+                Route::middleware('web')->group(function () {
+                    Route::get('khana/open', [OutletController::class, 'open'])->name('khana.open');
+                    Route::post('khana/outlet', [OutletController::class, 'switch'])->middleware('auth')->name('khana.outlet.switch');
+                });
+            }
         }
 
         // Sign-in routes exist once the product has said how it signs a
@@ -143,6 +166,18 @@ final class KitServiceProvider extends ServiceProvider
             $schedule->command('inbox:work')->everyMinute()->withoutOverlapping()->runInBackground();
             $schedule->command('outbox:prune')->dailyAt('03:15');
         });
+    }
+
+    /**
+     * The shared look: views as khana::, components as <x-khana::...>, and
+     * the CSS and JavaScript published to public/vendor/khana.
+     */
+    private function bootUi(): void
+    {
+        $this->loadViewsFrom(__DIR__.'/../resources/views', 'khana');
+        Blade::anonymousComponentPath(__DIR__.'/../resources/views/components', 'khana');
+
+        $this->publishes([Ui::path() => public_path('vendor/khana')], 'khana-ui');
     }
 
     /**

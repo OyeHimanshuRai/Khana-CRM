@@ -50,6 +50,11 @@ class TenancyTest extends TestCase
                     ? array_merge(...array_values($this->outlets))
                     : ($this->outlets[$tenantKey] ?? []);
             }
+
+            public function outletNames(array $outletKeys): array
+            {
+                return array_combine($outletKeys, array_map(fn ($key) => "Outlet {$key}", $outletKeys));
+            }
         });
 
         Schema::create('test_orders', function (Blueprint $table) {

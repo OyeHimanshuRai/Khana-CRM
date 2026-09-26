@@ -4,6 +4,8 @@ namespace Khana\Kit\Sso;
 
 use Illuminate\Http\RedirectResponse;
 use Illuminate\Http\Request;
+use Khana\Kit\Tenancy\Context;
+use Khana\Kit\Ui\OutletController;
 use Symfony\Component\HttpFoundation\Response;
 
 /**
@@ -30,6 +32,11 @@ final class SsoController
 
         $request->session()->regenerate();
 
-        return $local->signIn($person, $request);
+        $response = $local->signIn($person, $request);
+
+        // The outlet the product switcher was opening, if sign-in interrupted it.
+        OutletController::applyPending($request, app(Context::class));
+
+        return $response;
     }
 }

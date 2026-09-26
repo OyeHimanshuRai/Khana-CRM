@@ -52,7 +52,7 @@
     @endif
 
     @php $shopCss = public_path('assets/css/shop.css'); @endphp
-    <link rel="stylesheet" href="{{ asset('assets/css/app.css') }}?v={{ filemtime(public_path('assets/css/app.css')) }}">
+    <link rel="stylesheet" href="{{ Khana\Kit\Ui\Ui::asset('css/app.css') }}">
     <link rel="stylesheet" href="{{ asset('assets/css/shop.css') }}?v={{ file_exists($shopCss) ? filemtime($shopCss) : 1 }}">
     @stack('styles')
 </head>
@@ -116,7 +116,7 @@
     </div>
 </footer>
 
-<script src="{{ asset('assets/js/app.js') }}?v={{ filemtime(public_path('assets/js/app.js')) }}"></script>
+<script src="{{ Khana\Kit\Ui\Ui::asset('js/app.js') }}"></script>
 @stack('scripts')
 </body>
 </html>

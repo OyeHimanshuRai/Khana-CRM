@@ -23,4 +23,9 @@ final class ReferenceDirectory implements Directory
             ->pluck('id')
             ->all();
     }
+
+    public function outletNames(array $outletKeys): array
+    {
+        return $outletKeys === [] ? [] : DB::table('khana_outlets')->whereIn('id', $outletKeys)->pluck('name', 'id')->all();
+    }
 }
