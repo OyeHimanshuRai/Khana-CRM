@@ -1,0 +1,22 @@
+{
+  "id": "01M3D669XBMHZHJZW5N8J16PGV",
+  "type": "crm.sale.returned",
+  "version": 1,
+  "source": "crm",
+  "seq": 107,
+  "occurred_at": "2026-09-26T09:00:00Z",
+  "tenant_id": "01M3D669MZPZP9EP7ND2XFY1W2",
+  "outlet_id": "01M3D669NC4JCJSRMWG4WWDRRT",
+  "data": {
+    "return_id": "01M3D669T00KD8F8JRQVC8AW0K",
+    "sale_id": "01M3D669SW4FC5J17YC290RRDV",
+    "business_date": "2026-09-26",
+    "lines": [
+      {
+        "line_id": "01M3D669XZDEYAPQSKAHMRWCDG",
+        "qty": "1.0000",
+        "back_to_stock": true
+      }
+    ]
+  }
+}

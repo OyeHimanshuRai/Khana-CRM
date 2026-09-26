@@ -1,0 +1,13 @@
+{
+  "id": "01M3D669XKWFZ9SE8PZBY5X053",
+  "type": "system.ping",
+  "version": 1,
+  "source": "crm",
+  "seq": 1,
+  "occurred_at": "2026-09-26T04:00:00Z",
+  "tenant_id": null,
+  "outlet_id": null,
+  "data": {
+    "note": "ping from crm"
+  }
+}

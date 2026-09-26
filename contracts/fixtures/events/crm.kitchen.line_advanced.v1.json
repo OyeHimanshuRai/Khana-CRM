@@ -1,0 +1,19 @@
+{
+  "id": "01M3D669VCFXVZXBX0T9JTXSCC",
+  "type": "crm.kitchen.line_advanced",
+  "version": 1,
+  "source": "crm",
+  "seq": 103,
+  "occurred_at": "2026-09-26T08:10:00Z",
+  "tenant_id": "01M3D669MZPZP9EP7ND2XFY1W2",
+  "outlet_id": "01M3D669NC4JCJSRMWG4WWDRRT",
+  "data": {
+    "order_id": "01M3D669SSVNQ57R1X9VCSRZ34",
+    "line_id": "01M3D669ST4F03M77CDP84RRJJ",
+    "item_id": "01M3D669PVQWGHHDSQ863GKRVA",
+    "variant_id": "01M3D669QB61ZY37PB44WP3AV9",
+    "option_ids": ["01M3D669S9EQV0BW1MXBXE8TSM"],
+    "qty": "2.0000",
+    "stage": "ready"
+  }
+}

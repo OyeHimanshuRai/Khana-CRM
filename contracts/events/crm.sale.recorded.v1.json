@@ -1,0 +1,70 @@
+{
+  "$schema": "https://json-schema.org/draft/2020-12/schema",
+  "$id": "https://contracts.khana.local/events/crm.sale.recorded.v1.json",
+  "title": "crm.sale.recorded v1",
+  "description": "An invoice was issued - at the POS, from a table bill or online. Lines that link kitchen lines have already been consumed through those; ERP consumes only the rest (packaged goods) and adds the sale to food cost. The same shape is what ERP's sales API accepts from other billing software.",
+  "allOf": [{ "$ref": "envelope.json" }],
+  "properties": {
+    "type": { "const": "crm.sale.recorded" },
+    "version": { "const": 1 },
+    "source": { "const": "crm" },
+    "tenant_id": { "$ref": "defs.json#/$defs/ulid" },
+    "outlet_id": { "$ref": "defs.json#/$defs/ulid" },
+    "data": {
+      "type": "object",
+      "additionalProperties": false,
+      "required": ["sale_id", "invoice_no", "business_date", "channel", "lines", "totals"],
+      "properties": {
+        "sale_id": { "$ref": "defs.json#/$defs/ulid" },
+        "invoice_no": { "type": "string", "minLength": 1, "maxLength": 50 },
+        "business_date": { "$ref": "defs.json#/$defs/businessDate" },
+        "channel": { "$ref": "defs.json#/$defs/channel" },
+        "lines": {
+          "type": "array",
+          "minItems": 1,
+          "items": {
+            "type": "object",
+            "additionalProperties": false,
+            "required": ["line_id", "item_id", "variant_id", "option_ids", "name", "qty", "net_paise", "tax_paise", "order_line_ids"],
+            "properties": {
+              "line_id": { "$ref": "defs.json#/$defs/ulid" },
+              "item_id": {
+                "$ref": "defs.json#/$defs/nullableUlid",
+                "description": "Null for an open line with no menu item, such as a service charge."
+              },
+              "variant_id": { "$ref": "defs.json#/$defs/nullableUlid" },
+              "option_ids": { "$ref": "defs.json#/$defs/ulidList" },
+              "name": { "$ref": "defs.json#/$defs/name" },
+              "qty": { "$ref": "defs.json#/$defs/positiveQuantity" },
+              "net_paise": {
+                "$ref": "defs.json#/$defs/nonNegativePaise",
+                "description": "Taxable value after every discount, including this line's share of a bill discount."
+              },
+              "tax_paise": { "$ref": "defs.json#/$defs/nonNegativePaise" },
+              "order_line_ids": {
+                "$ref": "defs.json#/$defs/ulidList",
+                "description": "The kitchen lines this bill line settles. Empty for anything the kitchen never saw."
+              }
+            }
+          }
+        },
+        "totals": {
+          "type": "object",
+          "additionalProperties": false,
+          "required": ["net_paise", "tax_paise", "round_off_paise", "grand_paise"],
+          "properties": {
+            "net_paise": { "$ref": "defs.json#/$defs/nonNegativePaise" },
+            "tax_paise": { "$ref": "defs.json#/$defs/nonNegativePaise" },
+            "round_off_paise": {
+              "type": "integer",
+              "minimum": -50,
+              "maximum": 50,
+              "description": "Difference between the exact total and the nearest rupee."
+            },
+            "grand_paise": { "$ref": "defs.json#/$defs/nonNegativePaise" }
+          }
+        }
+      }
+    }
+  }
+}

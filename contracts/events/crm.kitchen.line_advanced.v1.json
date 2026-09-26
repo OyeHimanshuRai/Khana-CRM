@@ -1,0 +1,28 @@
+{
+  "$schema": "https://json-schema.org/draft/2020-12/schema",
+  "$id": "https://contracts.khana.local/events/crm.kitchen.line_advanced.v1.json",
+  "title": "crm.kitchen.line_advanced v1",
+  "description": "A kitchen line reached a new stage. ERP consumes the recipe once, when the line reaches the outlet's chosen stage (ready by default).",
+  "allOf": [{ "$ref": "envelope.json" }],
+  "properties": {
+    "type": { "const": "crm.kitchen.line_advanced" },
+    "version": { "const": 1 },
+    "source": { "const": "crm" },
+    "tenant_id": { "$ref": "defs.json#/$defs/ulid" },
+    "outlet_id": { "$ref": "defs.json#/$defs/ulid" },
+    "data": {
+      "type": "object",
+      "additionalProperties": false,
+      "required": ["order_id", "line_id", "item_id", "variant_id", "option_ids", "qty", "stage"],
+      "properties": {
+        "order_id": { "$ref": "defs.json#/$defs/ulid" },
+        "line_id": { "$ref": "defs.json#/$defs/ulid" },
+        "item_id": { "$ref": "defs.json#/$defs/ulid" },
+        "variant_id": { "$ref": "defs.json#/$defs/nullableUlid" },
+        "option_ids": { "$ref": "defs.json#/$defs/ulidList" },
+        "qty": { "$ref": "defs.json#/$defs/positiveQuantity" },
+        "stage": { "enum": ["accepted", "preparing", "ready", "served"] }
+      }
+    }
+  }
+}

@@ -1,0 +1,44 @@
+{
+  "$schema": "https://json-schema.org/draft/2020-12/schema",
+  "$id": "https://contracts.khana.local/events/envelope.json",
+  "title": "Event envelope",
+  "description": "The shape every event travels in. Each event type's own schema narrows it: which type, version and source, whether tenant_id and outlet_id are required, and what data holds.",
+  "type": "object",
+  "required": ["id", "type", "version", "source", "seq", "occurred_at", "tenant_id", "outlet_id", "data"],
+  "additionalProperties": false,
+  "properties": {
+    "id": {
+      "$ref": "defs.json#/$defs/ulid",
+      "description": "Unique for ever. Receivers store an event once per id, which is what makes repeats harmless."
+    },
+    "type": {
+      "type": "string",
+      "pattern": "^[a-z]+(\\.[a-z][a-z0-9_]*)+$"
+    },
+    "version": {
+      "type": "integer",
+      "minimum": 1,
+      "description": "New optional fields keep the version. Renamed or removed fields make a new one, and the sender emits both until every receiver has moved."
+    },
+    "source": {
+      "enum": ["accounts", "crm", "erp"]
+    },
+    "seq": {
+      "type": "integer",
+      "minimum": 1,
+      "description": "The sender's own running order. Gaps are normal: a receiver is only sent the types it subscribes to."
+    },
+    "occurred_at": {
+      "$ref": "defs.json#/$defs/timestamp"
+    },
+    "tenant_id": {
+      "$ref": "defs.json#/$defs/nullableUlid"
+    },
+    "outlet_id": {
+      "$ref": "defs.json#/$defs/nullableUlid"
+    },
+    "data": {
+      "type": "object"
+    }
+  }
+}

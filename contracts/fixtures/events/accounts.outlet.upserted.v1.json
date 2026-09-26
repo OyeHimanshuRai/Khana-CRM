@@ -1,0 +1,26 @@
+{
+  "id": "01M3D669TGWNQES4BCWS5K81ZH",
+  "type": "accounts.outlet.upserted",
+  "version": 1,
+  "source": "accounts",
+  "seq": 2,
+  "occurred_at": "2026-09-26T05:00:01Z",
+  "tenant_id": "01M3D669MZPZP9EP7ND2XFY1W2",
+  "outlet_id": "01M3D669NC4JCJSRMWG4WWDRRT",
+  "data": {
+    "name": "Spice Route, Hauz Khas",
+    "code": "HK",
+    "gstin": "07AAACS1234A1Z5",
+    "fssai": "13321999000123",
+    "address": {
+      "line1": "12 Hauz Khas Village",
+      "line2": null,
+      "city": "New Delhi",
+      "pincode": "110016"
+    },
+    "state_code": "07",
+    "timezone": "Asia/Kolkata",
+    "day_cutoff": "04:00",
+    "status": "active"
+  }
+}

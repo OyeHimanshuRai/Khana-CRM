@@ -1,0 +1,28 @@
+{
+  "$schema": "https://json-schema.org/draft/2020-12/schema",
+  "$id": "https://contracts.khana.local/events/accounts.access.changed.v1.json",
+  "title": "accounts.access.changed v1",
+  "description": "A person's role or outlets changed in one product. The full current state, not a difference: a receiver replaces what it holds.",
+  "allOf": [{ "$ref": "envelope.json" }],
+  "properties": {
+    "type": { "const": "accounts.access.changed" },
+    "version": { "const": 1 },
+    "source": { "const": "accounts" },
+    "tenant_id": { "$ref": "defs.json#/$defs/ulid" },
+    "outlet_id": { "type": "null" },
+    "data": {
+      "type": "object",
+      "additionalProperties": false,
+      "required": ["user_id", "product", "role_key", "outlet_ids"],
+      "properties": {
+        "user_id": { "$ref": "defs.json#/$defs/ulid" },
+        "product": { "$ref": "defs.json#/$defs/product" },
+        "role_key": {
+          "anyOf": [{ "$ref": "defs.json#/$defs/code" }, { "type": "null" }],
+          "description": "Null means no access to this product at all."
+        },
+        "outlet_ids": { "$ref": "defs.json#/$defs/ulidList" }
+      }
+    }
+  }
+}

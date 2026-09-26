@@ -1,0 +1,35 @@
+{
+  "$schema": "https://json-schema.org/draft/2020-12/schema",
+  "$id": "https://contracts.khana.local/events/accounts.entitlement.changed.v1.json",
+  "title": "accounts.entitlement.changed v1",
+  "description": "An outlet's subscription to one product started, renewed, lapsed or ended. Owning both products for an outlet is what switches the CRM-to-ERP link on; there is no setting for it.",
+  "allOf": [{ "$ref": "envelope.json" }],
+  "properties": {
+    "type": { "const": "accounts.entitlement.changed" },
+    "version": { "const": 1 },
+    "source": { "const": "accounts" },
+    "tenant_id": { "$ref": "defs.json#/$defs/ulid" },
+    "outlet_id": { "$ref": "defs.json#/$defs/ulid" },
+    "data": {
+      "type": "object",
+      "additionalProperties": false,
+      "required": ["product", "state", "plan", "limits", "valid_until"],
+      "properties": {
+        "product": { "$ref": "defs.json#/$defs/product" },
+        "state": {
+          "enum": ["trial", "active", "grace", "suspended", "ended"],
+          "description": "Suspended is read and export only."
+        },
+        "plan": { "$ref": "defs.json#/$defs/code" },
+        "limits": {
+          "type": "object",
+          "additionalProperties": {
+            "anyOf": [{ "type": "integer", "minimum": 0 }, { "type": "null" }]
+          },
+          "description": "Named limits such as users or tables. Null is unlimited."
+        },
+        "valid_until": { "$ref": "defs.json#/$defs/nullableTimestamp" }
+      }
+    }
+  }
+}

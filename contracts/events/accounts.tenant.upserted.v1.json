@@ -1,0 +1,34 @@
+{
+  "$schema": "https://json-schema.org/draft/2020-12/schema",
+  "$id": "https://contracts.khana.local/events/accounts.tenant.upserted.v1.json",
+  "title": "accounts.tenant.upserted v1",
+  "description": "A business was created or edited. CRM and ERP keep a read-only copy.",
+  "allOf": [{ "$ref": "envelope.json" }],
+  "properties": {
+    "type": { "const": "accounts.tenant.upserted" },
+    "version": { "const": 1 },
+    "source": { "const": "accounts" },
+    "tenant_id": { "$ref": "defs.json#/$defs/ulid" },
+    "outlet_id": { "type": "null" },
+    "data": {
+      "type": "object",
+      "additionalProperties": false,
+      "required": ["name", "legal_name", "gstin", "pan", "status"],
+      "properties": {
+        "name": { "$ref": "defs.json#/$defs/name" },
+        "legal_name": { "$ref": "defs.json#/$defs/nullableText" },
+        "gstin": { "$ref": "defs.json#/$defs/gstin" },
+        "pan": {
+          "anyOf": [
+            { "type": "string", "pattern": "^[A-Z]{5}\\d{4}[A-Z]$" },
+            { "type": "null" }
+          ]
+        },
+        "status": {
+          "enum": ["active", "suspended", "closed"],
+          "description": "Suspended keeps every row; its staff cannot sign in."
+        }
+      }
+    }
+  }
+}

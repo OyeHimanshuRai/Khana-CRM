@@ -1,0 +1,27 @@
+{
+  "$schema": "https://json-schema.org/draft/2020-12/schema",
+  "$id": "https://contracts.khana.local/events/crm.cash.paid_out.v1.json",
+  "title": "crm.cash.paid_out v1",
+  "description": "Cash left the drawer. ERP turns it into a supplier payment when a bill is named, and an expense otherwise.",
+  "allOf": [{ "$ref": "envelope.json" }],
+  "properties": {
+    "type": { "const": "crm.cash.paid_out" },
+    "version": { "const": 1 },
+    "source": { "const": "crm" },
+    "tenant_id": { "$ref": "defs.json#/$defs/ulid" },
+    "outlet_id": { "$ref": "defs.json#/$defs/ulid" },
+    "data": {
+      "type": "object",
+      "additionalProperties": false,
+      "required": ["paid_out_id", "business_date", "amount_paise", "category", "supplier_bill_id", "note"],
+      "properties": {
+        "paid_out_id": { "$ref": "defs.json#/$defs/ulid" },
+        "business_date": { "$ref": "defs.json#/$defs/businessDate" },
+        "amount_paise": { "$ref": "defs.json#/$defs/positivePaise" },
+        "category": { "$ref": "defs.json#/$defs/code" },
+        "supplier_bill_id": { "$ref": "defs.json#/$defs/nullableUlid" },
+        "note": { "$ref": "defs.json#/$defs/nullableText" }
+      }
+    }
+  }
+}

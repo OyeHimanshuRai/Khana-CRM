@@ -1,0 +1,28 @@
+{
+  "$schema": "https://json-schema.org/draft/2020-12/schema",
+  "$id": "https://contracts.khana.local/events/erp.availability.changed.v1.json",
+  "title": "erp.availability.changed v1",
+  "description": "A menu item (or one of its sizes) ran out or came back, judged from stock. Staff can still override it in CRM.",
+  "allOf": [{ "$ref": "envelope.json" }],
+  "properties": {
+    "type": { "const": "erp.availability.changed" },
+    "version": { "const": 1 },
+    "source": { "const": "erp" },
+    "tenant_id": { "$ref": "defs.json#/$defs/ulid" },
+    "outlet_id": { "$ref": "defs.json#/$defs/ulid" },
+    "data": {
+      "type": "object",
+      "additionalProperties": false,
+      "required": ["item_id", "variant_id", "available", "reason"],
+      "properties": {
+        "item_id": { "$ref": "defs.json#/$defs/ulid" },
+        "variant_id": {
+          "$ref": "defs.json#/$defs/nullableUlid",
+          "description": "Null means the whole item; otherwise only that size."
+        },
+        "available": { "type": "boolean" },
+        "reason": { "enum": ["stock_out", "restocked", "recipe_changed", "manual"] }
+      }
+    }
+  }
+}

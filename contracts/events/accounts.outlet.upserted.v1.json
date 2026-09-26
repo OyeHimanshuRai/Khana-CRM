@@ -1,0 +1,54 @@
+{
+  "$schema": "https://json-schema.org/draft/2020-12/schema",
+  "$id": "https://contracts.khana.local/events/accounts.outlet.upserted.v1.json",
+  "title": "accounts.outlet.upserted v1",
+  "description": "An outlet was created or edited. Its time zone and day cutoff decide which business_date every later event for it carries.",
+  "allOf": [{ "$ref": "envelope.json" }],
+  "properties": {
+    "type": { "const": "accounts.outlet.upserted" },
+    "version": { "const": 1 },
+    "source": { "const": "accounts" },
+    "tenant_id": { "$ref": "defs.json#/$defs/ulid" },
+    "outlet_id": { "$ref": "defs.json#/$defs/ulid" },
+    "data": {
+      "type": "object",
+      "additionalProperties": false,
+      "required": ["name", "code", "gstin", "fssai", "address", "state_code", "timezone", "day_cutoff", "status"],
+      "properties": {
+        "name": { "$ref": "defs.json#/$defs/name" },
+        "code": {
+          "type": "string",
+          "pattern": "^[A-Z0-9][A-Z0-9-]{0,11}$",
+          "description": "Short code used in document numbers, such as GF."
+        },
+        "gstin": { "$ref": "defs.json#/$defs/gstin" },
+        "fssai": {
+          "anyOf": [
+            { "type": "string", "pattern": "^\\d{14}$" },
+            { "type": "null" }
+          ]
+        },
+        "address": {
+          "type": "object",
+          "additionalProperties": false,
+          "required": ["line1", "line2", "city", "pincode"],
+          "properties": {
+            "line1": { "type": "string", "minLength": 1, "maxLength": 255 },
+            "line2": { "$ref": "defs.json#/$defs/nullableText" },
+            "city": { "type": "string", "minLength": 1, "maxLength": 100 },
+            "pincode": {
+              "anyOf": [
+                { "type": "string", "pattern": "^\\d{6}$" },
+                { "type": "null" }
+              ]
+            }
+          }
+        },
+        "state_code": { "$ref": "defs.json#/$defs/stateCode" },
+        "timezone": { "$ref": "defs.json#/$defs/timezone" },
+        "day_cutoff": { "$ref": "defs.json#/$defs/dayCutoff" },
+        "status": { "enum": ["active", "inactive", "suspended"] }
+      }
+    }
+  }
+}

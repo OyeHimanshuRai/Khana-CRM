@@ -1,0 +1,51 @@
+{
+  "id": "01M3D669TVXEHZZEP8SV9H6DFA",
+  "type": "crm.menu.item_upserted",
+  "version": 1,
+  "source": "crm",
+  "seq": 101,
+  "occurred_at": "2026-09-26T06:00:00Z",
+  "tenant_id": "01M3D669MZPZP9EP7ND2XFY1W2",
+  "outlet_id": "01M3D669NC4JCJSRMWG4WWDRRT",
+  "data": {
+    "item_id": "01M3D669PVQWGHHDSQ863GKRVA",
+    "name": "Paneer Tikka",
+    "category": {
+      "category_id": "01M3D669RATRDYSVNJHTFQ97PV",
+      "name": "Starters"
+    },
+    "food_type": "veg",
+    "active": true,
+    "price_paise": 0,
+    "sku": null,
+    "barcode": null,
+    "sizes": [
+      {
+        "variant_id": "01M3D669QT75PT6F2Q17T22EVM",
+        "name": "Half",
+        "sku": "PT-H",
+        "barcode": null,
+        "price_paise": 15000,
+        "is_default": false
+      },
+      {
+        "variant_id": "01M3D669QB61ZY37PB44WP3AV9",
+        "name": "Full",
+        "sku": "PT-F",
+        "barcode": null,
+        "price_paise": 25000,
+        "is_default": true
+      }
+    ],
+    "addons": [
+      {
+        "option_id": "01M3D669S9EQV0BW1MXBXE8TSM",
+        "modifier_id": "01M3D669RS5RYT8F6T2641V5PF",
+        "modifier_name": "Extras",
+        "name": "Extra cheese",
+        "price_paise": 4000,
+        "active": true
+      }
+    ]
+  }
+}

@@ -1,0 +1,173 @@
+openapi: 3.1.0
+info:
+  title: Khana Accounts API
+  version: 1.0.0
+  description: |
+    Sign-in for both products (OAuth 2 authorization code flow, Laravel
+    Passport) and the reference data CRM and ERP copy locally.
+
+    CRM and ERP call the snapshot with a machine token: OAuth 2 client
+    credentials, signed by Accounts and checked by each product locally with
+    Accounts' public key. Money is whole paise, ids are ULIDs, times are UTC.
+servers:
+  - url: https://accounts.khana.example.com
+paths:
+  /oauth/authorize:
+    get:
+      operationId: authorize
+      summary: Start sign-in (browser redirect)
+      description: Standard OAuth 2 authorization request. A person already signed in to Accounts comes straight back, which is what makes switching products silent.
+      parameters:
+        - { name: response_type, in: query, required: true, schema: { const: code } }
+        - { name: client_id, in: query, required: true, schema: { type: string } }
+        - { name: redirect_uri, in: query, required: true, schema: { type: string, format: uri } }
+        - { name: scope, in: query, required: false, schema: { type: string } }
+        - { name: state, in: query, required: true, schema: { type: string, minLength: 16 } }
+        - { name: code_challenge, in: query, required: true, schema: { type: string } }
+        - { name: code_challenge_method, in: query, required: true, schema: { const: S256 } }
+      responses:
+        '302':
+          description: Back to the product's redirect_uri with a one-time `code` and the `state`.
+  /oauth/token:
+    post:
+      operationId: token
+      summary: Swap a code for tokens, or get a machine token
+      requestBody:
+        required: true
+        content:
+          application/x-www-form-urlencoded:
+            schema:
+              oneOf:
+                - type: object
+                  required: [grant_type, code, redirect_uri, client_id, code_verifier]
+                  properties:
+                    grant_type: { const: authorization_code }
+                    code: { type: string }
+                    redirect_uri: { type: string, format: uri }
+                    client_id: { type: string }
+                    code_verifier: { type: string }
+                - type: object
+                  required: [grant_type, client_id, client_secret, scope]
+                  properties:
+                    grant_type: { const: client_credentials }
+                    client_id: { type: string }
+                    client_secret: { type: string }
+                    scope: { type: string, description: 'Space-separated, e.g. "tenants:read".' }
+      responses:
+        '200':
+          description: Tokens
+          content:
+            application/json:
+              schema:
+                type: object
+                required: [token_type, access_token, expires_in]
+                properties:
+                  token_type: { const: Bearer }
+                  access_token: { type: string }
+                  expires_in: { type: integer }
+                  refresh_token: { type: string }
+        '400':
+          description: Invalid grant
+  /api/v1/me:
+    get:
+      operationId: me
+      summary: The signed-in person, their outlets, their role in each product, and entitlements
+      security: [{ personToken: [] }]
+      responses:
+        '200':
+          description: Profile
+          content:
+            application/json:
+              schema: { $ref: '#/components/schemas/Me' }
+        '401': { description: Token missing or expired }
+  /api/v1/tenants/{id}/snapshot:
+    get:
+      operationId: tenantSnapshot
+      summary: Everything the products copy about one business, for a first sync and the nightly check
+      security: [{ machineToken: ['tenants:read'] }]
+      parameters:
+        - { name: id, in: path, required: true, schema: { $ref: '../events/defs.json#/$defs/ulid' } }
+      responses:
+        '200':
+          description: Snapshot. Each part has exactly the shape of the matching event's data, so a copy can be rebuilt with the same code that applies events.
+          content:
+            application/json:
+              schema:
+                type: object
+                required: [tenant_id, tenant, outlets, users, access, entitlements, taken_at]
+                properties:
+                  tenant_id: { $ref: '../events/defs.json#/$defs/ulid' }
+                  tenant: { $ref: '../events/accounts.tenant.upserted.v1.json#/properties/data' }
+                  outlets:
+                    type: array
+                    items:
+                      allOf:
+                        - $ref: '../events/accounts.outlet.upserted.v1.json#/properties/data'
+                        - type: object
+                          required: [outlet_id]
+                          properties:
+                            outlet_id: { $ref: '../events/defs.json#/$defs/ulid' }
+                  users:
+                    type: array
+                    items: { $ref: '../events/accounts.user.upserted.v1.json#/properties/data' }
+                  access:
+                    type: array
+                    items: { $ref: '../events/accounts.access.changed.v1.json#/properties/data' }
+                  entitlements:
+                    type: array
+                    items:
+                      allOf:
+                        - $ref: '../events/accounts.entitlement.changed.v1.json#/properties/data'
+                        - type: object
+                          required: [outlet_id]
+                          properties:
+                            outlet_id: { $ref: '../events/defs.json#/$defs/ulid' }
+                  taken_at: { $ref: '../events/defs.json#/$defs/timestamp' }
+        '401': { description: Token missing or expired }
+        '403': { description: Token lacks tenants:read }
+        '404': { description: No such business }
+components:
+  securitySchemes:
+    personToken:
+      type: http
+      scheme: bearer
+      description: Access token from the authorization code flow.
+    machineToken:
+      type: oauth2
+      flows:
+        clientCredentials:
+          tokenUrl: /oauth/token
+          scopes:
+            tenants:read: Read businesses, outlets, people and entitlements
+  schemas:
+    Me:
+      type: object
+      required: [user_id, name, email, mobile, tenant_id, outlets, products]
+      properties:
+        user_id: { $ref: '../events/defs.json#/$defs/ulid' }
+        name: { type: string }
+        email: { type: [string, 'null'] }
+        mobile: { type: [string, 'null'] }
+        tenant_id: { $ref: '../events/defs.json#/$defs/nullableUlid' }
+        platform_admin: { type: boolean }
+        outlets:
+          type: array
+          items:
+            type: object
+            required: [outlet_id, name, code]
+            properties:
+              outlet_id: { $ref: '../events/defs.json#/$defs/ulid' }
+              name: { type: string }
+              code: { type: string }
+        products:
+          type: object
+          description: Keyed by product. Absent means no access to that product.
+          properties:
+            crm: { $ref: '#/components/schemas/ProductAccess' }
+            erp: { $ref: '#/components/schemas/ProductAccess' }
+    ProductAccess:
+      type: object
+      required: [role_key, outlet_ids]
+      properties:
+        role_key: { $ref: '../events/defs.json#/$defs/code' }
+        outlet_ids: { $ref: '../events/defs.json#/$defs/ulidList' }

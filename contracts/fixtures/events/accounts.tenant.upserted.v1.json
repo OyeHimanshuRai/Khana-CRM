@@ -1,0 +1,17 @@
+{
+  "id": "01M3D669TEAN3CRGWKQWAFV3S3",
+  "type": "accounts.tenant.upserted",
+  "version": 1,
+  "source": "accounts",
+  "seq": 1,
+  "occurred_at": "2026-09-26T05:00:00Z",
+  "tenant_id": "01M3D669MZPZP9EP7ND2XFY1W2",
+  "outlet_id": null,
+  "data": {
+    "name": "Spice Route",
+    "legal_name": "Spice Route Hospitality Pvt Ltd",
+    "gstin": "07AAACS1234A1Z5",
+    "pan": "AAACS1234A",
+    "status": "active"
+  }
+}

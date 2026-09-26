@@ -1,0 +1,85 @@
+{
+  "$schema": "https://json-schema.org/draft/2020-12/schema",
+  "$id": "https://contracts.khana.local/events/crm.menu.item_upserted.v1.json",
+  "title": "crm.menu.item_upserted v1",
+  "description": "A menu item, its sizes or its add-ons were saved at one outlet. The whole item every time, so ERP's read-only copy is a replace, never a merge.",
+  "allOf": [{ "$ref": "envelope.json" }],
+  "properties": {
+    "type": { "const": "crm.menu.item_upserted" },
+    "version": { "const": 1 },
+    "source": { "const": "crm" },
+    "tenant_id": { "$ref": "defs.json#/$defs/ulid" },
+    "outlet_id": { "$ref": "defs.json#/$defs/ulid" },
+    "data": {
+      "type": "object",
+      "additionalProperties": false,
+      "required": ["item_id", "name", "category", "food_type", "active", "price_paise", "sku", "barcode", "sizes", "addons"],
+      "properties": {
+        "item_id": { "$ref": "defs.json#/$defs/ulid" },
+        "name": { "$ref": "defs.json#/$defs/name" },
+        "category": {
+          "anyOf": [
+            {
+              "type": "object",
+              "additionalProperties": false,
+              "required": ["category_id", "name"],
+              "properties": {
+                "category_id": { "$ref": "defs.json#/$defs/ulid" },
+                "name": { "$ref": "defs.json#/$defs/name" }
+              }
+            },
+            { "type": "null" }
+          ]
+        },
+        "food_type": {
+          "enum": ["veg", "non_veg", "egg", null],
+          "description": "Null means the item is not food - water, a bag, a service line - not \"unknown\"."
+        },
+        "active": { "type": "boolean" },
+        "price_paise": {
+          "$ref": "defs.json#/$defs/nonNegativePaise",
+          "description": "The price when the item has no sizes. Ignored where it has them."
+        },
+        "sku": { "type": ["string", "null"], "maxLength": 64 },
+        "barcode": {
+          "type": ["string", "null"],
+          "maxLength": 64,
+          "description": "Packaged goods: ERP links an item to its stock item when barcodes match."
+        },
+        "sizes": {
+          "type": "array",
+          "description": "Empty for an item without sizes. Where present, an order line always names one.",
+          "items": {
+            "type": "object",
+            "additionalProperties": false,
+            "required": ["variant_id", "name", "sku", "barcode", "price_paise", "is_default"],
+            "properties": {
+              "variant_id": { "$ref": "defs.json#/$defs/ulid" },
+              "name": { "$ref": "defs.json#/$defs/name" },
+              "sku": { "type": ["string", "null"], "maxLength": 64 },
+              "barcode": { "type": ["string", "null"], "maxLength": 64 },
+              "price_paise": { "$ref": "defs.json#/$defs/nonNegativePaise" },
+              "is_default": { "type": "boolean" }
+            }
+          }
+        },
+        "addons": {
+          "type": "array",
+          "items": {
+            "type": "object",
+            "additionalProperties": false,
+            "required": ["option_id", "modifier_id", "modifier_name", "name", "price_paise", "active"],
+            "properties": {
+              "option_id": { "$ref": "defs.json#/$defs/ulid" },
+              "modifier_id": { "$ref": "defs.json#/$defs/ulid" },
+              "modifier_name": { "$ref": "defs.json#/$defs/name" },
+              "name": { "$ref": "defs.json#/$defs/name" },
+              "price_paise": { "$ref": "defs.json#/$defs/nonNegativePaise" },
+              "active": { "type": "boolean" }
+            }
+          }
+        }
+      }
+    }
+  }
+}

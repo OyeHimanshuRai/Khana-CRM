@@ -1,0 +1,88 @@
+openapi: 3.1.0
+info:
+  title: Khana internal events
+  version: 1.0.0
+  description: |
+    The inbox every service exposes (Accounts, CRM and ERP alike). Other
+    services deliver batches of signed events here; nothing else calls it.
+
+    Caddy only lets /internal/* in from our own servers. The signature is the
+    authentication: `X-Khana-Signature: t=<unix time>,v1=<HMAC-SHA256 of "t.body">`
+    with the secret shared by that sender and receiver. Anything signed more
+    than 5 minutes either side of now is refused.
+
+    Storing is idempotent on the event id: a repeat is acknowledged and
+    ignored, which is what makes replays safe. Events are applied later, in
+    order, per outlet - a 200 means stored, not applied.
+paths:
+  /internal/events:
+    post:
+      operationId: receiveEvents
+      summary: Deliver a batch of events
+      parameters:
+        - name: X-Khana-Source
+          in: header
+          required: true
+          description: The sending service. Chooses which secret verifies the signature, and must equal every event's `source`.
+          schema:
+            enum: [accounts, crm, erp]
+        - name: X-Khana-Signature
+          in: header
+          required: true
+          schema:
+            type: string
+            pattern: '^t=\d+(,v1=[0-9a-f]{64})+$'
+      requestBody:
+        required: true
+        content:
+          application/json:
+            schema:
+              type: object
+              additionalProperties: false
+              required: [events]
+              properties:
+                events:
+                  type: array
+                  maxItems: 500
+                  description: In the sender's seq order. Senders send at most 100 at a time.
+                  items:
+                    $ref: '../events/envelope.json'
+      responses:
+        '200':
+          description: Stored. Repeats are counted as duplicates and change nothing.
+          content:
+            application/json:
+              schema:
+                type: object
+                required: [received, stored, duplicates]
+                properties:
+                  received: { type: integer, minimum: 0 }
+                  stored: { type: integer, minimum: 0 }
+                  duplicates: { type: integer, minimum: 0 }
+        '400':
+          description: The body is not a batch. The sender keeps the batch and retries.
+          content:
+            application/json:
+              schema: { $ref: '#/components/schemas/Refusal' }
+        '401':
+          description: Unknown sender, or a signature that is missing, wrong or too old.
+          content:
+            application/json:
+              schema: { $ref: '#/components/schemas/Refusal' }
+        '413':
+          description: More than 500 events in one batch.
+          content:
+            application/json:
+              schema: { $ref: '#/components/schemas/Refusal' }
+        '422':
+          description: An event's envelope is malformed, or claims a different source. The whole batch is refused.
+          content:
+            application/json:
+              schema: { $ref: '#/components/schemas/Refusal' }
+components:
+  schemas:
+    Refusal:
+      type: object
+      required: [message]
+      properties:
+        message: { type: string }
