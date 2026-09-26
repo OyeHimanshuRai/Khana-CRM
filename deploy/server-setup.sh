@@ -1,38 +1,89 @@
 #!/usr/bin/env bash
 #
-# One-time setup of the Khana-CRM test server (Ubuntu 24.04). Run as root:
+# One-time setup of one Khana app on the test server (Ubuntu 24.04). Run as
+# root, once per app:
 #
 #   curl -fsSL https://raw.githubusercontent.com/OyeHimanshuRai/Khana-CRM/main/deploy/server-setup.sh -o setup.sh
-#   sudo bash setup.sh                     # site on http://<server-ip>
-#   sudo bash setup.sh khana.example.com   # site on https://khana.example.com (its DNS must point here first)
+#   sudo bash setup.sh accounts khana.example.com   # https://accounts.khana.example.com
+#   sudo bash setup.sh crm      khana.example.com   # https://crm.khana.example.com
+#   sudo bash setup.sh erp      khana.example.com   # https://erp.khana.example.com
 #
-# Installs Caddy, PHP 8.3-FPM and MariaDB, creates the khana user, database,
-# queue worker and scheduler, and prints the three GitHub secrets the deploy
-# workflow needs. Safe to run again: the .env, app key, database password,
-# deploy key and domain are all kept, so moving to a domain later is just a
-# re-run with the domain. NEW_DEPLOY_KEY=1 issues a new deploy key, after which
-# KHANA_TEST_SSH_KEY in GitHub has to be updated.
+# The three apps share one base domain and live on its subdomains; a single
+# wildcard DNS record (*.khana -> this server) covers all three, and Caddy
+# fetches each certificate itself. Each app gets its own Linux user, database
+# and database user, PHP-FPM pool, queue worker and Caddy file, so none can
+# read another's data.
 #
-# Other apps on this server get their own user, database and file in
-# /etc/caddy/sites/, so nothing here needs to change when one is added.
+# "legacy" is today's single app, kept exactly as it was until the new CRM
+# replaces it:
+#
+#   sudo bash setup.sh legacy                        # http://<server-ip>
+#   sudo bash setup.sh legacy khana.example.com      # https://khana.example.com
+#
+# Safe to run again: the .env, app key, database password, event secrets,
+# deploy key and domain are all kept. NEW_DEPLOY_KEY=1 issues a new deploy key
+# for every app, after which KHANA_TEST_SSH_KEY in GitHub has to be updated.
 
 set -euo pipefail
 
-DOMAIN="${1:-}"
+APP="${1:-}"
+DOMAIN_ARG="${2:-}"
 PHP_VERSION=8.3
-APP_USER=khana
-WWW=/var/www/khana
-DATA=/var/lib/khana
+KHANA_ETC=/etc/khana
+
+case "$APP" in
+  legacy)
+    NAME=khana
+    DB_NAME=khana
+    LABEL="Khana CRM (test)"
+    ;;
+  accounts|crm|erp)
+    NAME="khana-$APP"
+    DB_NAME="khana_$APP"
+    LABEL="Khana ${APP^^} (test)"
+    [ "$APP" = accounts ] && LABEL="Khana Accounts (test)"
+    ;;
+  *)
+    cat >&2 <<EOF
+Usage: sudo bash $0 <app> [domain]
+
+  <app>     accounts, crm or erp - or legacy for today's single app
+  [domain]  the base domain for accounts/crm/erp (each gets <app>.<domain>),
+            or the full domain for legacy
+EOF
+    exit 1
+    ;;
+esac
+
+APP_USER="$NAME"
+WWW="/var/www/$NAME"
+DATA="/var/lib/$NAME"
 ENV_FILE="$DATA/.env"
 
-# A re-run without a domain keeps the one already configured.
-if [ -z "$DOMAIN" ] && [ -f "$ENV_FILE" ]; then
-  DOMAIN="$(grep -E '^APP_URL=https://' "$ENV_FILE" | cut -d/ -f3 || true)"
+if [ "$(id -u)" -ne 0 ]; then
+  echo "Run this as root: sudo bash $0 $APP $DOMAIN_ARG" >&2
+  exit 1
 fi
 
-if [ "$(id -u)" -ne 0 ]; then
-  echo "Run this as root: sudo bash $0 $DOMAIN" >&2
-  exit 1
+install -d -m 700 "$KHANA_ETC"
+
+# Work out the site's domain. A re-run without one keeps what is configured.
+if [ "$APP" = legacy ]; then
+  DOMAIN="$DOMAIN_ARG"
+  if [ -z "$DOMAIN" ] && [ -f "$ENV_FILE" ]; then
+    DOMAIN="$(grep -E '^APP_URL=https://' "$ENV_FILE" | cut -d/ -f3 || true)"
+  fi
+else
+  BASE_DOMAIN="$DOMAIN_ARG"
+  if [ -z "$BASE_DOMAIN" ] && [ -f "$KHANA_ETC/base-domain" ]; then
+    BASE_DOMAIN="$(cat "$KHANA_ETC/base-domain")"
+  fi
+  if [ -z "$BASE_DOMAIN" ]; then
+    echo "accounts, crm and erp need the base domain, e.g.: sudo bash $0 $APP khana.example.com" >&2
+    exit 1
+  fi
+  echo "$BASE_DOMAIN" > "$KHANA_ETC/base-domain"
+  DOMAIN="$APP.$BASE_DOMAIN"
 fi
 
 . /etc/os-release
@@ -64,7 +115,7 @@ echo "==> Sizing MariaDB for a small shared server"
 cat > /etc/mysql/mariadb.conf.d/60-small-server.cnf <<'EOF'
 [mysqld]
 innodb_buffer_pool_size = 256M
-max_connections         = 60
+max_connections         = 90
 performance_schema      = OFF
 EOF
 systemctl restart mariadb
@@ -99,7 +150,7 @@ if [ ! -f "$ENV_FILE" ]; then
   ADMIN_PASSWORD="$(openssl rand -base64 24 | tr -dc 'A-Za-z0-9' | cut -c1-16)"
   install -o "$APP_USER" -g "$APP_USER" -m 600 /dev/null "$ENV_FILE"
   cat > "$ENV_FILE" <<EOF
-APP_NAME="Khana CRM (test)"
+APP_NAME="$LABEL"
 APP_ENV=staging
 APP_KEY=base64:$(openssl rand -base64 32)
 APP_DEBUG=false
@@ -112,8 +163,8 @@ LOG_LEVEL=debug
 DB_CONNECTION=mysql
 DB_HOST=localhost
 DB_PORT=3306
-DB_DATABASE=khana
-DB_USERNAME=khana
+DB_DATABASE=$DB_NAME
+DB_USERNAME=$DB_NAME
 DB_PASSWORD=$DB_PASSWORD
 
 SESSION_DRIVER=database
@@ -126,7 +177,7 @@ BROADCAST_CONNECTION=null
 
 MAIL_MAILER=log
 MAIL_FROM_ADDRESS="noreply@khana.test"
-MAIL_FROM_NAME="Khana CRM"
+MAIL_FROM_NAME="Khana"
 SMS_DRIVER=log
 WHATSAPP_DRIVER=log
 
@@ -135,25 +186,77 @@ ADMIN_PASSWORD=$ADMIN_PASSWORD
 EOF
 else
   echo "==> Keeping the existing $ENV_FILE"
-  sed -i "s|^APP_URL=.*|APP_URL=$APP_URL|; s|^SESSION_SECURE_COOKIE=.*|SESSION_SECURE_COOKIE=$SECURE_COOKIE|" "$ENV_FILE"
 fi
 
 env_value() { grep -E "^$1=" "$ENV_FILE" | cut -d= -f2- | tr -d '"'; }
 
-echo "==> Creating the database"
+# Replace a line in the .env, or add it.
+set_env() {
+  if grep -qE "^$1=" "$ENV_FILE"; then
+    sed -i "s|^$1=.*|$1=$2|" "$ENV_FILE"
+  else
+    printf '%s=%s\n' "$1" "$2" >> "$ENV_FILE"
+  fi
+}
+
+set_env APP_URL "$APP_URL"
+set_env SESSION_SECURE_COOKIE "$SECURE_COOKIE"
+
+if [ "$APP" != legacy ]; then
+  echo "==> Event settings for $APP"
+
+  # One secret per sender -> receiver pair, made once and shared through a
+  # root-only file, so each app's .env holds only the secrets it is part of.
+  SECRETS="$KHANA_ETC/event-secrets.env"
+  if [ ! -f "$SECRETS" ]; then
+    install -m 600 /dev/null "$SECRETS"
+    for pair in ACCOUNTS_TO_CRM ACCOUNTS_TO_ERP CRM_TO_ERP ERP_TO_CRM; do
+      echo "KHANA_SECRET_$pair=$(openssl rand -hex 32)" >> "$SECRETS"
+    done
+  fi
+  secret() { grep -E "^KHANA_SECRET_$1=" "$SECRETS" | cut -d= -f2-; }
+
+  set_env KHANA_SERVICE "$APP"
+  set_env KHANA_EVENTS_VALIDATE false
+  if [ "$APP" != accounts ]; then
+    set_env KHANA_ACCOUNTS_URL "https://accounts.$BASE_DOMAIN"
+  fi
+  case "$APP" in
+    accounts)
+      set_env KHANA_CRM_URL "https://crm.$BASE_DOMAIN"
+      set_env KHANA_ERP_URL "https://erp.$BASE_DOMAIN"
+      set_env KHANA_SECRET_ACCOUNTS_TO_CRM "$(secret ACCOUNTS_TO_CRM)"
+      set_env KHANA_SECRET_ACCOUNTS_TO_ERP "$(secret ACCOUNTS_TO_ERP)"
+      ;;
+    crm)
+      set_env KHANA_ERP_URL "https://erp.$BASE_DOMAIN"
+      set_env KHANA_SECRET_CRM_TO_ERP "$(secret CRM_TO_ERP)"
+      set_env KHANA_SECRET_ERP_TO_CRM "$(secret ERP_TO_CRM)"
+      set_env KHANA_SECRET_ACCOUNTS_TO_CRM "$(secret ACCOUNTS_TO_CRM)"
+      ;;
+    erp)
+      set_env KHANA_CRM_URL "https://crm.$BASE_DOMAIN"
+      set_env KHANA_SECRET_CRM_TO_ERP "$(secret CRM_TO_ERP)"
+      set_env KHANA_SECRET_ERP_TO_CRM "$(secret ERP_TO_CRM)"
+      set_env KHANA_SECRET_ACCOUNTS_TO_ERP "$(secret ACCOUNTS_TO_ERP)"
+      ;;
+  esac
+fi
+
+echo "==> Creating the $DB_NAME database"
 mysql <<EOF
-CREATE DATABASE IF NOT EXISTS khana CHARACTER SET utf8mb4 COLLATE utf8mb4_unicode_ci;
-CREATE USER IF NOT EXISTS 'khana'@'localhost' IDENTIFIED BY '$(env_value DB_PASSWORD)';
-GRANT ALL PRIVILEGES ON khana.* TO 'khana'@'localhost';
+CREATE DATABASE IF NOT EXISTS \`$DB_NAME\` CHARACTER SET utf8mb4 COLLATE utf8mb4_unicode_ci;
+CREATE USER IF NOT EXISTS '$DB_NAME'@'localhost' IDENTIFIED BY '$(env_value DB_PASSWORD)';
+GRANT ALL PRIVILEGES ON \`$DB_NAME\`.* TO '$DB_NAME'@'localhost';
 FLUSH PRIVILEGES;
 EOF
 
 echo "==> PHP-FPM pool for $APP_USER"
-cat > "/etc/php/$PHP_VERSION/fpm/pool.d/khana.conf" <<EOF
-[khana]
+cat > "/etc/php/$PHP_VERSION/fpm/pool.d/$NAME.conf" <<EOF
+[$NAME]
 user = $APP_USER
 group = $APP_USER
-listen = /run/php/khana.sock
+listen = /run/php/$NAME.sock
 listen.owner = caddy
 listen.group = caddy
 listen.mode = 0660
@@ -171,17 +274,25 @@ if [ -f "/etc/php/$PHP_VERSION/fpm/pool.d/www.conf" ]; then
 fi
 systemctl restart "php$PHP_VERSION-fpm"
 
-echo "==> Caddy site"
+echo "==> Caddy site for $NAME"
 install -d /etc/caddy/sites
 cat > /etc/caddy/Caddyfile <<'EOF'
 # Each app on this server has its own file in /etc/caddy/sites/.
 import /etc/caddy/sites/*.caddy
 EOF
-cat > /etc/caddy/sites/khana.caddy <<EOF
+cat > "/etc/caddy/sites/$NAME.caddy" <<EOF
 ${DOMAIN:-:80} {
 	root * $WWW/current/public
 	encode zstd gzip
-	php_fastcgi unix//run/php/khana.sock {
+
+	# Service-to-service traffic only comes from this server itself.
+	@outside_internal {
+		path /internal/*
+		not remote_ip 127.0.0.0/8 ::1 $SERVER_IP
+	}
+	respond @outside_internal 403
+
+	php_fastcgi unix//run/php/$NAME.sock {
 		# Deploys swap the "current" symlink; resolve it so PHP always runs one whole build.
 		resolve_root_symlink
 	}
@@ -195,9 +306,9 @@ systemctl enable caddy >/dev/null 2>&1
 systemctl reload caddy || systemctl restart caddy
 
 echo "==> Queue worker and scheduler"
-cat > /etc/systemd/system/khana-queue.service <<EOF
+cat > "/etc/systemd/system/$NAME-queue.service" <<EOF
 [Unit]
-Description=Khana-CRM queue worker
+Description=$LABEL queue worker, which also sends its events
 After=network.target mariadb.service
 # Skipped until the first deploy has put a build in place.
 ConditionPathExists=$WWW/current/artisan
@@ -216,42 +327,66 @@ MemoryMax=512M
 WantedBy=multi-user.target
 EOF
 systemctl daemon-reload
-systemctl enable khana-queue >/dev/null 2>&1
+systemctl enable "$NAME-queue" >/dev/null 2>&1
 
-cat > /etc/cron.d/khana-scheduler <<EOF
-# Laravel scheduler for Khana-CRM: reminders, alerts, campaigns, nightly backup.
+cat > "/etc/cron.d/$NAME-scheduler" <<EOF
+# Laravel scheduler for $LABEL: reminders, alerts, the event retry sweeps, nightly backup.
 * * * * * $APP_USER [ -f $WWW/current/artisan ] && cd $WWW/current && /usr/bin/php artisan schedule:run >> /dev/null 2>&1
 EOF
-chmod 644 /etc/cron.d/khana-scheduler
+chmod 644 "/etc/cron.d/$NAME-scheduler"
 
 echo "==> Letting deploys reload PHP and restart the worker"
-cat > /etc/sudoers.d/khana <<EOF
-$APP_USER ALL=(root) NOPASSWD: /usr/bin/systemctl reload php$PHP_VERSION-fpm, /usr/bin/systemctl restart khana-queue
+cat > "/etc/sudoers.d/$NAME" <<EOF
+$APP_USER ALL=(root) NOPASSWD: /usr/bin/systemctl reload php$PHP_VERSION-fpm, /usr/bin/systemctl restart $NAME-queue
 EOF
-chmod 440 /etc/sudoers.d/khana
-visudo -cf /etc/sudoers.d/khana >/dev/null
+chmod 440 "/etc/sudoers.d/$NAME"
+visudo -cf "/etc/sudoers.d/$NAME" >/dev/null
 
 echo "==> Deploy key for GitHub Actions"
+# One key for every app user, so the same three GitHub secrets deploy all of
+# them. Its public half is kept in /etc/khana so the next app can be given it.
 KEY_DIR="$(mktemp -d)"
 trap 'rm -rf "$KEY_DIR"' EXIT
-install -d -o "$APP_USER" -g "$APP_USER" -m 700 "/home/$APP_USER/.ssh"
-AUTHORIZED_KEYS="/home/$APP_USER/.ssh/authorized_keys"
+PUBLIC_KEY_FILE="$KHANA_ETC/deploy-key.pub"
+KEY_OPTIONS="no-pty,no-port-forwarding,no-agent-forwarding,no-X11-forwarding"
+
+install_key_for() {
+  local user="$1" keys="/home/$1/.ssh/authorized_keys"
+  install -d -o "$user" -g "$user" -m 700 "/home/$user/.ssh"
+  {
+    grep -vs 'github-actions-khana$' "$keys" || true
+    echo "$KEY_OPTIONS $(cat "$PUBLIC_KEY_FILE")"
+  } > "$KEY_DIR/authorized_keys"
+  install -o "$user" -g "$user" -m 600 "$KEY_DIR/authorized_keys" "$keys"
+}
+
+# A server set up before this script knew about several apps has the key only
+# in the khana user's authorized_keys; adopt it from there.
+if [ ! -f "$PUBLIC_KEY_FILE" ]; then
+  existing="$(grep -hs 'github-actions-khana$' /home/khana*/.ssh/authorized_keys | head -n 1 | sed "s/^$KEY_OPTIONS //" || true)"
+  if [ -n "$existing" ]; then
+    echo "$existing" > "$PUBLIC_KEY_FILE"
+  fi
+fi
+
 NEW_KEY=no
-if [ "${NEW_DEPLOY_KEY:-0}" = "1" ] || ! grep -qs 'github-actions-khana$' "$AUTHORIZED_KEYS"; then
+if [ "${NEW_DEPLOY_KEY:-0}" = "1" ] || [ ! -f "$PUBLIC_KEY_FILE" ]; then
   NEW_KEY=yes
   ssh-keygen -q -t ed25519 -N "" -C "github-actions-khana" -f "$KEY_DIR/key"
-  {
-    grep -vs 'github-actions-khana$' "$AUTHORIZED_KEYS" || true
-    echo "no-pty,no-port-forwarding,no-agent-forwarding,no-X11-forwarding $(cat "$KEY_DIR/key.pub")"
-  } > "$KEY_DIR/authorized_keys"
-  install -o "$APP_USER" -g "$APP_USER" -m 600 "$KEY_DIR/authorized_keys" "$AUTHORIZED_KEYS"
+  cp "$KEY_DIR/key.pub" "$PUBLIC_KEY_FILE"
+  # Every app user gets the new key, or the one GitHub secret would stop
+  # working for the apps set up earlier.
+  for home in /home/khana /home/khana-*; do
+    [ -d "$home" ] && install_key_for "$(basename "$home")"
+  done
 fi
+install_key_for "$APP_USER"
 
 if [ -f "$WWW/current/artisan" ]; then
   echo "==> Refreshing the live build's cached config"
   sudo -u "$APP_USER" php "$WWW/current/artisan" optimize >/dev/null
   systemctl reload "php$PHP_VERSION-fpm"
-  systemctl restart khana-queue
+  systemctl restart "$NAME-queue"
 fi
 
 echo "==> Firewall"
@@ -268,9 +403,10 @@ if [ "$NEW_KEY" = no ]; then
   cat <<EOF
 
 ================================================================================
- Khana-CRM test server updated.
+ $LABEL is set up.
 
  Site:            $APP_URL
+ Linux user:      $APP_USER
  GitHub secrets:  unchanged - nothing to update in GitHub.
 ================================================================================
 EOF
@@ -280,14 +416,14 @@ fi
 cat <<EOF
 
 ================================================================================
- Khana-CRM test server is ready for its first deploy.
+ $LABEL is ready for its first deploy.
 
  Site:         $APP_URL
  Admin login:  $(env_value ADMIN_EMAIL)  /  $(env_value ADMIN_PASSWORD)
                (created by the first deploy - change the password after signing in)
 
  Add these in GitHub: Khana-CRM > Settings > Secrets and variables > Actions >
- New repository secret.
+ New repository secret. The same three serve every app on this server.
 
  KHANA_TEST_HOST
 $SERVER_IP
@@ -298,7 +434,7 @@ $SERVER_IP $(cut -d' ' -f1,2 /etc/ssh/ssh_host_ed25519_key.pub)
  KHANA_TEST_SSH_KEY  (copy all of it, including the BEGIN and END lines)
 $(cat "$KEY_DIR/key")
 
- Then: GitHub > Actions > "Deploy to test server" > Run workflow.
+ Then: GitHub > Actions > the app's deploy workflow > Run workflow.
 ================================================================================
 EOF
 
