@@ -1,13 +1,19 @@
 {
     "$schema": "https://getcomposer.org/schema.json",
-    "name": "laravel/laravel",
+    "name": "khana/crm",
     "type": "project",
-    "description": "The skeleton application for the Laravel framework.",
-    "keywords": ["laravel", "framework"],
-    "license": "MIT",
+    "description": "Khana CRM: menu, dining, kitchen, orders, billing and customers.",
+    "license": "proprietary",
+    "repositories": [
+        {
+            "type": "path",
+            "url": "../../packages/kit"
+        }
+    ],
     "require": {
         "php": "^8.2",
         "bacon/bacon-qr-code": "^3.1",
+        "khana/kit": "^0.1",
         "laravel/framework": "^12.0",
         "laravel/reverb": "^1.11",
         "laravel/sanctum": "^4.3",
