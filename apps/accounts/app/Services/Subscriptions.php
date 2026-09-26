@@ -102,8 +102,15 @@ final class Subscriptions
     public function cancel(Subscription $subscription, ?string $note = null): void
     {
         DB::transaction(function () use ($subscription, $note) {
+            // Effective at the end of the paid term, not now: the outlet keeps
+            // what it paid for. Subscription::status() ignores a cancelled_at
+            // in the future, so it stays usable until the term is up, then
+            // falls to suspended. A perpetual or already-lapsed term drops now.
+            $endsAt = $subscription->ends_at;
+            $dropAt = $endsAt !== null && $endsAt->isFuture() ? $endsAt : now();
+
             $subscription->forceFill([
-                'cancelled_at' => now(),
+                'cancelled_at' => $dropAt,
                 'note' => $note ?? $subscription->note,
             ])->save();
 

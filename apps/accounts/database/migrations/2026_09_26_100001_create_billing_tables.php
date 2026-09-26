@@ -30,7 +30,7 @@ return new class extends Migration
             $table->unsignedBigInteger('yearly_price_paise')->nullable();
             $table->unsignedSmallInteger('trial_days')->default(14);
             // Named limits such as users or tables; null is unlimited.
-            $table->json('limits');
+            $table->json('limits')->nullable();
             $table->boolean('is_active')->default(true);
             $table->unsignedSmallInteger('sort_order')->default(0);
             $table->timestamps();

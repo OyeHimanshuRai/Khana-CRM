@@ -45,6 +45,16 @@ class User extends Authenticatable implements Actor, OAuthenticatable
 
     protected $fillable = ['name', 'email', 'mobile', 'password'];
 
+    // is_owner / is_platform_admin / status stay guarded - never set from a
+    // request - so services set them with forceFill. These match the table's
+    // defaults in memory, so an event fired in the same request as the insert
+    // carries a real status, not null.
+    protected $attributes = [
+        'status' => self::ACTIVE,
+        'is_owner' => false,
+        'is_platform_admin' => false,
+    ];
+
     protected $hidden = ['password', 'remember_token', 'two_factor_secret', 'two_factor_recovery_codes'];
 
     protected function casts(): array

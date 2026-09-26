@@ -49,6 +49,14 @@ class Outlet extends Model
         'timezone', 'day_cutoff',
     ];
 
+    // Match the table's defaults in memory, so an event published in the same
+    // request as the insert carries real values, not null.
+    protected $attributes = [
+        'status' => self::ACTIVE,
+        'timezone' => 'Asia/Kolkata',
+        'day_cutoff' => '04:00',
+    ];
+
     /** @return BelongsTo<Tenant, $this> */
     public function tenant(): BelongsTo
     {

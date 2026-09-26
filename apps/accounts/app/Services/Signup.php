@@ -41,15 +41,18 @@ final class Signup
             $this->events->outlet($branch);
 
             /** @var User $user */
-            $user = $tenant->users()->create([
+            $user = $tenant->users()->make([
                 'name' => $owner['name'],
                 'email' => $owner['email'] ?? null,
                 'mobile' => $owner['mobile'] ?? null,
                 'password' => Hash::make($owner['password']),
+            ]);
+            // is_owner and status are guarded, so set them past the guard.
+            $user->forceFill([
                 'status' => User::ACTIVE,
                 'is_owner' => true,
                 'email_verified_at' => now(),
-            ]);
+            ])->save();
             $this->events->user($user);
 
             // The owner is the owner in every product the plan covers, across

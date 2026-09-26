@@ -29,6 +29,10 @@ class Tenant extends Model
 
     protected $fillable = ['name', 'legal_name', 'gstin', 'pan', 'email', 'phone'];
 
+    // Match the table's defaults in memory, so an event published in the same
+    // request as the insert carries the real status, not null.
+    protected $attributes = ['status' => self::ACTIVE];
+
     /** @return HasMany<Outlet, $this> */
     public function outlets(): HasMany
     {
