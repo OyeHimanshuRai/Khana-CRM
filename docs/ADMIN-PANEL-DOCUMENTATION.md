@@ -245,9 +245,11 @@ instead of sending.
 
 ### CMS and marketing
 
-Company settings, sliders, services, FAQs, blogs, reels, Instagram posts,
-events, collections, showcases, testimonials, landing statistics and SEO
-content are managed by the admin CMS controllers and Blade views.
+Company settings, sliders, services, FAQs, showcases, testimonials, outlet
+types, integrations, landing statistics and SEO content are managed by the
+admin CMS controllers and Blade views. Blog posts, Instagram reels and posts,
+collections and events were removed on 26 September 2026: nothing public ever
+displayed them.
 
 ## 6. Core data and business invariants
 

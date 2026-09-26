@@ -281,6 +281,13 @@ guarded so it is a no-op on a fresh database.
   `EmailTemplateService` now renders a template directly instead of dressing it
   up as a campaign.
 
+**Removed on 26 September 2026**, as dead weight in a sidebar new users found
+overwhelming: **blog posts, Instagram reels and posts, collections and
+events**. Each had a full admin screen and nothing public ever displayed it -
+the landing page reads sliders, services, FAQs and its own sections. The
+tables and their permissions are dropped by
+`2026_09_26_000000_drop_dead_content_tables`, guarded the same way.
+
 **Not built, and never was:**
 
 - **Chart of accounts** — accounting integration was always a future item. It

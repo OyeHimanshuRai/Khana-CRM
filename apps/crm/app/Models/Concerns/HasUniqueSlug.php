@@ -9,8 +9,8 @@ use Illuminate\Support\Str;
 /**
  * Slug generation for the content models.
  *
- * Lifted out of Category, Service and Blog, which each had the same method
- * with a different fallback word - the only thing that actually varied.
+ * Lifted out of the content models, which each had the same method with a
+ * different fallback word - the only thing that actually varied.
  */
 trait HasUniqueSlug
 {

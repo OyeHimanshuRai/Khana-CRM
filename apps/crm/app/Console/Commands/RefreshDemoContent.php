@@ -43,18 +43,13 @@ class RefreshDemoContent extends Command
                             {--dry-run : Report what would be replaced without changing anything}
                             {--force : Skip the confirmation}';
 
-    protected $description = 'Replace demo FAQs, services, blogs, events, sliders and reels with restaurant copy';
+    protected $description = 'Replace demo FAQs, services and sliders with restaurant copy';
 
     /** The tables this rewrites, and what each is called on screen. */
     private const TABLES = [
         'faqs' => 'FAQs',
         'services' => 'Services',
-        'blogs' => 'Blog posts',
-        'events' => 'Events',
         'sliders' => 'Sliders',
-        'reels' => 'Reels',
-        'collections' => 'Collections',
-        'instagram_posts' => 'Instagram posts',
     ];
 
     public function handle(): int

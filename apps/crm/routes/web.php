@@ -6,12 +6,10 @@ use App\Http\Controllers\Admin\BarcodeLabelController;
 use App\Http\Controllers\Admin\BatchController;
 use App\Http\Controllers\Admin\BillingController;
 use App\Http\Controllers\Admin\CashRegisterController;
-use App\Http\Controllers\Admin\BlogController;
 use App\Http\Controllers\Admin\ApiTokenController;
 use App\Http\Controllers\Admin\BrandController;
 use App\Http\Controllers\Admin\CampaignController;
 use App\Http\Controllers\Admin\CategoryController;
-use App\Http\Controllers\Admin\CollectionController;
 use App\Http\Controllers\Admin\CompanySettingController;
 use App\Http\Controllers\Admin\CouponController;
 use App\Http\Controllers\Admin\CustomerController;
@@ -19,7 +17,6 @@ use App\Http\Controllers\Admin\CustomerLedgerController;
 use App\Http\Controllers\Admin\DashboardController;
 use App\Http\Controllers\Admin\EmailLogController;
 use App\Http\Controllers\Admin\EmailTemplateController;
-use App\Http\Controllers\Admin\EventController;
 use App\Http\Controllers\Admin\ExpenseController;
 use App\Http\Controllers\Admin\FeedbackController;
 use App\Http\Controllers\Admin\FloorController;
@@ -34,9 +31,7 @@ use App\Http\Controllers\Admin\RestaurantTableController;
 use App\Http\Controllers\Admin\TableQrController;
 use App\Http\Controllers\Admin\FaqController;
 use App\Http\Controllers\Admin\GoodsReceiptController;
-use App\Http\Controllers\Admin\InstagramPostController;
 use App\Http\Controllers\Admin\InvoiceController;
-use App\Http\Controllers\Admin\ReelController;
 use App\Http\Controllers\Admin\ReportController;
 use App\Http\Controllers\Admin\SalesReturnController;
 use App\Http\Controllers\Admin\LoginController;
@@ -100,9 +95,8 @@ use Illuminate\Support\Facades\Route;
 | The public landing page.
 |
 | Was Laravel's stock welcome view. It is now a rendering of the admin panel's
-| Content section - sliders, services, the menu, collections, events, blog,
-| Instagram and FAQs - with the name, logo, address, hours and social links
-| coming from Company Settings.
+| Content section - sliders, services, the menu and FAQs - with the name,
+| logo, address, hours and social links coming from Company Settings.
 |
 | Deliberately outside every auth and tenant middleware: nobody is signed in
 | when a guest opens the front page. See App\Http\Controllers\LandingController
@@ -2345,153 +2339,6 @@ Route::prefix('admin')->name('admin.')->group(function () {
         Route::delete('services/{service}', [ServiceController::class, 'destroy'])
             ->middleware('permission:content.services.delete')
             ->name('services.destroy');
-
-        /*
-        | Collections. Media is a device x position matrix, so the remove
-        | endpoint names the cell rather than a file id.
-        */
-        Route::middleware('permission:content.collections.view')->group(function () {
-            Route::get('collections', [CollectionController::class, 'index'])->name('collections.index');
-            Route::get('collections/{collection}', [CollectionController::class, 'show'])
-                ->whereNumber('collection')
-                ->name('collections.show');
-        });
-
-        Route::middleware('permission:content.collections.create')->group(function () {
-            // Registered before the wildcard so "create" is not read as an id.
-            Route::get('collections/create', [CollectionController::class, 'create'])
-                ->name('collections.create');
-            Route::post('collections', [CollectionController::class, 'store'])->name('collections.store');
-        });
-
-        Route::middleware('permission:content.collections.edit')->group(function () {
-            Route::get('collections/{collection}/edit', [CollectionController::class, 'edit'])
-                ->name('collections.edit');
-            Route::put('collections/{collection}', [CollectionController::class, 'update'])
-                ->name('collections.update');
-            Route::put('collections/{collection}/status', [CollectionController::class, 'toggleStatus'])
-                ->name('collections.status');
-            Route::put('collections/{collection}/featured', [CollectionController::class, 'toggleFeatured'])
-                ->name('collections.featured');
-            Route::delete('collections/{collection}/media/{device}/{position}',
-                [CollectionController::class, 'destroyMedia'])->name('collections.media.destroy');
-        });
-
-        Route::delete('collections/{collection}', [CollectionController::class, 'destroy'])
-            ->middleware('permission:content.collections.delete')
-            ->name('collections.destroy');
-
-        /* Events. */
-        Route::middleware('permission:content.events.view')->group(function () {
-            Route::get('events', [EventController::class, 'index'])->name('events.index');
-            Route::get('events/{event}', [EventController::class, 'show'])
-                ->whereNumber('event')
-                ->name('events.show');
-        });
-
-        Route::middleware('permission:content.events.create')->group(function () {
-            // Registered before the wildcard so "create" is not read as an id.
-            Route::get('events/create', [EventController::class, 'create'])->name('events.create');
-            Route::post('events', [EventController::class, 'store'])->name('events.store');
-        });
-
-        Route::middleware('permission:content.events.edit')->group(function () {
-            Route::get('events/{event}/edit', [EventController::class, 'edit'])->name('events.edit');
-            Route::put('events/{event}', [EventController::class, 'update'])->name('events.update');
-            Route::put('events/{event}/status', [EventController::class, 'toggleStatus'])
-                ->name('events.status');
-            Route::delete('events/{event}/image', [EventController::class, 'destroyImage'])
-                ->name('events.image.destroy');
-        });
-
-        Route::delete('events/{event}', [EventController::class, 'destroy'])
-            ->middleware('permission:content.events.delete')
-            ->name('events.destroy');
-
-        /*
-        | Blog. Status is three-state (draft/published/inactive), so it is a
-        | setStatus endpoint rather than a toggle; Featured is a real toggle.
-        */
-        Route::middleware('permission:content.blogs.view')->group(function () {
-            Route::get('blogs', [BlogController::class, 'index'])->name('blogs.index');
-            Route::get('blogs/{blog}', [BlogController::class, 'show'])
-                ->whereNumber('blog')
-                ->name('blogs.show');
-        });
-
-        Route::middleware('permission:content.blogs.create')->group(function () {
-            // Registered before the wildcard so "create" is not read as an id.
-            Route::get('blogs/create', [BlogController::class, 'create'])->name('blogs.create');
-            Route::post('blogs', [BlogController::class, 'store'])->name('blogs.store');
-        });
-
-        Route::middleware('permission:content.blogs.edit')->group(function () {
-            Route::get('blogs/{blog}/edit', [BlogController::class, 'edit'])->name('blogs.edit');
-            Route::put('blogs/{blog}', [BlogController::class, 'update'])->name('blogs.update');
-            Route::put('blogs/{blog}/status', [BlogController::class, 'setStatus'])->name('blogs.status');
-            Route::put('blogs/{blog}/featured', [BlogController::class, 'toggleFeatured'])
-                ->name('blogs.featured');
-            Route::delete('blogs/{blog}/image', [BlogController::class, 'destroyImage'])
-                ->name('blogs.image.destroy');
-        });
-
-        Route::delete('blogs/{blog}', [BlogController::class, 'destroy'])
-            ->middleware('permission:content.blogs.delete')
-            ->name('blogs.destroy');
-
-        /* Instagram reels. */
-        Route::middleware('permission:content.reels.view')->group(function () {
-            Route::get('reels', [ReelController::class, 'index'])->name('reels.index');
-            Route::get('reels/{reel}', [ReelController::class, 'show'])
-                ->whereNumber('reel')
-                ->name('reels.show');
-        });
-
-        Route::middleware('permission:content.reels.create')->group(function () {
-            Route::get('reels/create', [ReelController::class, 'create'])->name('reels.create');
-            Route::post('reels', [ReelController::class, 'store'])->name('reels.store');
-        });
-
-        Route::middleware('permission:content.reels.edit')->group(function () {
-            Route::get('reels/{reel}/edit', [ReelController::class, 'edit'])->name('reels.edit');
-            Route::put('reels/{reel}', [ReelController::class, 'update'])->name('reels.update');
-            Route::put('reels/{reel}/status', [ReelController::class, 'toggleStatus'])->name('reels.status');
-            Route::delete('reels/{reel}/thumbnail', [ReelController::class, 'destroyThumbnail'])
-                ->name('reels.thumbnail.destroy');
-        });
-
-        Route::delete('reels/{reel}', [ReelController::class, 'destroy'])
-            ->middleware('permission:content.reels.delete')
-            ->name('reels.destroy');
-
-        /* Instagram posts. */
-        Route::middleware('permission:content.instagram.view')->group(function () {
-            Route::get('instagram', [InstagramPostController::class, 'index'])->name('instagram.index');
-            Route::get('instagram/{instagram}', [InstagramPostController::class, 'show'])
-                ->whereNumber('instagram')
-                ->name('instagram.show');
-        });
-
-        Route::middleware('permission:content.instagram.create')->group(function () {
-            Route::get('instagram/create', [InstagramPostController::class, 'create'])
-                ->name('instagram.create');
-            Route::post('instagram', [InstagramPostController::class, 'store'])->name('instagram.store');
-        });
-
-        Route::middleware('permission:content.instagram.edit')->group(function () {
-            Route::get('instagram/{instagram}/edit', [InstagramPostController::class, 'edit'])
-                ->name('instagram.edit');
-            Route::put('instagram/{instagram}', [InstagramPostController::class, 'update'])
-                ->name('instagram.update');
-            Route::put('instagram/{instagram}/status', [InstagramPostController::class, 'toggleStatus'])
-                ->name('instagram.status');
-            Route::delete('instagram/{instagram}/image', [InstagramPostController::class, 'destroyImage'])
-                ->name('instagram.image.destroy');
-        });
-
-        Route::delete('instagram/{instagram}', [InstagramPostController::class, 'destroy'])
-            ->middleware('permission:content.instagram.delete')
-            ->name('instagram.destroy');
 
         Route::middleware('permission:content.sliders.view')->group(function () {
             Route::get('sliders', [SliderController::class, 'index'])->name('sliders.index');

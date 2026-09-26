@@ -465,45 +465,6 @@ return [
                 'active' => 'admin.services.*',
                 'can' => 'content.services.view',
             ],
-            [
-                'label' => 'Collections',
-                'icon' => 'grid',
-                'route' => 'admin.collections.index',
-                'active' => 'admin.collections.*',
-                'can' => 'content.collections.view',
-            ],
-            [
-                'label' => 'Events',
-                'icon' => 'calendar',
-                'route' => 'admin.events.index',
-                'active' => 'admin.events.*',
-                'can' => 'content.events.view',
-            ],
-            [
-                'label' => 'Blog',
-                'icon' => 'file',
-                'route' => 'admin.blogs.index',
-                'active' => 'admin.blogs.*',
-                'can' => 'content.blogs.view',
-            ],
-            [
-                'label' => 'Instagram',
-                'icon' => 'heart',
-                'children' => [
-                    [
-                        'label' => 'Reels',
-                        'route' => 'admin.reels.index',
-                        'active' => 'admin.reels.*',
-                        'can' => 'content.reels.view',
-                    ],
-                    [
-                        'label' => 'Posts',
-                        'route' => 'admin.instagram.index',
-                        'active' => 'admin.instagram.*',
-                        'can' => 'content.instagram.view',
-                    ],
-                ],
-            ],
             /*
              | The landing page (§19).
              |

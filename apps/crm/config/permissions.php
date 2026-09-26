@@ -547,24 +547,6 @@ return [
                     // create also covers Duplicate, which makes a new row.
                     'actions' => ['view', 'create', 'edit', 'delete'],
                 ],
-                'collections' => [
-                    'label' => 'Collections',
-                    // edit also covers the Active and Featured toggles.
-                    'actions' => ['view', 'create', 'edit', 'delete'],
-                ],
-                'events' => [
-                    'label' => 'Events',
-                    'actions' => ['view', 'create', 'edit', 'delete'],
-                ],
-                'blogs' => [
-                    'label' => 'Blog Posts',
-                    // edit also covers the status and Featured controls.
-                    'actions' => ['view', 'create', 'edit', 'delete'],
-                ],
-                'reels' => [
-                    'label' => 'Instagram Reels',
-                    'actions' => ['view', 'create', 'edit', 'delete'],
-                ],
                 /*
                 | The landing page (§19).
                 |
@@ -608,10 +590,6 @@ return [
                     // types a lead in by hand, and an action that exists only
                     // to be granted by mistake is one worth leaving out.
                     'actions' => ['view', 'edit', 'delete', 'export'],
-                ],
-                'instagram' => [
-                    'label' => 'Instagram Posts',
-                    'actions' => ['view', 'create', 'edit', 'delete'],
                 ],
             ],
         ],

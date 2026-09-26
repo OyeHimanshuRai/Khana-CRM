@@ -2,25 +2,18 @@
 
 namespace Database\Seeders;
 
-use App\Models\Blog;
-use App\Models\Collection;
-use App\Models\Event;
 use App\Models\Faq;
-use App\Models\InstagramPost;
-use App\Models\Reel;
 use App\Models\Service;
 use App\Models\Slider;
 use Database\Seeders\Concerns\SeedsDemoData;
 use Illuminate\Database\Seeder;
-use Illuminate\Support\Carbon;
-use Illuminate\Support\Str;
 
 /**
- * The storefront's editorial side, and the mailing list.
+ * The public landing page's copy: FAQs, services and sliders.
  *
  * All of it is plain rows - there is no service to route through, because
  * none of it moves stock or money. What it does need is to read like a real
- * agri retailer wrote it: an FAQ list of "Question 1..20" tells you the
+ * restaurant platform wrote it: an FAQ list of "Question 1..20" tells you the
  * screen renders, and nothing about whether the screen is any good.
  *
  * No image files are attached. Every one of these tables stores a path to
@@ -36,91 +29,9 @@ class DemoContentSeeder extends Seeder
     {
         $this->seedRandom(8);
 
-        $this->blogs();
         $this->faqs();
         $this->services();
-        $this->collections();
-        $this->events();
         $this->sliders();
-        $this->reels();
-        $this->instagramPosts();
-    }
-
-    private function blogs(): void
-    {
-        if ($this->alreadySeeded('Blog posts', Blog::query()->count())) {
-            return;
-        }
-
-        $posts = [
-            ['Pricing a thali so it still earns', 'Menu'],
-            ['Choosing the right POS for a small kitchen', 'Getting started'],
-            ['Costing a dish properly: what a plate really earns', 'Food Cost'],
-            ['Reading your own sales: which dishes earn their place', 'Reports'],
-            ['Cutting table turnaround without rushing guests', 'Service'],
-            ['Setting up a kitchen display that cooks actually use', 'Kitchen'],
-            ['Portion control and why it decides your margin', 'Food Cost'],
-            ['Taking QR orders without losing the personal touch', 'Dine-in'],
-            ['Running a stock take that does not take all night', 'Inventory'],
-            ['Wastage: measuring it before trying to fix it', 'Inventory'],
-            ['GST on a restaurant bill, explained simply', 'Business'],
-            ['Splitting bills at a busy table', 'Billing'],
-            ['Choosing a thermal printer for the counter', 'Hardware'],
-            ['Staff roles: who should be able to give a discount', 'Staff'],
-            ['Handling aggregator orders on the same pass', 'Integrations'],
-            ['Day close: counting the drawer and meaning it', 'Billing'],
-            ['Menu engineering for a small kitchen', 'Menu'],
-            ['Managing a second outlet without doubling the work', 'Outlets'],
-            ['Reservations that do not double-book a table', 'Dine-in'],
-            ['Supplier rates: negotiating from your own purchase data', 'Purchasing'],
-            ['Loyalty that regulars actually use', 'Marketing'],
-            ['What to check before a busy weekend service', 'Operations'],
-        ];
-
-        $user = auth()->user();
-
-        foreach ($posts as $index => [$title, $category]) {
-            $status = match (true) {
-                $index >= 18 => Blog::DRAFT,
-                $index === 17 => Blog::INACTIVE,
-                default => Blog::PUBLISHED,
-            };
-
-            Blog::query()->create([
-                'title' => $title,
-                'slug' => Blog::uniqueSlug($title),
-                'short_description' => $title.' — a short practical guide for the season.',
-                'content' => $this->article($title),
-                'author_id' => $user?->id,
-                'author_name' => $user?->name ?? 'Counter Desk',
-                'category' => $category,
-                'tags' => $this->pick(['pos,billing', 'kitchen,kot', 'inventory,stock', 'gst,invoice', 'dine-in,qr']),
-                'published_at' => $status === Blog::PUBLISHED ? $this->recentDate(180) : null,
-                'seo_title' => $title,
-                'seo_description' => Str::limit($title.' — practical advice from the counter.', 150),
-                'status' => $status,
-                'is_featured' => $index < 4,
-            ]);
-        }
-
-        $this->say(sprintf('%d blog posts.', count($posts)));
-    }
-
-    private function article(string $title): string
-    {
-        return implode("\n\n", [
-            '<p>'.$title.' is one of the questions we are asked most often, '
-                .'usually a month after it would have been useful. This note is what we tell people.</p>',
-            '<h3>The short answer</h3>',
-            '<p>Measure it before you change it. A kitchen that guesses at its food cost will '
-                .'argue about the menu for a year; one that reads it off the till fixes it in a week.</p>',
-            '<h3>What to watch for</h3>',
-            '<ul><li>Check the numbers after service, while the shift is still fresh.</li>'
-                .'<li>Look at the dishes that sell most, not the ones with the best margin.</li>'
-                .'<li>Fix one thing at a time, so you know which one worked.</li></ul>',
-            '<p>Bring a leaf or a photograph to the counter and we will tell you what we think it is. '
-                .'There is no charge for a look.</p>',
-        ]);
     }
 
     private function faqs(): void
@@ -227,74 +138,6 @@ class DemoContentSeeder extends Seeder
         $this->say(sprintf('%d services.', count($services)));
     }
 
-    private function collections(): void
-    {
-        if ($this->alreadySeeded('Collections', Collection::query()->count())) {
-            return;
-        }
-
-        $names = [
-            'Chef Specials', 'Today\'s Thali', 'Starters', 'Main Course',
-            'Breads and Rice', 'Biryani Counter', 'Tandoor', 'Chinese Corner',
-            'South Indian', 'Street Food', 'Desserts', 'Beverages',
-            'Combo Meals', 'Family Packs', 'Jain Menu', 'Party Trays',
-            'Bakery', 'New Arrivals', 'Best Sellers', 'Value Menu',
-        ];
-
-        foreach ($names as $index => $name) {
-            Collection::query()->create([
-                'name' => $name,
-                'slug' => Collection::uniqueSlug($name),
-                'short_description' => $name.' — picked for the season.',
-                'description' => 'Everything in '.$name.', gathered in one place so a season can be bought in one visit.',
-                'sort_order' => $index,
-                'is_featured' => $index < 5,
-                'is_active' => $index < 19,
-                'meta_title' => $name,
-                'meta_description' => $name.' at the counter and online.',
-            ]);
-        }
-
-        $this->say(sprintf('%d collections.', count($names)));
-    }
-
-    private function events(): void
-    {
-        if ($this->alreadySeeded('Events', Event::query()->count())) {
-            return;
-        }
-
-        $events = [
-            'Live Counter Night', 'Chef\'s Table Evening', 'Sunday Brunch',
-            'Festive Thali Week', 'New Menu Tasting', 'Biryani Festival',
-            'Karaoke Night', 'Kids Eat Free Weekend', 'Monsoon Chai Evening',
-            'Diwali Special Menu', 'Regional Food Week', 'Dessert Showcase',
-            'Corporate Lunch Offer', 'Anniversary Celebration', 'Street Food Carnival',
-            'Coffee Tasting Morning', 'Rooftop Dinner', 'Loyalty Member Preview',
-            'Year End Party Menu', 'Annual Customer Day',
-        ];
-
-        foreach ($events as $index => $title) {
-            // A mix of past and upcoming, so the events screen is not a
-            // history page or a wish list but both.
-            $from = $index < 12
-                ? Carbon::today()->subDays($this->between(10, 200))
-                : Carbon::today()->addDays($this->between(5, 120));
-
-            Event::query()->create([
-                'title' => $title,
-                'name' => $title,
-                'timing' => $this->pick(['10:00 AM – 1:00 PM', '9:00 AM – 12:00 PM', '4:00 PM – 7:00 PM']),
-                'from_date' => $from,
-                'to_date' => $from->copy()->addDays($this->pick([0, 0, 1, 2])),
-                'booth_no' => $this->chance(40) ? 'Stall '.$this->between(1, 40) : null,
-                'is_active' => $index < 19,
-            ]);
-        }
-
-        $this->say(sprintf('%d events.', count($events)));
-    }
-
     private function sliders(): void
     {
         if ($this->alreadySeeded('Sliders', Slider::query()->count())) {
@@ -327,67 +170,4 @@ class DemoContentSeeder extends Seeder
         $this->say(sprintf('%d sliders.', count($titles)));
     }
 
-    private function reels(): void
-    {
-        if ($this->alreadySeeded('Reels', Reel::query()->count())) {
-            return;
-        }
-
-        $titles = [
-            'Billing a table in under a minute', 'A KOT reaching the tandoor',
-            'Splitting a bill five ways', 'Scanning the table QR',
-            'Adding a dish to the menu', 'Marking an item sold out',
-            'Day close, start to finish', 'Taking a phone reservation',
-            'Moving a party to another table', 'Printing a duplicate bill',
-            'Setting up a kitchen station', 'Recipe costing in two minutes',
-            'A stock take on a tablet', 'Recording wastage',
-            'Raising a purchase order', 'Receiving goods against a PO',
-            'Applying a manager discount', 'Switching between outlets',
-            'Reading the sales report', 'Counter tour',
-        ];
-
-        foreach ($titles as $index => $title) {
-            Reel::query()->create([
-                'title' => $title,
-                'description' => $title.' — a short clip from the counter.',
-                'reel_url' => 'https://www.instagram.com/reel/DEMO'.str_pad((string) ($index + 1), 4, '0', STR_PAD_LEFT).'/',
-                'reel_id' => 'DEMO'.str_pad((string) ($index + 1), 4, '0', STR_PAD_LEFT),
-                'sort_order' => $index,
-                'published_at' => $this->recentDate(150),
-                'is_active' => $index < 18,
-            ]);
-        }
-
-        $this->say(sprintf('%d reels.', count($titles)));
-    }
-
-    private function instagramPosts(): void
-    {
-        if ($this->alreadySeeded('Instagram posts', InstagramPost::query()->count())) {
-            return;
-        }
-
-        $titles = [
-            'New dish on the menu', 'Live counter this Sunday', 'Straight off the tandoor',
-            'Fresh stock in the kitchen', 'Brunch table photos', 'Behind the pass',
-            'Desserts on the counter', 'Our kitchen team at work', 'Plating a thali',
-            'The new biryani', 'Customer day highlights', 'Rooftop at sunset',
-            'Bakery counter restocked', 'Today\'s special board', 'Festive menu greetings',
-            'New beverage range', 'Party trays ready', 'Delivery round today',
-            'Food festival stall', 'Diwali greetings from the kitchen',
-        ];
-
-        foreach ($titles as $index => $title) {
-            InstagramPost::query()->create([
-                'title' => $title,
-                'description' => $title.'.',
-                'post_url' => 'https://www.instagram.com/p/DEMO'.str_pad((string) ($index + 1), 4, '0', STR_PAD_LEFT).'/',
-                'post_id' => 'DEMO'.str_pad((string) ($index + 1), 4, '0', STR_PAD_LEFT),
-                'sort_order' => $index,
-                'is_active' => $index < 18,
-            ]);
-        }
-
-        $this->say(sprintf('%d Instagram posts.', count($titles)));
-    }
 }
