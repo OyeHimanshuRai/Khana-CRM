@@ -13,7 +13,6 @@
             <th style="text-align:right">Reorder level</th>
             <th style="text-align:right">Short by</th>
             <th style="text-align:right">Last cost</th>
-            <th class="col-action">Order</th>
         </tr>
     </thead>
 
@@ -38,22 +37,10 @@
                 <td style="text-align:right" class="text-sm">
                     ₹{{ number_format((float) $row->purchase_price, 2) }}
                 </td>
-                <td class="col-action">
-                    @allows('purchasing.purchase_orders.create')
-                        {{-- Straight from the shortfall to the order that
-                             fixes it, which is the only reason this report
-                             is opened. --}}
-                        <a class="btn btn-icon" href="{{ route('admin.purchase-orders.create') }}"
-                           title="Raise a purchase order"
-                           aria-label="Order {{ $row->name }}">
-                            <x-icon name="truck" :size="15" />
-                        </a>
-                    @endallows
-                </td>
             </tr>
         @empty
             <tr>
-                <td colspan="6">
+                <td colspan="5">
                     <div class="empty">
                         <x-icon name="user-check" :size="26" />
                         <h3>Nothing needs reordering</h3>

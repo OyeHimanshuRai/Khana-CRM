@@ -3,8 +3,6 @@
 namespace Database\Seeders;
 
 use App\Models\CashRegister;
-use App\Models\Expense;
-use App\Models\ExpenseCategory;
 use App\Models\Payment;
 use App\Models\PaymentReminder;
 use App\Services\CashRegisterService;
@@ -16,7 +14,7 @@ use Illuminate\Support\Carbon;
 use RuntimeException;
 
 /**
- * Money out, the till, and chasing money in.
+ * The till, and chasing money in.
  *
  * The registers are opened and closed through CashRegisterService, so the
  * expected cash on each one is computed from the day's actual cash payments
@@ -45,93 +43,8 @@ class DemoFinanceSeeder extends Seeder
     {
         $this->seedRandom(6);
 
-        $this->expenses();
         $this->cashRegisters();
         $this->paymentReminders();
-    }
-
-    private function expenses(): void
-    {
-        if ($this->alreadySeeded('Expenses', Expense::query()->count())) {
-            return;
-        }
-
-        $shop = CurrentShop::get();
-        $categories = ExpenseCategory::query()->get();
-        $user = auth()->user();
-
-        if ($categories->isEmpty()) {
-            $this->say('Expenses skipped: no expense categories.');
-
-            return;
-        }
-
-        $items = [
-            ['Shop rent', 18000, 25000, 'Landlord'],
-            ['Electricity bill', 2400, 8600, 'JVVNL'],
-            ['Staff salary', 9000, 22000, 'Counter staff'],
-            ['Loading and unloading', 400, 2200, 'Mandi labour'],
-            ['Freight on inward stock', 800, 4500, 'Transporter'],
-            ['Diesel for the delivery pickup', 1200, 4000, 'HP Petrol Pump'],
-            ['Printing bill books', 600, 2400, 'Local press'],
-            ['Internet and phone', 800, 2200, 'Airtel'],
-            ['Shop cleaning and supplies', 300, 1200, 'Cash'],
-            ['Accountant fees', 2500, 6000, 'CA office'],
-            ['GST filing charges', 1000, 3000, 'CA office'],
-            ['Tea and refreshments', 200, 900, 'Cash'],
-            ['Godown rent', 4000, 9000, 'Landlord'],
-            ['Vehicle servicing', 1500, 7000, 'Service centre'],
-            ['Banner and publicity', 900, 5000, 'Sign painter'],
-            ['Weighing scale calibration', 500, 1500, 'Weights & Measures'],
-            ['Pest control at the godown', 1200, 3500, 'Pest control'],
-            ['Insurance premium', 3000, 12000, 'Insurance company'],
-            ['Municipal licence renewal', 1500, 5000, 'Nagar Nigam'],
-            ['Miscellaneous counter expense', 200, 1500, 'Cash'],
-        ];
-
-        foreach ($items as $index => [$title, $min, $max, $paidTo]) {
-            $spentOn = $this->recentDate(75);
-
-            /*
-             | Most are approved, a few still draft and one rejected - the
-             | expense screen is an approval queue before it is a list, and a
-             | queue with nothing in it teaches nobody how it works.
-             */
-            $status = match (true) {
-                $index >= 17 => Expense::DRAFT,
-                $index === 16 => Expense::REJECTED,
-                default => Expense::APPROVED,
-            };
-
-            $expense = Expense::query()->create([
-                'shop_id' => $shop->id,
-                'expense_category_id' => $categories->random()->id,
-                'reference' => Expense::nextReference($shop),
-                'spent_on' => $spentOn,
-                'title' => $title,
-                'paid_to' => $paidTo,
-                'amount' => $this->money($min, $max),
-                'method' => $this->pick([Payment::CASH, Payment::CASH, Payment::UPI, Payment::BANK]),
-                'transaction_ref' => $this->chance(40) ? 'TXN'.$this->between(100000, 999999) : null,
-                'status' => $status,
-                'notes' => $this->chance(30) ? 'Paid from the counter float.' : null,
-                'created_by' => $user?->id,
-                'created_by_name' => $user?->name ?? 'System',
-            ]);
-
-            if ($status === Expense::APPROVED || $status === Expense::REJECTED) {
-                $expense->forceFill([
-                    'approved_by' => $user?->id,
-                    'approved_by_name' => $user?->name ?? 'System',
-                    'approved_at' => $spentOn->copy()->addDay(),
-                    'review_note' => $status === Expense::REJECTED
-                        ? 'No bill attached — resubmit with the receipt.'
-                        : null,
-                ])->save();
-            }
-        }
-
-        $this->say(sprintf('%d expenses.', count($items)));
     }
 
     /**

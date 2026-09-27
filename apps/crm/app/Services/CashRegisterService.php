@@ -3,8 +3,8 @@
 namespace App\Services;
 
 use App\Models\ActivityLog;
+use App\Models\CashPaidOut;
 use App\Models\CashRegister;
-use App\Models\Expense;
 use App\Models\Payment;
 use App\Models\Shop;
 use App\Support\BusinessDay;
@@ -18,10 +18,10 @@ use RuntimeException;
  *
  * "Expected cash" is read from the same ledger everything else in the shop
  * already posts to - Payment, for cash actually taken or handed back, and
- * approved cash Expense rows, for cash spent out of the till on something
- * that never became a Payment row. Nothing here moves money; this is a
- * reconciliation against what already happened, not a third place that
- * could disagree with the other two about it.
+ * CashPaidOut, for cash spent out of the till on something that never
+ * became a Payment row. Nothing here moves money; this is a reconciliation
+ * against what already happened, not a third place that could disagree
+ * with the other two about it.
  */
 class CashRegisterService
 {
@@ -180,8 +180,8 @@ class CashRegisterService
 
     /**
      * What should be in the drawer: the float, plus cash the shop actually
-     * took or gave back through the payments ledger, minus cash spent out
-     * of the till on an approved expense.
+     * took or gave back through the payments ledger, minus cash paid out
+     * of the till.
      */
     public function expectedCash(CashRegister $register): float
     {
@@ -214,13 +214,12 @@ class CashRegisterService
             ->where('paid_at', '<', $until)
             ->sum('amount');
 
-        $expenses = (float) Expense::allShops()
+        $paidOut = (float) CashPaidOut::allShops()
             ->where('shop_id', $shopId)
-            ->where('method', Payment::CASH)
-            ->where('status', Expense::APPROVED)
-            ->whereDate('spent_on', $date)
+            ->where('paid_at', '>=', $from)
+            ->where('paid_at', '<', $until)
             ->sum('amount');
 
-        return round((float) $register->opening_float + $in - $out - $expenses, 2);
+        return round((float) $register->opening_float + $in - $out - $paidOut, 2);
     }
 }

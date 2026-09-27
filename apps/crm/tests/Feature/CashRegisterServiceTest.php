@@ -2,9 +2,8 @@
 
 namespace Tests\Feature;
 
+use App\Models\CashPaidOut;
 use App\Models\CashRegister;
-use App\Models\Expense;
-use App\Models\ExpenseCategory;
 use App\Models\Payment;
 use App\Models\Shop;
 use App\Services\CashRegisterService;
@@ -16,14 +15,14 @@ use Tests\TestCase;
 /**
  * Day close: reconciling the till against the payments ledger.
  *
- * "Expected cash" is read from Payment (cash, both directions) and approved
- * cash Expense rows for the shop and the day - never a second bookkeeping
- * of money already recorded elsewhere. What has to hold:
+ * "Expected cash" is read from Payment (cash, both directions) and
+ * CashPaidOut rows for the shop and the day - never a second bookkeeping of
+ * money already recorded elsewhere. What has to hold:
  *
  *   - cash actually taken or handed back moves the expected figure; nothing
  *     else does (not other payment methods, not other shops, not other days)
- *   - only an *approved* cash expense counts; a draft or rejected one has
- *     not actually left the till as far as the record is concerned
+ *   - cash paid out of the till always counts against the figure - there is
+ *     no draft or approval state here, unlike the old Expense
  *   - a day can only be opened once, and closing/approving only happens in
  *     order
  */
@@ -74,25 +73,17 @@ class CashRegisterServiceTest extends TestCase
         return $payment;
     }
 
-    private function cashExpense(float $amount, string $status = Expense::APPROVED): Expense
+    private function cashPaidOut(float $amount): CashPaidOut
     {
-        $category = ExpenseCategory::query()->firstOrCreate(
-            ['shop_id' => $this->shop->id, 'name' => 'Till Test Category'],
-        );
-
-        $expense = new Expense([
+        $paidOut = new CashPaidOut([
             'shop_id' => $this->shop->id,
-            'expense_category_id' => $category->id,
-            'reference' => 'EXP-'.uniqid(),
-            'spent_on' => today(),
-            'title' => 'Test expense',
             'amount' => $amount,
-            'method' => Payment::CASH,
-            'status' => $status,
+            'reason' => 'Test cash out',
+            'paid_at' => now(),
         ]);
-        $expense->saveQuietly();
+        $paidOut->saveQuietly();
 
-        return $expense;
+        return $paidOut;
     }
 
     /* -------------------------------------------------------------- open */
@@ -136,13 +127,11 @@ class CashRegisterServiceTest extends TestCase
         $this->assertSame(1300.00, $this->registers->expectedCash($register));
     }
 
-    public function test_only_approved_cash_expenses_reduce_the_expected_cash(): void
+    public function test_cash_paid_out_reduces_the_expected_cash(): void
     {
         $register = $this->registers->open($this->shop, 1000);
 
-        $this->cashExpense(150, Expense::APPROVED);
-        $this->cashExpense(999, Expense::DRAFT);
-        $this->cashExpense(999, Expense::REJECTED);
+        $this->cashPaidOut(150);
 
         $this->assertSame(850.00, $this->registers->expectedCash($register));
     }

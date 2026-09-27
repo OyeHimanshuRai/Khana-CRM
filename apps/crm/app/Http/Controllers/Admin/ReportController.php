@@ -88,16 +88,9 @@ class ReportController extends Controller
         ],
         'tax' => [
             'label' => 'Tax / GST',
-            'blurb' => 'Output tax by HSN and rate, with input tax alongside.',
+            'blurb' => 'Output tax by HSN and rate.',
             'permission' => 'reports.tax_report',
             'icon' => 'file',
-            'dated' => true,
-        ],
-        'purchases' => [
-            'label' => 'Purchases',
-            'blurb' => 'What was bought, from whom, and what is still owed.',
-            'permission' => 'reports.purchase_report',
-            'icon' => 'truck',
             'dated' => true,
         ],
         'stock' => [
@@ -128,26 +121,11 @@ class ReportController extends Controller
             'icon' => 'users',
             'dated' => false,
         ],
-        'payables' => [
-            'label' => 'Supplier Payables',
-            'blurb' => 'What the shop owes, and to whom.',
-            'permission' => 'reports.supplier_report',
-            'icon' => 'truck',
-            'dated' => false,
-        ],
-
         'returns' => [
             'label' => 'Returns & Refunds',
-            'blurb' => 'What came back over the counter, and what went back to suppliers.',
+            'blurb' => 'What came back over the counter.',
             'permission' => 'reports.returns_report',
             'icon' => 'trend-down',
-            'dated' => true,
-        ],
-        'finance' => [
-            'label' => 'Financial Summary',
-            'blurb' => 'Revenue, cost, expenses and what is left, month by month.',
-            'permission' => 'reports.finance_report',
-            'icon' => 'wallet',
             'dated' => true,
         ],
         'transfers' => [
@@ -262,25 +240,15 @@ class ReportController extends Controller
             'payments' => ['rows' => $this->reports->paymentsByMethod($range)],
             'tax' => [
                 'rows' => $this->reports->taxByHsn($range),
-                'input' => $this->reports->inputTax($range),
-            ],
-            'purchases' => [
-                'summary' => $this->reports->purchaseSummary($range),
-                'rows' => $this->reports->purchasesBySupplier($range),
             ],
             'stock' => ['rows' => $this->reports->stockValuation()->limit(500)->get()],
             'low-stock' => ['rows' => $this->reports->lowStock()->limit(500)->get()],
             'expiry' => ['rows' => $this->reports->expiring($days)->limit(500)->get()],
             'outstanding' => ['rows' => $this->reports->outstanding()->limit(500)->get()],
-            'payables' => ['rows' => $this->reports->payables()->limit(500)->get()],
 
             'returns' => [
                 'summary' => $this->reports->returnsSummary($range),
                 'rows' => $this->reports->returnsByDay($range),
-            ],
-            'finance' => [
-                'summary' => $this->reports->financeSummary($range),
-                'rows' => $this->reports->financeByMonth($range),
             ],
             'transfers' => [
                 'summary' => $this->reports->transferSummary($range),
@@ -449,14 +417,6 @@ class ReportController extends Controller
                 ]),
             ],
 
-            'purchases' => [
-                ['Supplier', 'Receipts', 'Goods', 'Tax', 'Total', 'Outstanding'],
-                $this->reports->purchasesBySupplier($range)->map(fn ($r) => [
-                    $r->supplier, $r->receipts, $money($r->goods), $money($r->tax),
-                    $money($r->total), $money($r->outstanding),
-                ]),
-            ],
-
             'stock' => [
                 ['SKU', 'Product', 'Warehouse', 'Batch', 'Expiry', 'On hand', 'Avg cost', 'Value'],
                 $this->reports->stockValuation()->lazy(500)->map(fn ($r) => [
@@ -502,38 +462,13 @@ class ReportController extends Controller
                 ]),
             ],
 
-            'payables' => [
-                ['Code', 'Supplier', 'Mobile', 'Terms', 'We owe'],
-                $this->reports->payables()->lazy(500)->map(fn ($r) => [
-                    $r->code, $r->displayName(), $r->mobile,
-                    $r->credit_days.' days', $money($r->balance),
-                ]),
-            ],
-
             'returns' => [
-                ['Date', 'Sales returns', 'Value taken back', 'Refunded', 'Purchase returns', 'Value sent back'],
+                ['Date', 'Sales returns', 'Value taken back', 'Refunded'],
                 $this->reports->returnsByDay($range)->map(fn ($r) => [
                     $r->period,
                     $r->sales_returns,
                     $money($r->sales_value),
                     $money($r->refunded),
-                    $r->purchase_returns,
-                    $money($r->purchase_value),
-                ]),
-            ],
-
-            'finance' => [
-                ['Month', 'Revenue', 'Cost of sales', 'Gross profit', 'Expenses', 'Net', 'Collected', 'Purchases', 'Tax'],
-                $this->reports->financeByMonth($range)->map(fn ($r) => [
-                    $r->label,
-                    $money($r->revenue),
-                    $money($r->cost),
-                    $money($r->gross),
-                    $money($r->expenses),
-                    $money($r->net),
-                    $money($r->collected),
-                    $money($r->purchases),
-                    $money($r->tax),
                 ]),
             ],
 

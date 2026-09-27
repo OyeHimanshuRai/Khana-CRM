@@ -138,43 +138,6 @@
         </div>
     @endif
 
-    @if (isset($data['summary']) && $key === 'purchases')
-        @php $s = $data['summary']; @endphp
-
-        <div class="stat-grid">
-            <div class="stat">
-                <div class="stat-icon"><x-icon name="truck" :size="21" /></div>
-                <div class="stat-body">
-                    <div class="stat-label">Consignments</div>
-                    <div class="stat-value">{{ number_format($s['receipts']) }}</div>
-                </div>
-            </div>
-            <div class="stat">
-                <div class="stat-icon is-info"><x-icon name="package" :size="21" /></div>
-                <div class="stat-body">
-                    <div class="stat-label">Goods value</div>
-                    <div class="stat-value">{{ $short($s['goods']) }}</div>
-                </div>
-            </div>
-            <div class="stat">
-                <div class="stat-icon"><x-icon name="file" :size="21" /></div>
-                <div class="stat-body">
-                    <div class="stat-label">Tax &amp; charges</div>
-                    <div class="stat-value">{{ $short($s['tax'] + $s['charges']) }}</div>
-                </div>
-            </div>
-            <div class="stat">
-                <div class="stat-icon" style="background: var(--danger-soft); color: var(--danger)">
-                    <x-icon name="wallet" :size="21" />
-                </div>
-                <div class="stat-body">
-                    <div class="stat-label">Still to pay</div>
-                    <div class="stat-value">{{ $short($s['outstanding']) }}</div>
-                </div>
-            </div>
-        </div>
-    @endif
-
     @if ($key === 'returns')
         @php $s = $data['summary']; @endphp
 
@@ -211,69 +174,6 @@
                     {{-- A rupee total says nothing about whether it is a lot;
                          share of what went out does. --}}
                     <span class="text-xs text-muted">of what was sold in the period</span>
-                </div>
-            </div>
-
-            <div class="stat">
-                <div class="stat-icon is-info"><x-icon name="truck" :size="21" /></div>
-                <div class="stat-body">
-                    <div class="stat-label">Sent back to suppliers</div>
-                    <div class="stat-value">{{ $short($s['purchase_value']) }}</div>
-                    <span class="text-xs text-muted">
-                        {{ number_format($s['purchase_returns']) }} purchase return(s)
-                    </span>
-                </div>
-            </div>
-        </div>
-    @endif
-
-    @if ($key === 'finance')
-        @php $s = $data['summary']; @endphp
-
-        <div class="stat-grid">
-            <div class="stat">
-                <div class="stat-icon is-success"><x-icon name="cart" :size="21" /></div>
-                <div class="stat-body">
-                    <div class="stat-label">Revenue</div>
-                    <div class="stat-value">{{ $short($s['revenue']) }}</div>
-                    <span class="text-xs text-muted">
-                        {{ $short($s['collected']) }} actually collected
-                    </span>
-                </div>
-            </div>
-
-            <div class="stat">
-                <div class="stat-icon" style="background: var(--brand-soft); color: var(--brand)">
-                    <x-icon name="trend-up" :size="21" />
-                </div>
-                <div class="stat-body">
-                    <div class="stat-label">Gross profit</div>
-                    <div class="stat-value">{{ $short($s['gross']) }}</div>
-                    <span class="text-xs text-muted">
-                        {{ $s['margin'] === null ? 'no sales' : $pct($s['margin']).' margin' }}
-                    </span>
-                </div>
-            </div>
-
-            <div class="stat">
-                <div class="stat-icon" style="background: var(--danger-soft); color: var(--danger)">
-                    <x-icon name="file" :size="21" />
-                </div>
-                <div class="stat-body">
-                    <div class="stat-label">Expenses</div>
-                    <div class="stat-value">{{ $short($s['expenses']) }}</div>
-                    <span class="text-xs text-muted">{{ $short($s['purchases']) }} spent on stock</span>
-                </div>
-            </div>
-
-            <div class="stat">
-                <div class="stat-icon" style="background: var({{ $s['net'] < 0 ? '--danger-soft' : '--success-soft' }}); color: var({{ $s['net'] < 0 ? '--danger' : '--success' }})">
-                    <x-icon name="wallet" :size="21" />
-                </div>
-                <div class="stat-body">
-                    <div class="stat-label">Net</div>
-                    <div class="stat-value">{{ $short($s['net']) }}</div>
-                    <span class="text-xs text-muted">gross profit less expenses</span>
                 </div>
             </div>
         </div>
@@ -396,48 +296,6 @@
             @include('admin.reports.tables.'.$key)
         </div>
     </div>
-
-    @if ($key === 'tax' && ($data['input'] ?? collect())->isNotEmpty())
-        <div class="card" style="margin-top:16px">
-            <div class="card-header">
-                <div>
-                    <div class="card-title">Input tax on purchases</div>
-                    <div class="text-xs text-muted">
-                        Tax paid to suppliers over the same period, for the credit side of the return.
-                    </div>
-                </div>
-            </div>
-
-            <div class="table-wrap">
-                <table class="table">
-                    <thead>
-                        <tr>
-                            <th>Rate</th>
-                            <th style="text-align:right">Taxable</th>
-                            <th style="text-align:right">CGST</th>
-                            <th style="text-align:right">SGST</th>
-                            <th style="text-align:right">IGST</th>
-                            <th style="text-align:right">Total</th>
-                        </tr>
-                    </thead>
-                    <tbody>
-                        @foreach ($data['input'] as $row)
-                            <tr>
-                                <td>{{ rtrim(rtrim(number_format((float) $row->tax_rate, 2), '0'), '.') }}%</td>
-                                <td style="text-align:right">{{ $money($row->taxable) }}</td>
-                                <td style="text-align:right">{{ $money($row->cgst) }}</td>
-                                <td style="text-align:right">{{ $money($row->sgst) }}</td>
-                                <td style="text-align:right">{{ $money($row->igst) }}</td>
-                                <td style="text-align:right">
-                                    <strong>{{ $money((float) $row->cgst + (float) $row->sgst + (float) $row->igst) }}</strong>
-                                </td>
-                            </tr>
-                        @endforeach
-                    </tbody>
-                </table>
-            </div>
-        </div>
-    @endif
 
     @if ($key === 'profit' && ($data['products'] ?? collect())->isNotEmpty())
         <div class="card" style="margin-top:16px">

@@ -29,7 +29,6 @@ class DatabaseSeeder extends Seeder
             ShopSeeder::class,
             // After the shops, because it gives each one a warehouse.
             CatalogSeeder::class,
-            ExpenseCategorySeeder::class,
         ]);
     }
 }

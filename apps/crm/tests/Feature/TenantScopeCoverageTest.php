@@ -38,7 +38,6 @@ class TenantScopeCoverageTest extends TestCase
         \App\Models\SupportTicket::class => 'Belongs to the business, not a branch; SupportTicket::scopeVisibleTo() narrows every read.',
         \App\Models\Subscription::class => 'Platform billing; SubscriptionController::readable()/authoriseRead() and BillingController read the own business only.',
         \App\Models\SubscriptionPayment::class => 'Platform billing; read only through SubscriptionController::paymentsFor() for an authorised business.',
-        \App\Models\ExpenseCategory::class => 'Applies its own scope: null shop_id means shared by every branch, which BelongsToShop would hide.',
         \App\Models\Address::class => 'A customer\'s own address book; always read by customer and shop (OrderService, Shop\\AddressController).',
         \App\Models\Cart::class => 'A customer\'s own cart; read only through CartService by customer and shop.',
         \App\Models\WishlistItem::class => 'A customer\'s own wishlist; Shop\\WishlistController filters by customer and shop.',

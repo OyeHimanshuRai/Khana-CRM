@@ -20,9 +20,9 @@ use Tests\TestCase;
  *     module      does this branch do this kind of business at all?
  *     permission  may this person do it?
  *
- * A branch that does no purchasing hides it from everybody, its own owner
- * included. A branch that does still hides it from a cashier, because the
- * cashier has no permission. Neither substitutes for the other, and the
+ * A branch that prints no barcodes hides that screen from everybody, its own
+ * owner included. A branch that does still hides it from a cashier, because
+ * the cashier has no permission. Neither substitutes for the other, and the
  * tests below are mostly about proving they do not.
  *
  * The half that matters is the server side. Hiding a sidebar entry is
@@ -86,8 +86,7 @@ class ShopModuleTest extends TestCase
 
         $user->givePermissionTo([
             'dashboard.overview.view',
-            'purchasing.purchase_orders.view',
-            'purchasing.suppliers.view',
+            'pos.labels.view',
             'crm.customers.view',
             'crm.dues.view',
             'sales.invoices.view',
@@ -124,7 +123,7 @@ class ShopModuleTest extends TestCase
         $shop->forceFill(['modules' => null])->save();
 
         $this->assertSame(Modules::keys(), Modules::forShop($shop));
-        $this->assertTrue($shop->hasModule('purchase'));
+        $this->assertTrue($shop->hasModule('barcode'));
     }
 
     public function test_a_shop_with_every_box_unticked_runs_nothing(): void
@@ -157,7 +156,7 @@ class ShopModuleTest extends TestCase
 
         $this->assertTrue(Modules::allows('settings.users.view'));
         $this->assertTrue(Modules::allows('dashboard.overview.view'));
-        $this->assertFalse(Modules::allows('purchasing.purchase_orders.view'));
+        $this->assertFalse(Modules::allows('pos.labels.view'));
     }
 
     /**
@@ -198,8 +197,7 @@ class ShopModuleTest extends TestCase
         $this->actingAs($owner);
         $this->enable(['retail', 'inventory']);
 
-        $this->actingAs($owner)->get('/admin/purchase-orders')->assertForbidden();
-        $this->actingAs($owner)->get('/admin/suppliers')->assertForbidden();
+        $this->actingAs($owner)->get('/admin/labels')->assertForbidden();
         $this->actingAs($owner)->get('/admin/customers')->assertForbidden();
 
         // And what is on stays reachable, so the gate is doing something
@@ -216,7 +214,7 @@ class ShopModuleTest extends TestCase
         $this->enable(['retail']);
 
         $this->actingAs($owner)
-            ->getJson('/admin/purchase-orders')
+            ->getJson('/admin/labels')
             ->assertStatus(403)
             ->assertJsonPath('success', false);
     }
@@ -230,10 +228,10 @@ class ShopModuleTest extends TestCase
 
         $this->actingAs($owner);
         $this->enable(['retail']);
-        $this->actingAs($owner)->get('/admin/purchase-orders')->assertForbidden();
+        $this->actingAs($owner)->get('/admin/labels')->assertForbidden();
 
-        $this->enable(['retail', 'purchase']);
-        $this->actingAs($owner)->get('/admin/purchase-orders')->assertOk();
+        $this->enable(['retail', 'barcode']);
+        $this->actingAs($owner)->get('/admin/labels')->assertOk();
     }
 
     /**
@@ -276,7 +274,7 @@ class ShopModuleTest extends TestCase
         // no right to it.
         $this->enable(Modules::keys());
 
-        $this->actingAs($cashier)->get('/admin/purchase-orders')->assertForbidden();
+        $this->actingAs($cashier)->get('/admin/labels')->assertForbidden();
         $this->actingAs($cashier)->get('/admin/customers')->assertForbidden();
     }
 
@@ -316,7 +314,6 @@ class ShopModuleTest extends TestCase
         $this->actingAs($owner)
             ->get('/admin/dashboard')
             ->assertOk()
-            ->assertDontSee('Purchase Orders')
             ->assertDontSee('Customer Master')
             // The inventory module's own entry, which is still there. Named
             // "Menu Items" since the catalogue became a restaurant menu - the
@@ -332,7 +329,7 @@ class ShopModuleTest extends TestCase
             ->get('/admin/shops/create')
             ->assertOk()
             ->assertSee('Business modules')
-            ->assertSee('Purchase')
+            ->assertSee('Barcode & Labels')
             ->assertSee('Customer Management')
             ->assertSee('name="modules[]"', false)
             ->assertSee('name="modules_configured"', false);
@@ -347,12 +344,12 @@ class ShopModuleTest extends TestCase
                 'name' => $shop->name,
                 'code' => $shop->code,
                 'modules_configured' => 1,
-                'modules' => ['retail', 'pos', 'purchase'],
+                'modules' => ['retail', 'pos', 'barcode'],
             ])
             ->assertOk()
             ->assertJsonPath('success', true);
 
-        $this->assertSame(['retail', 'pos', 'purchase'], $shop->fresh()->modules);
+        $this->assertSame(['retail', 'pos', 'barcode'], $shop->fresh()->modules);
     }
 
     /**
@@ -415,10 +412,10 @@ class ShopModuleTest extends TestCase
     /**
      * Across branches it is the union, not the intersection.
      *
-     * A group-level purchase report is meaningful as long as one branch
-     * buys; narrowing to the intersection would blank the consolidated view
-     * for any group whose branches differ, which is every group worth
-     * consolidating.
+     * A group-level barcode report is meaningful as long as one branch
+     * prints labels; narrowing to the intersection would blank the
+     * consolidated view for any group whose branches differ, which is every
+     * group worth consolidating.
      */
     public function test_the_all_shops_view_is_the_union_of_its_branches(): void
     {
@@ -430,7 +427,7 @@ class ShopModuleTest extends TestCase
             'name' => 'Central Kitchen',
             'code' => 'KITCHEN',
             'slug' => Shop::uniqueSlug('Central Kitchen'),
-            'modules' => ['purchase'],
+            'modules' => ['barcode'],
             'is_active' => true,
         ]);
 
@@ -442,7 +439,7 @@ class ShopModuleTest extends TestCase
         CurrentShop::forget();
 
         $this->assertTrue(Modules::enabled('retail'));
-        $this->assertTrue(Modules::enabled('purchase'));
+        $this->assertTrue(Modules::enabled('barcode'));
         $this->assertFalse(Modules::enabled('customers'));
     }
 
@@ -455,7 +452,7 @@ class ShopModuleTest extends TestCase
         CurrentShop::forget();
         CurrentTenant::forget();
 
-        $this->assertTrue(Modules::allows('purchasing.purchase_orders.view'));
+        $this->assertTrue(Modules::allows('pos.labels.view'));
         $this->assertTrue(Modules::allows('crm.customers.view'));
     }
 }

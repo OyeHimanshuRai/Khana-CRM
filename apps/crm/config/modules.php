@@ -16,8 +16,8 @@
 |     module      does this shop do this kind of business at all?
 |     permission  may this person do it?
 |
-| A shop that does no purchasing hides it from everybody, including its
-| owner. A shop that does hides it from a cashier, because the cashier has no
+| A shop that prints no barcodes hides that screen from everybody, including
+| its owner. A shop that does hides it from a cashier, because the cashier has no
 | permission. Neither is a substitute for the other, and collapsing them
 | would mean either "turn it off for the shop" leaks to whoever holds the
 | right, or "grant the right" silently turns a line of business on.
@@ -110,14 +110,6 @@ return [
         'icon' => 'tag',
         'default' => true,
         'permissions' => ['pos.labels'],
-    ],
-
-    'purchase' => [
-        'label' => 'Purchase',
-        'blurb' => 'Purchase orders, goods receipts, supplier bills and returns.',
-        'icon' => 'truck',
-        'default' => true,
-        'permissions' => ['purchasing'],
     ],
 
     'customers' => [

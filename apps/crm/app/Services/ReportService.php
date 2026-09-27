@@ -6,9 +6,6 @@ use App\Models\Batch;
 use App\Models\CashRegister;
 use App\Models\CouponRedemption;
 use App\Models\Customer;
-use App\Models\Expense;
-use App\Models\GoodsReceipt;
-use App\Models\GoodsReceiptItem;
 use App\Models\Invoice;
 use App\Models\InvoiceItem;
 use App\Models\Order;
@@ -17,7 +14,6 @@ use App\Models\Payment;
 use App\Models\Product;
 use App\Models\ProductStock;
 use App\Models\StockTransfer;
-use App\Models\Supplier;
 use App\Support\CurrentShop;
 use App\Support\ReportFilters;
 use Illuminate\Database\Eloquent\Builder;
@@ -380,76 +376,6 @@ class ReportService
             ->get();
     }
 
-    /**
-     * Tax paid on purchases - the input side of the same return.
-     *
-     * @return Collection<int, object>
-     */
-    public function inputTax(ReportFilters $range): Collection
-    {
-        return GoodsReceiptItem::query()
-            ->join('goods_receipts', 'goods_receipts.id', '=', 'goods_receipt_items.goods_receipt_id')
-            ->whereIn('goods_receipts.shop_id', $this->shopIds())
-            ->where('goods_receipts.status', GoodsReceipt::POSTED)
-            ->whereBetween('goods_receipts.received_on', [$range->from, $range->to])
-            ->selectRaw('goods_receipt_items.tax_rate')
-            ->selectRaw('SUM(goods_receipt_items.taxable_value) as taxable')
-            ->selectRaw('SUM(goods_receipt_items.cgst_amount) as cgst')
-            ->selectRaw('SUM(goods_receipt_items.sgst_amount) as sgst')
-            ->selectRaw('SUM(goods_receipt_items.igst_amount) as igst')
-            ->groupBy('goods_receipt_items.tax_rate')
-            ->orderBy('goods_receipt_items.tax_rate')
-            ->get();
-    }
-
-    /* ----------------------------------------------------------- purchase */
-
-    /**
-     * @return Collection<int, object>
-     */
-    public function purchasesBySupplier(ReportFilters $range): Collection
-    {
-        return GoodsReceipt::query()
-            ->counted()
-            ->whereBetween('received_on', [$range->from, $range->to])
-            ->join('suppliers', 'suppliers.id', '=', 'goods_receipts.supplier_id')
-            ->selectRaw("COALESCE(NULLIF(suppliers.company, ''), suppliers.name) as supplier")
-            ->selectRaw('COUNT(*) as receipts')
-            ->selectRaw('COALESCE(SUM(goods_receipts.subtotal), 0) as goods')
-            ->selectRaw('COALESCE(SUM(goods_receipts.tax_total), 0) as tax')
-            ->selectRaw('COALESCE(SUM(goods_receipts.grand_total), 0) as total')
-            ->selectRaw('COALESCE(SUM(goods_receipts.due_total), 0) as outstanding')
-            ->groupBy('supplier')
-            ->orderByDesc('total')
-            ->get();
-    }
-
-    /**
-     * @return array<string, float|int>
-     */
-    public function purchaseSummary(ReportFilters $range): array
-    {
-        $row = GoodsReceipt::query()
-            ->counted()
-            ->whereBetween('received_on', [$range->from, $range->to])
-            ->selectRaw('COUNT(*) as receipts')
-            ->selectRaw('COALESCE(SUM(subtotal), 0) as goods')
-            ->selectRaw('COALESCE(SUM(tax_total), 0) as tax')
-            ->selectRaw('COALESCE(SUM(other_charges), 0) as charges')
-            ->selectRaw('COALESCE(SUM(grand_total), 0) as total')
-            ->selectRaw('COALESCE(SUM(due_total), 0) as outstanding')
-            ->first();
-
-        return [
-            'receipts' => (int) $row->receipts,
-            'goods' => (float) $row->goods,
-            'tax' => (float) $row->tax,
-            'charges' => (float) $row->charges,
-            'total' => (float) $row->total,
-            'outstanding' => (float) $row->outstanding,
-        ];
-    }
-
     /* -------------------------------------------------------------- stock */
 
     /**
@@ -520,76 +446,34 @@ class ReportService
             ->orderByDesc('balance');
     }
 
-    /**
-     * What the shop owes its suppliers.
-     *
-     * @return Builder
-     */
-    public function payables(): Builder
-    {
-        return Supplier::query()
-            ->withPayables()
-            ->orderByDesc('balance');
-    }
-
     /* ------------------------------------------------------------ returns */
 
     /**
-     * What came back, both ways (SRS 13).
+     * What came back over the counter, day by day (SRS 13).
      *
-     * Sales returns and purchase returns on one screen because the question
-     * a shop asks is "what did we take back and what did we send back", and
-     * splitting them across two reports means neither gets opened.
+     * Purchase returns used to sit alongside; they belong to ERP now, which
+     * owns suppliers and what is sent back to them.
      *
      * @return Collection<int, object>
      */
     public function returnsByDay(ReportFilters $range): Collection
     {
-        /*
-         | The two sides are summed separately and then stitched by date,
-         | rather than joined in SQL. A join on date would multiply the rows
-         | on any day that had both - the classic fan-out that quietly
-         | doubles a total nobody re-checks.
-         */
-        $salesRows = SalesReturn::query()
+        return SalesReturn::query()
             ->whereNotIn('status', [SalesReturn::DRAFT, SalesReturn::CANCELLED])
             ->whereBetween('returned_on', [$range->from->toDateString(), $range->to->toDateString()])
             ->selectRaw('DATE(returned_on) as period')
-            ->selectRaw('COUNT(*) as documents')
-            ->selectRaw('COALESCE(SUM(grand_total), 0) as value')
+            ->selectRaw('COUNT(*) as sales_returns')
+            ->selectRaw('COALESCE(SUM(grand_total), 0) as sales_value')
             ->selectRaw('COALESCE(SUM(refund_amount), 0) as refunded')
             ->groupBy('period')
+            ->orderBy('period')
             ->get()
-            ->keyBy('period');
-
-        $purchaseRows = PurchaseReturn::query()
-            ->whereNotIn('status', [PurchaseReturn::DRAFT, PurchaseReturn::CANCELLED])
-            ->whereBetween('returned_on', [$range->from->toDateString(), $range->to->toDateString()])
-            ->selectRaw('DATE(returned_on) as period')
-            ->selectRaw('COUNT(*) as documents')
-            ->selectRaw('COALESCE(SUM(grand_total), 0) as value')
-            ->groupBy('period')
-            ->get()
-            ->keyBy('period');
-
-        return $salesRows->keys()
-            ->merge($purchaseRows->keys())
-            ->unique()
-            ->sort()
-            ->values()
-            ->map(function (string $period) use ($salesRows, $purchaseRows) {
-                $in = $salesRows->get($period);
-                $out = $purchaseRows->get($period);
-
-                return (object) [
-                    'period' => $period,
-                    'sales_returns' => (int) ($in->documents ?? 0),
-                    'sales_value' => (float) ($in->value ?? 0),
-                    'refunded' => (float) ($in->refunded ?? 0),
-                    'purchase_returns' => (int) ($out->documents ?? 0),
-                    'purchase_value' => (float) ($out->value ?? 0),
-                ];
-            });
+            ->map(fn ($row) => (object) [
+                'period' => $row->period,
+                'sales_returns' => (int) $row->sales_returns,
+                'sales_value' => (float) $row->sales_value,
+                'refunded' => (float) $row->refunded,
+            ]);
     }
 
     /**
@@ -606,125 +490,10 @@ class ReportService
             'sales_returns' => (int) $rows->sum('sales_returns'),
             'sales_value' => round($returned, 2),
             'refunded' => round((float) $rows->sum('refunded'), 2),
-            'purchase_returns' => (int) $rows->sum('purchase_returns'),
-            'purchase_value' => round((float) $rows->sum('purchase_value'), 2),
             // The figure that actually means something: returns as a share of
             // what went out. A rupee total on its own says nothing about
             // whether it is a lot.
             'return_rate' => $sold > 0 ? round($returned / $sold * 100, 2) : 0.0,
-        ];
-    }
-
-    /* ---------------------------------------------------------- financial */
-
-    /**
-     * Income against outgoings, month by month (SRS 13).
-     *
-     * Cash-basis on the collection side and accrual on the sales side, and
-     * the report shows both rather than picking one - a shop wants to know
-     * what it billed *and* what it actually banked, and the gap between them
-     * is the credit book.
-     *
-     * @return Collection<int, object>
-     */
-    public function financeByMonth(ReportFilters $range): Collection
-    {
-        $months = [];
-
-        $cursor = $range->from->copy()->startOfMonth();
-
-        while ($cursor->lte($range->to)) {
-            $months[$cursor->format('Y-m')] = [
-                'period' => $cursor->format('Y-m'),
-                'label' => $cursor->format('M Y'),
-                'revenue' => 0.0,
-                'cost' => 0.0,
-                'tax' => 0.0,
-                'collected' => 0.0,
-                'purchases' => 0.0,
-                'expenses' => 0.0,
-            ];
-
-            $cursor->addMonth();
-        }
-
-        $stamp = fn ($date) => Carbon::parse($date)->format('Y-m');
-
-        foreach ($this->salesBase($range)
-            ->selectRaw('DATE(invoiced_at) as day')
-            ->selectRaw('COALESCE(SUM(subtotal), 0) as revenue')
-            ->selectRaw('COALESCE(SUM(cost_total), 0) as cost')
-            ->selectRaw('COALESCE(SUM(tax_total), 0) as tax')
-            ->selectRaw('COALESCE(SUM(paid_total), 0) as collected')
-            ->groupBy('day')->get() as $row) {
-            $key = $stamp($row->day);
-
-            if (! isset($months[$key])) {
-                continue;
-            }
-
-            $months[$key]['revenue'] += (float) $row->revenue;
-            $months[$key]['cost'] += (float) $row->cost;
-            $months[$key]['tax'] += (float) $row->tax;
-            $months[$key]['collected'] += (float) $row->collected;
-        }
-
-        foreach (GoodsReceipt::query()
-            ->counted()
-            ->whereBetween('received_on', [$range->from, $range->to])
-            ->selectRaw('DATE(received_on) as day')
-            ->selectRaw('COALESCE(SUM(grand_total), 0) as total')
-            ->groupBy('day')->get() as $row) {
-            $key = $stamp($row->day);
-
-            if (isset($months[$key])) {
-                $months[$key]['purchases'] += (float) $row->total;
-            }
-        }
-
-        foreach (Expense::query()
-            ->whereBetween('spent_on', [$range->from->toDateString(), $range->to->toDateString()])
-            ->selectRaw('DATE(spent_on) as day')
-            ->selectRaw('COALESCE(SUM(amount), 0) as total')
-            ->groupBy('day')->get() as $row) {
-            $key = $stamp($row->day);
-
-            if (isset($months[$key])) {
-                $months[$key]['expenses'] += (float) $row->total;
-            }
-        }
-
-        return collect($months)->values()->map(function (array $row) {
-            $row['gross'] = round($row['revenue'] - $row['cost'], 2);
-            $row['net'] = round($row['gross'] - $row['expenses'], 2);
-
-            return (object) $row;
-        });
-    }
-
-    /**
-     * @return array<string, float|int>
-     */
-    public function financeSummary(ReportFilters $range): array
-    {
-        $rows = $this->financeByMonth($range);
-
-        $revenue = (float) $rows->sum('revenue');
-        $cost = (float) $rows->sum('cost');
-        $expenses = (float) $rows->sum('expenses');
-
-        return [
-            'revenue' => round($revenue, 2),
-            'cost' => round($cost, 2),
-            'gross' => round($revenue - $cost, 2),
-            'expenses' => round($expenses, 2),
-            'net' => round($revenue - $cost - $expenses, 2),
-            'collected' => round((float) $rows->sum('collected'), 2),
-            'purchases' => round((float) $rows->sum('purchases'), 2),
-            'tax' => round((float) $rows->sum('tax'), 2),
-            // Margin on nothing is undefined, not zero - printing "0%" on a
-            // month with no sales is how a report gets mistrusted.
-            'margin' => $revenue > 0 ? round(($revenue - $cost) / $revenue * 100, 2) : null,
         ];
     }
 

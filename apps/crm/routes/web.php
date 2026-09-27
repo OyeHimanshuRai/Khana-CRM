@@ -17,7 +17,6 @@ use App\Http\Controllers\Admin\CustomerLedgerController;
 use App\Http\Controllers\Admin\DashboardController;
 use App\Http\Controllers\Admin\EmailLogController;
 use App\Http\Controllers\Admin\EmailTemplateController;
-use App\Http\Controllers\Admin\ExpenseController;
 use App\Http\Controllers\Admin\FeedbackController;
 use App\Http\Controllers\Admin\FloorController;
 use App\Http\Controllers\Admin\LoyaltyController;
@@ -30,7 +29,6 @@ use App\Http\Controllers\Admin\KitchenStationController;
 use App\Http\Controllers\Admin\RestaurantTableController;
 use App\Http\Controllers\Admin\TableQrController;
 use App\Http\Controllers\Admin\FaqController;
-use App\Http\Controllers\Admin\GoodsReceiptController;
 use App\Http\Controllers\Admin\InvoiceController;
 use App\Http\Controllers\Admin\ReportController;
 use App\Http\Controllers\Admin\SalesReturnController;
@@ -48,9 +46,6 @@ use App\Http\Controllers\Admin\PlanController;
 use App\Http\Controllers\Admin\PriceListController;
 use App\Http\Controllers\Admin\PrinterController;
 use App\Http\Controllers\Admin\ProfileController;
-use App\Http\Controllers\Admin\PurchaseInvoiceController;
-use App\Http\Controllers\Admin\PurchaseOrderController;
-use App\Http\Controllers\Admin\PurchaseReturnController;
 use App\Http\Controllers\Admin\ReservationController;
 use App\Http\Controllers\Admin\RoleController;
 use App\Http\Controllers\Admin\ScannerController;
@@ -62,7 +57,6 @@ use App\Http\Controllers\Admin\StockAdjustmentController;
 use App\Http\Controllers\Admin\StockController;
 use App\Http\Controllers\Admin\StockTransferController;
 use App\Http\Controllers\Admin\SubscriptionController;
-use App\Http\Controllers\Admin\SupplierController;
 use App\Http\Controllers\Admin\DemoRequestController as AdminDemoRequestController;
 use App\Http\Controllers\Admin\IntegrationController;
 use App\Http\Controllers\Admin\LandingStatController;
@@ -1716,137 +1710,6 @@ Route::prefix('admin')->name('admin.')->group(function () {
                 ->name('invoices.cancel');
         });
 
-        /*
-        | Purchase orders. An intention: nothing here moves stock or money,
-        | and the order's status follows the receipts raised against it.
-        */
-        Route::prefix('purchase-orders')->name('purchase-orders.')->group(function () {
-            Route::middleware('permission:purchasing.purchase_orders.view')->group(function () {
-                Route::get('/', [PurchaseOrderController::class, 'index'])->name('index');
-                Route::get('{order}', [PurchaseOrderController::class, 'show'])
-                    ->whereNumber('order')
-                    ->name('show');
-            });
-
-            Route::middleware('permission:purchasing.purchase_orders.create')->group(function () {
-                // Registered before the wildcard so "create" is not read as an id.
-                Route::get('create', [PurchaseOrderController::class, 'create'])->name('create');
-                Route::post('/', [PurchaseOrderController::class, 'store'])->name('store');
-            });
-
-            Route::middleware('permission:purchasing.purchase_orders.edit')->group(function () {
-                Route::get('{order}/edit', [PurchaseOrderController::class, 'edit'])->name('edit');
-                Route::put('{order}', [PurchaseOrderController::class, 'update'])->name('update');
-                Route::put('{order}/cancel', [PurchaseOrderController::class, 'cancel'])->name('cancel');
-            });
-
-            Route::put('{order}/approve', [PurchaseOrderController::class, 'approve'])
-                ->middleware('permission:purchasing.purchase_orders.approve')
-                ->name('approve');
-
-            Route::delete('{order}', [PurchaseOrderController::class, 'destroy'])
-                ->middleware('permission:purchasing.purchase_orders.delete')
-                ->name('destroy');
-        });
-
-        /*
-        | Goods receipts. Posting one is the point of no return - it is when
-        | stock lands and the supplier is billed - so it is gated on
-        | `approve` rather than on `create`.
-        */
-        Route::prefix('receipts')->name('receipts.')->group(function () {
-            Route::get('export', [GoodsReceiptController::class, 'export'])
-                ->middleware('permission:purchasing.receipts.view')
-                ->name('export');
-
-            Route::middleware('permission:purchasing.receipts.view')->group(function () {
-                Route::get('/', [GoodsReceiptController::class, 'index'])->name('index');
-                Route::get('{receipt}', [GoodsReceiptController::class, 'show'])
-                    ->whereNumber('receipt')
-                    ->name('show');
-            });
-
-            Route::middleware('permission:purchasing.receipts.create')->group(function () {
-                Route::get('create', [GoodsReceiptController::class, 'create'])->name('create');
-                Route::post('/', [GoodsReceiptController::class, 'store'])->name('store');
-            });
-
-            Route::middleware('permission:purchasing.receipts.edit')->group(function () {
-                Route::get('{receipt}/edit', [GoodsReceiptController::class, 'edit'])->name('edit');
-                Route::put('{receipt}', [GoodsReceiptController::class, 'update'])->name('update');
-            });
-
-            Route::put('{receipt}/post', [GoodsReceiptController::class, 'post'])
-                ->middleware('permission:purchasing.receipts.approve')
-                ->name('post');
-
-            Route::middleware('permission:purchasing.receipts.delete')->group(function () {
-                Route::get('{receipt}/cancel', [GoodsReceiptController::class, 'cancelForm'])
-                    ->whereNumber('receipt')
-                    ->name('cancel.form');
-                Route::put('{receipt}/cancel', [GoodsReceiptController::class, 'cancel'])
-                    ->whereNumber('receipt')
-                    ->name('cancel');
-                Route::delete('{receipt}', [GoodsReceiptController::class, 'destroy'])->name('destroy');
-            });
-        });
-
-        /*
-        | Purchase invoices - a bills register over posted receipts, not a
-        | document of its own. See PurchaseInvoiceController's docblock.
-        */
-        Route::prefix('purchase-invoices')->name('purchase-invoices.')->group(function () {
-            Route::get('export', [PurchaseInvoiceController::class, 'export'])
-                ->middleware('permission:purchasing.bills.export')
-                ->name('export');
-
-            Route::get('/', [PurchaseInvoiceController::class, 'index'])
-                ->middleware('permission:purchasing.bills.view')
-                ->name('index');
-
-            Route::get('{receipt}/print', [PurchaseInvoiceController::class, 'print'])
-                ->whereNumber('receipt')
-                ->middleware('permission:purchasing.bills.print')
-                ->name('print');
-        });
-
-        /*
-        | Purchase returns. The mirror of sales-returns, on the other side of
-        | the counter - see PurchaseReturnController's docblock. Approving is
-        | what moves anything, so it is gated on `approve` like every other
-        | accept/reject pair in this file.
-        */
-        Route::prefix('purchase-returns')->name('purchase-returns.')->group(function () {
-            Route::middleware('permission:purchasing.returns.view')->group(function () {
-                Route::get('/', [PurchaseReturnController::class, 'index'])->name('index');
-                Route::get('{return}', [PurchaseReturnController::class, 'show'])
-                    ->whereNumber('return')
-                    ->name('show');
-            });
-
-            Route::middleware('permission:purchasing.returns.create')->group(function () {
-                // Registered before the wildcard so "create" is not read as an id.
-                Route::get('create', [PurchaseReturnController::class, 'create'])->name('create');
-                Route::post('/', [PurchaseReturnController::class, 'store'])->name('store');
-            });
-
-            Route::put('{return}/approve', [PurchaseReturnController::class, 'approve'])
-                ->middleware('permission:purchasing.returns.approve')
-                ->name('approve');
-
-            Route::middleware('permission:purchasing.returns.reject')->group(function () {
-                Route::get('{return}/reject', [PurchaseReturnController::class, 'rejectForm'])
-                    ->whereNumber('return')
-                    ->name('reject.form');
-                Route::put('{return}/reject', [PurchaseReturnController::class, 'reject'])
-                    ->whereNumber('return')
-                    ->name('reject');
-            });
-
-            Route::delete('{return}', [PurchaseReturnController::class, 'destroy'])
-                ->middleware('permission:purchasing.returns.delete')
-                ->name('destroy');
-        });
 
         /*
         | Payments. No update route, deliberately: a recorded payment is a
@@ -1917,44 +1780,6 @@ Route::prefix('admin')->name('admin.')->group(function () {
             Route::put('{reminder}/cancel', [PaymentReminderController::class, 'cancel'])
                 ->middleware('permission:crm.reminders.delete')
                 ->name('cancel');
-        });
-
-        /*
-        | Expenses. Approving is what records the money going out, so it is
-        | gated on `approve` rather than on `edit` - an expense somebody
-        | typed in should not appear in the day's cash until it is agreed.
-        */
-        Route::prefix('expenses')->name('expenses.')->group(function () {
-            Route::get('export', [ExpenseController::class, 'export'])
-                ->middleware('permission:finance.expenses.export')
-                ->name('export');
-
-            Route::middleware('permission:finance.expenses.view')->group(function () {
-                Route::get('/', [ExpenseController::class, 'index'])->name('index');
-                Route::get('{expense}', [ExpenseController::class, 'show'])
-                    ->whereNumber('expense')
-                    ->name('show');
-            });
-
-            Route::middleware('permission:finance.expenses.create')->group(function () {
-                // Registered before the wildcard so "create" is not read as an id.
-                Route::get('create', [ExpenseController::class, 'create'])->name('create');
-                Route::post('/', [ExpenseController::class, 'store'])->name('store');
-            });
-
-            Route::middleware('permission:finance.expenses.edit')->group(function () {
-                Route::get('{expense}/edit', [ExpenseController::class, 'edit'])->name('edit');
-                Route::put('{expense}', [ExpenseController::class, 'update'])->name('update');
-            });
-
-            Route::middleware('permission:finance.expenses.approve')->group(function () {
-                Route::put('{expense}/approve', [ExpenseController::class, 'approve'])->name('approve');
-                Route::put('{expense}/reject', [ExpenseController::class, 'reject'])->name('reject');
-            });
-
-            Route::delete('{expense}', [ExpenseController::class, 'destroy'])
-                ->middleware('permission:finance.expenses.delete')
-                ->name('destroy');
         });
 
         /* The customer account: statement, dues, write-offs. */
@@ -2277,37 +2102,6 @@ Route::prefix('admin')->name('admin.')->group(function () {
         Route::delete('customers/{customer}', [CustomerController::class, 'destroy'])
             ->middleware('permission:crm.customers.delete')
             ->name('customers.destroy');
-
-        /* Suppliers. Same shape as customers, on the purchasing side. */
-        Route::get('suppliers/export', [SupplierController::class, 'export'])
-            ->middleware('permission:purchasing.suppliers.export')
-            ->name('suppliers.export');
-
-        Route::middleware('permission:purchasing.suppliers.view')->group(function () {
-            Route::get('suppliers', [SupplierController::class, 'index'])->name('suppliers.index');
-            Route::get('suppliers/lookup', [SupplierController::class, 'lookup'])->name('suppliers.lookup');
-            Route::get('suppliers/{supplier}', [SupplierController::class, 'show'])
-                ->whereNumber('supplier')
-                ->name('suppliers.show');
-        });
-
-        Route::middleware('permission:purchasing.suppliers.create')->group(function () {
-            Route::get('suppliers/create', [SupplierController::class, 'create'])->name('suppliers.create');
-            Route::post('suppliers', [SupplierController::class, 'store'])->name('suppliers.store');
-        });
-
-        Route::middleware('permission:purchasing.suppliers.edit')->group(function () {
-            Route::get('suppliers/{supplier}/edit', [SupplierController::class, 'edit'])
-                ->name('suppliers.edit');
-            Route::put('suppliers/{supplier}', [SupplierController::class, 'update'])
-                ->name('suppliers.update');
-            Route::put('suppliers/{supplier}/status', [SupplierController::class, 'toggleStatus'])
-                ->name('suppliers.status');
-        });
-
-        Route::delete('suppliers/{supplier}', [SupplierController::class, 'destroy'])
-            ->middleware('permission:purchasing.suppliers.delete')
-            ->name('suppliers.destroy');
 
         /*
         | Services and FAQs. Same shape as Categories: every screen answers

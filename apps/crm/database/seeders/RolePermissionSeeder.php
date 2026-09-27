@@ -114,7 +114,7 @@ class RolePermissionSeeder extends Seeder
             ],
 
             'Shop Admin' => [
-                'description' => 'Day-to-day shop operations: products, customers, billing, stock and purchasing.',
+                'description' => 'Day-to-day shop operations: products, customers, billing and stock.',
                 'grant' => fn (string $p) => ! self::platformOnly($p)
                     && ! str_starts_with($p, 'reports.profit_report.')
                     && ! preg_match('/\.(write_off|adjust)$/', $p),
@@ -214,13 +214,10 @@ class RolePermissionSeeder extends Seeder
             ],
 
             'Warehouse' => [
-                'description' => 'Receiving, batches and expiry, stock movement, transfers and dispatch.',
+                'description' => 'Batches and expiry, stock movement, transfers and dispatch.',
                 'grant' => fn (string $p) => str_starts_with($p, 'inventory.')
-                    || str_starts_with($p, 'purchasing.receipts.')
                     || in_array($p, [
                         'dashboard.overview.view',
-                        'purchasing.purchase_orders.view', 'purchasing.suppliers.view',
-                        'purchasing.returns.view', 'purchasing.returns.create',
                         'sales.orders.view', 'sales.orders.edit',
                         'sales.returns.view', 'sales.returns.create',
                         'reports.stock_report.view', 'reports.stock_report.export',
@@ -229,7 +226,7 @@ class RolePermissionSeeder extends Seeder
             ],
 
             'Accountant' => [
-                'description' => 'Payments, dues, expenses and financial reports, including write-offs.',
+                'description' => 'Payments, dues and financial reports, including write-offs.',
                 'grant' => fn (string $p) => str_starts_with($p, 'finance.')
                     || str_starts_with($p, 'reports.')
                     || str_starts_with($p, 'crm.ledger.')
@@ -238,8 +235,6 @@ class RolePermissionSeeder extends Seeder
                     || in_array($p, [
                         'dashboard.overview.view',
                         'crm.customers.view', 'crm.customers.export',
-                        'purchasing.bills.view', 'purchasing.bills.export',
-                        'purchasing.suppliers.view',
                         'sales.invoices.view', 'sales.invoices.export', 'sales.invoices.print',
                     ], true),
             ],

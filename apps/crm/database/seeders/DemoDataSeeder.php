@@ -58,7 +58,6 @@ class DemoDataSeeder extends Seeder
             DemoDiningSeeder::class,
             DemoPartySeeder::class,
             // Stock first: a sale cannot issue what was never received.
-            DemoPurchasingSeeder::class,
             DemoSalesSeeder::class,
             DemoInventorySeeder::class,
             DemoFinanceSeeder::class,

@@ -425,33 +425,6 @@ return [
             ],
         ],
 
-        'purchasing' => [
-            'label' => 'Purchasing',
-            'icon' => 'truck',
-            'submodules' => [
-                'purchase_orders' => [
-                    'label' => 'Purchase Orders',
-                    'actions' => ['view', 'create', 'edit', 'delete', 'approve', 'reject', 'export', 'print'],
-                ],
-                'suppliers' => [
-                    'label' => 'Suppliers',
-                    'actions' => ['view', 'create', 'edit', 'delete', 'import', 'export'],
-                ],
-                'receipts' => [
-                    'label' => 'Goods Receipts',
-                    'actions' => ['view', 'create', 'edit', 'delete', 'approve', 'print'],
-                ],
-                'bills' => [
-                    'label' => 'Purchase Invoices',
-                    'actions' => ['view', 'create', 'edit', 'delete', 'approve', 'export', 'print', 'cancel'],
-                ],
-                'returns' => [
-                    'label' => 'Purchase Returns',
-                    'actions' => ['view', 'create', 'edit', 'delete', 'approve', 'reject', 'print'],
-                ],
-            ],
-        ],
-
         'finance' => [
             'label' => 'Finance',
             'icon' => 'wallet',
@@ -481,10 +454,6 @@ return [
                     'actions' => ['view', 'refund', 'export'],
                 ],
 
-                'expenses' => [
-                    'label' => 'Expenses',
-                    'actions' => ['view', 'create', 'edit', 'delete', 'approve', 'export'],
-                ],
                 'accounts' => [
                     'label' => 'Chart of Accounts',
                     'actions' => ['view', 'create', 'edit', 'delete', 'export'],
@@ -507,16 +476,13 @@ return [
             'submodules' => [
                 'sales_report' => ['label' => 'Sales', 'actions' => ['view', 'export', 'print', 'download']],
                 'profit_report' => ['label' => 'Profit', 'actions' => ['view', 'export', 'print', 'download']],
-                'purchase_report' => ['label' => 'Purchases', 'actions' => ['view', 'export', 'print', 'download']],
                 'stock_report' => ['label' => 'Stock & Valuation', 'actions' => ['view', 'export', 'print', 'download']],
                 'expiry_report' => ['label' => 'Expiry & Low Stock', 'actions' => ['view', 'export', 'print', 'download']],
                 'dues_report' => ['label' => 'Outstanding & Dues', 'actions' => ['view', 'export', 'print', 'download']],
                 'payment_report' => ['label' => 'Payment Methods', 'actions' => ['view', 'export', 'print', 'download']],
                 'tax_report' => ['label' => 'Tax / GST', 'actions' => ['view', 'export', 'print', 'download']],
                 'customer_report' => ['label' => 'Customers', 'actions' => ['view', 'export', 'print', 'download']],
-                'supplier_report' => ['label' => 'Suppliers', 'actions' => ['view', 'export', 'print', 'download']],
                 'returns_report' => ['label' => 'Returns & Refunds', 'actions' => ['view', 'export', 'print', 'download']],
-                'finance_report' => ['label' => 'Financial Summary', 'actions' => ['view', 'export', 'print', 'download']],
                 /*
                  | Kitchen performance (§9).
                  |
@@ -757,9 +723,9 @@ return [
         | nothing else in `settings` either.
         |
         | Deliberately absent from config/modules.php, so it is never
-        | module-gated: a shop that has switched off dining and purchasing can
-        | still ask for help, and an outlet whose trouble is that a module will
-        | not turn on must not be locked out of saying so.
+        | module-gated: a shop that has switched off dining and barcode
+        | printing can still ask for help, and an outlet whose trouble is that
+        | a module will not turn on must not be locked out of saying so.
         */
         'support' => [
             'label' => 'Support',

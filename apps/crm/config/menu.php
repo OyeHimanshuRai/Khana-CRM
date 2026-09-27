@@ -308,42 +308,6 @@ return [
                 ],
             ],
             [
-                'label' => 'Purchasing',
-                'icon' => 'truck',
-                'children' => [
-                    [
-                        'label' => 'Purchase Orders',
-                        'route' => 'admin.purchase-orders.index',
-                        'active' => 'admin.purchase-orders.*',
-                        'can' => 'purchasing.purchase_orders.view',
-                    ],
-                    [
-                        'label' => 'Goods Receipts',
-                        'route' => 'admin.receipts.index',
-                        'active' => 'admin.receipts.*',
-                        'can' => 'purchasing.receipts.view',
-                    ],
-                    [
-                        'label' => 'Purchase Invoices',
-                        'route' => 'admin.purchase-invoices.index',
-                        'active' => 'admin.purchase-invoices.*',
-                        'can' => 'purchasing.bills.view',
-                    ],
-                    [
-                        'label' => 'Purchase Returns',
-                        'route' => 'admin.purchase-returns.index',
-                        'active' => 'admin.purchase-returns.*',
-                        'can' => 'purchasing.returns.view',
-                    ],
-                    [
-                        'label' => 'Suppliers',
-                        'route' => 'admin.suppliers.index',
-                        'active' => 'admin.suppliers.*',
-                        'can' => 'purchasing.suppliers.view',
-                    ],
-                ],
-            ],
-            [
                 'label' => 'Finance',
                 'icon' => 'wallet',
                 'children' => [
@@ -375,12 +339,6 @@ return [
                         'route' => 'admin.online-payments.settlements',
                         'active' => 'admin.online-payments.settlements',
                         'can' => 'finance.online_payments.view',
-                    ],
-                    [
-                        'label' => 'Expenses',
-                        'route' => 'admin.expenses.index',
-                        'active' => 'admin.expenses.*',
-                        'can' => 'finance.expenses.view',
                     ],
                     [
                         'label' => 'Tax / GST Setup',
@@ -589,12 +547,6 @@ return [
                         'can' => 'reports.sales_report.view',
                     ],
                     [
-                        'label' => 'Purchases',
-                        'route' => 'admin.reports.show',
-                        'params' => ['report' => 'purchases'],
-                        'can' => 'reports.purchase_report.view',
-                    ],
-                    [
                         'label' => 'Stock & Valuation',
                         'route' => 'admin.reports.show',
                         'params' => ['report' => 'stock'],
@@ -637,12 +589,6 @@ return [
                         'can' => 'reports.stock_report.view',
                     ],
                     [
-                        'label' => 'Supplier Payables',
-                        'route' => 'admin.reports.show',
-                        'params' => ['report' => 'payables'],
-                        'can' => 'reports.supplier_report.view',
-                    ],
-                    [
                         'label' => 'Day Closing',
                         'route' => 'admin.reports.show',
                         'params' => ['report' => 'day-closing'],
@@ -653,12 +599,6 @@ return [
                         'route' => 'admin.reports.show',
                         'params' => ['report' => 'returns'],
                         'can' => 'reports.returns_report.view',
-                    ],
-                    [
-                        'label' => 'Financial Summary',
-                        'route' => 'admin.reports.show',
-                        'params' => ['report' => 'finance'],
-                        'can' => 'reports.finance_report.view',
                     ],
                 ],
             ],

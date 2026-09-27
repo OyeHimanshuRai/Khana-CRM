@@ -1,9 +1,8 @@
 {{--
     Returns and refunds (SRS 13).
 
-    Both directions on one screen. A shop asks "what did we take back, and
-    what did we send back" as one question, and splitting it across two
-    reports means neither gets opened.
+    Sales returns only - what came back over the counter. Purchase returns
+    belong to ERP now, which owns suppliers and what is sent back to them.
 --}}
 
 @php
@@ -18,8 +17,6 @@
             <th style="text-align:right">Sales returns</th>
             <th style="text-align:right">Taken back</th>
             <th style="text-align:right">Refunded</th>
-            <th style="text-align:right">Purchase returns</th>
-            <th style="text-align:right">Sent back</th>
         </tr>
     </thead>
 
@@ -41,17 +38,10 @@
                 <td style="text-align:right" class="text-sm">
                     {{ $row->refunded > 0 ? $money($row->refunded) : '—' }}
                 </td>
-
-                <td style="text-align:right" class="text-sm">
-                    {{ $row->purchase_returns ? number_format($row->purchase_returns) : '—' }}
-                </td>
-                <td style="text-align:right" class="text-sm">
-                    {{ $row->purchase_value > 0 ? $money($row->purchase_value) : '—' }}
-                </td>
             </tr>
         @empty
             <tr>
-                <td colspan="6">
+                <td colspan="4">
                     <div class="empty">
                         <x-icon name="user-check" :size="26" />
                         <h3>Nothing came back in this period</h3>
@@ -68,8 +58,6 @@
                 <th style="text-align:right">{{ number_format($rows->sum('sales_returns')) }}</th>
                 <th style="text-align:right">{{ $money($rows->sum('sales_value')) }}</th>
                 <th style="text-align:right">{{ $money($rows->sum('refunded')) }}</th>
-                <th style="text-align:right">{{ number_format($rows->sum('purchase_returns')) }}</th>
-                <th style="text-align:right">{{ $money($rows->sum('purchase_value')) }}</th>
             </tr>
         </tfoot>
     @endif
