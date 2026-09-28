@@ -56,10 +56,9 @@ Route::prefix('shop/{shop:slug}')
             | customer row for anybody who asks and its unique-email error
             | answers "is this address registered?" one post at a time.
             |
-            | Deliberately not `throttle:signup`, whose five an hour is sized
-            | for a tenant opening a company. A shop's diners come through the
-            | restaurant's wifi and their carrier's addresses, so that limit
-            | would shut out a table at a time.
+            | Per minute rather than per hour: a shop's diners come through the
+            | restaurant's wifi and their carrier's addresses, so an hourly
+            | limit sized for one person would shut out a table at a time.
             */
             Route::post('register', [RegisterController::class, 'store'])
                 ->middleware('throttle:10,1')

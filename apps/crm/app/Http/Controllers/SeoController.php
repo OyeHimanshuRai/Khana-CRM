@@ -30,8 +30,9 @@ use Illuminate\Support\Carbon;
  *               of a customer's own screens.
  *   /t          a guest's table session, which only means anything to the
  *               phone holding the cookie.
- *   /signup     a form. Nothing on it is content, and a crawler following it
- *               is a crawler filling in a form.
+ *   /signup     a forward to Khana Accounts' signup form. Nothing behind it
+ *               is content, and a crawler following it is a crawler filling
+ *               in a form.
  *   ?utm=, ?q=  query strings multiply one page into hundreds of near
  *               duplicates and split its ranking between them.
  *

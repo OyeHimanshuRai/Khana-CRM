@@ -16,6 +16,8 @@
 |   icon      name from resources/views/components/icon.blade.php
 |   route     named route; omit for a not-yet-built module, which then
 |             renders as a placeholder instead of a dead link
+|   accounts  a path in Khana Accounts instead of a route here; the entry
+|             is hidden when this install has no Accounts address
 |   params    route parameters, for entries that point at the same route
 |             with a different segment (the reports do this)
 |   active    route-name pattern(s) used to highlight the entry; defaults
@@ -537,17 +539,22 @@ return [
         'heading' => 'System',
         'items' => [
             /*
-             | Companies above Shops, in that order, because that is the
-             | shape of the data: a company owns branches. Most installs run
-             | one company and the entry is invisible to everyone who is not
-             | administering the platform.
+             | The business, its outlets, its team and its plan (§4, §21).
+             |
+             | One entry where there used to be six - Companies, Users,
+             | Subscription, Billing, Subscriptions, Plans - because all of
+             | them are Khana Accounts' screens now. `accounts` is a path
+             | there rather than a route here; the entry is hidden on an
+             | install that has not been told where Accounts is.
+             |
+             | Shown to whoever runs branches here - the owner, and platform
+             | staff - which is who Accounts lets through to those screens.
              */
             [
-                'label' => 'Companies',
+                'label' => 'Business & team',
                 'icon' => 'grid',
-                'route' => 'admin.tenants.index',
-                'active' => 'admin.tenants.*',
-                'can' => 'settings.tenants.view',
+                'accounts' => '/',
+                'can' => 'settings.shops.view',
             ],
             [
                 'label' => 'Shops',
@@ -557,67 +564,14 @@ return [
                 'can' => 'settings.shops.view',
             ],
             /*
-             | Subscriptions (§4, §21).
-             |
-             | One entry, two destinations, decided by what the reader holds:
-             |
-             |   .edit   the platform's list of every business and what it
-             |           pays. Super Admin.
-             |   .view   their own account - which plan, what is left of it,
-             |           when it renews. A Tenant Owner.
-             |
-             | Two menu entries pointing at two halves of the same subject
-             | would leave a restaurant owner reading "Subscriptions" and
-             | wondering whose. The label follows the sitemap's wording.
-             */
-            [
-                'label' => 'Subscription',
-                'icon' => 'wallet',
-                'route' => 'admin.subscription.mine',
-                'active' => 'admin.subscription.*',
-                'can' => 'settings.subscriptions.view',
-                'unless_can' => 'settings.subscriptions.edit',
-            ],
-            /*
-             | Billing (§11, §21).
-             |
-             | Beside Subscription rather than folded into it, because the two
-             | answer different questions: that screen says what this account
-             | is on, this one takes the money for it. Shown to the same
-             | reader - the owner - and to a Super Admin, who needs to be
-             | able to open what their customer is looking at.
-             */
-            [
-                'label' => 'Billing',
-                'icon' => 'wallet',
-                'route' => 'admin.billing.show',
-                'active' => 'admin.billing.*',
-                'can' => 'settings.subscriptions.view',
-            ],
-            [
-                'label' => 'Subscriptions',
-                'icon' => 'wallet',
-                'route' => 'admin.subscriptions.index',
-                'active' => 'admin.subscriptions.*',
-                'can' => 'settings.subscriptions.edit',
-            ],
-            [
-                'label' => 'Plans',
-                'icon' => 'tag',
-                'route' => 'admin.plans.index',
-                'active' => 'admin.plans.*',
-                'can' => 'settings.plans.view',
-            ],
-            /*
              | The support desk (§2).
              |
              | One entry, not two, although it serves both ends of the desk -
              | the restaurant raising a ticket and the platform staff working
-             | the queue. `unless_can` is deliberately absent here: unlike
-             | Subscription above, the two audiences read the *same* screen,
-             | which simply shows more to whoever holds
-             | `support.tickets.manage`. Splitting the label would imply two
-             | places to look, and a ticket going missing between them.
+             | the queue. Both audiences read the *same* screen, which simply
+             | shows more to whoever holds `support.tickets.manage`.
+             | Splitting the label would imply two places to look, and a
+             | ticket going missing between them.
              */
             [
                 'label' => 'Support',
@@ -662,12 +616,6 @@ return [
                 'label' => 'Settings',
                 'icon' => 'settings',
                 'children' => [
-                    [
-                        'label' => 'Users',
-                        'route' => 'admin.users.index',
-                        'active' => 'admin.users.*',
-                        'can' => 'settings.users.view',
-                    ],
                     [
                         'label' => 'Roles & Permissions',
                         'route' => 'admin.roles.index',

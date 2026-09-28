@@ -534,65 +534,17 @@ return [
                     'actions' => ['view', 'edit'],
                 ],
                 /*
-                | The companies on the platform, one level above branches.
-                |
-                | In practice only Super Admin holds this, and Super Admin
-                | bypasses permission checks entirely via Gate::before - so
-                | the right exists to gate the screens for everybody else.
-                | A Tenant Owner administers their branches and staff, never
-                | the tenant list they sit in.
+                | Businesses, their people and logins, plans, subscriptions
+                | and billing are Khana Accounts' now, and so are the rights
+                | to them (the old settings.tenants, .users, .sessions,
+                | .plans and .subscriptions). What is left here is what CRM
+                | itself runs.
                 */
-                'tenants' => [
-                    'label' => 'Tenants (Companies)',
-                    'actions' => ['view', 'create', 'edit', 'delete', 'export'],
-                ],
-
-                /*
-                | What the platform sells (§21).
-                |
-                | Super Admin's own catalogue. A restaurant never edits a
-                | plan - it reads the one it is on, through `subscription`
-                | below - so this right is deliberately separate from that
-                | one rather than two actions on the same submodule.
-                */
-                'plans' => [
-                    'label' => 'Subscription Plans',
-                    'actions' => ['view', 'create', 'edit', 'delete'],
-                ],
-
-                /*
-                | A business's own account (§4, §21).
-                |
-                | Split by action rather than by role, because the same
-                | screen serves both and they need different things from it:
-                |
-                |   view    the plan, what is left of the limits, when it
-                |           runs out, and the payment history. A Tenant
-                |           Owner holds this and sees their own company.
-                |   edit    put somebody on a plan, renew, cancel, record a
-                |           payment. Platform work; Super Admin only.
-                */
-                'subscriptions' => [
-                    'label' => 'Subscriptions & Billing',
-                    'actions' => ['view', 'edit', 'export'],
-                ],
-
                 'shops' => [
                     'label' => 'Branches',
                     // Creating and deleting a branch is deliberately its own
                     // right, separate from every other setting.
                     'actions' => ['view', 'create', 'edit', 'delete', 'export'],
-                ],
-                'users' => [
-                    'label' => 'Users',
-                    'actions' => ['view', 'create', 'edit', 'delete', 'export'],
-                ],
-                'sessions' => [
-                    'label' => 'Login Sessions & IP Blocks',
-                    // view  - see sessions, login history and IP history
-                    // edit  - activate/deactivate an account
-                    // delete- end a session, sign out all devices, block an IP
-                    'actions' => ['view', 'edit', 'delete'],
                 ],
                 'roles' => [
                     'label' => 'Roles & Permissions',

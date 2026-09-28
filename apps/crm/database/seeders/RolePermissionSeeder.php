@@ -87,45 +87,26 @@ class RolePermissionSeeder extends Seeder
              | SRS 5: "Manage own company/tenant: branches, staff, financials
              | and overall reports."
              |
-             | So the blanket settings.* exclusion has three deliberate holes,
-             | and each is the thing that sentence actually asks for:
+             | So the blanket settings.* exclusion has deliberate holes, each
+             | the thing that sentence actually asks for:
              |
-             |   tenants   their own company's details. TenantController
-             |             decides *whose* - the permission only opens the
-             |             screen - so view and edit are safe to grant and
-             |             create/delete are pointedly not: adding a business
-             |             to the platform is the platform's job, and granting
-             |             a right the controller then refuses is a worse
-             |             experience than never offering it.
-             |   shops     their branches. This is what "multi-branch" means
-             |             to the person paying for it.
-             |   users     their staff, and the sessions and activity behind
-             |             them. Without this an owner cannot hire anybody.
+             |   shops          their branches. This is what "multi-branch"
+             |                  means to the person paying for it.
+             |   activity_logs  what their staff did.
+             |   general        their own settings.
+             |
+             | Their company's details, their staff and their subscription
+             | used to be holes here too. All three are Khana Accounts'
+             | screens now, where the owner is the owner.
              |
              | settings.roles stays out, and not as an oversight: roles are
              | defined once for the whole platform, so a tenant owner editing
              | one would be editing every other business's too.
              */
             'Tenant Owner' => [
-                'description' => 'Everything inside their own company: branches, staff, financials and reports. No platform settings.',
+                'description' => 'Everything inside their own company: branches, financials and reports. No platform settings.',
                 'grant' => fn (string $p) => ! self::platformOnly($p)
-                    || in_array($p, ['settings.tenants.view', 'settings.tenants.edit'], true)
-                    /*
-                    | Their own subscription, to read (§21). An owner should
-                    | be able to see which plan they are on, how much of it
-                    | they have used and when it runs out, without opening a
-                    | support ticket to find out.
-                    |
-                    | `settings.subscriptions.edit` is NOT here: renewing and
-                    | changing plan are the platform's side of the deal, and
-                    | a customer who could extend their own term is not on a
-                    | subscription. `settings.plans.*` stays out for the same
-                    | reason.
-                    */
-                    || $p === 'settings.subscriptions.view'
                     || str_starts_with($p, 'settings.shops.')
-                    || str_starts_with($p, 'settings.users.')
-                    || str_starts_with($p, 'settings.sessions.')
                     || str_starts_with($p, 'settings.activity_logs.')
                     || str_starts_with($p, 'settings.general.'),
             ],

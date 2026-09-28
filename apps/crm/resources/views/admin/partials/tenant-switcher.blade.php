@@ -70,12 +70,16 @@
                 </button>
             </form>
 
-            @allows('settings.tenants.view')
+            {{-- Creating, editing and suspending a business is Khana
+                 Accounts' platform back office now; this switcher only
+                 chooses which one CRM is showing. --}}
+            @php $manage = \App\Support\Accounts::url('/admin/businesses'); @endphp
+            @if ($manage && auth()->user()?->isSuperAdmin())
                 <div class="dropdown-divider"></div>
-                <a class="dropdown-item" href="{{ route('admin.tenants.index') }}">
+                <a class="dropdown-item" href="{{ $manage }}">
                     <x-icon name="settings" :size="16" /> Manage companies
                 </a>
-            @endallows
+            @endif
         </div>
     </div>
 @endif

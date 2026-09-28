@@ -6,6 +6,10 @@
     surrounding page, and no <script> may live in it - markup injected via
     innerHTML never executes its scripts. The behaviour it needs is
     delegated from app.js and layout.js instead.
+
+    Only the picture and the devices are CRM's to change. Name, email and
+    password are Khana Accounts' and are shown here, not edited - see
+    ProfileController.
 --}}
 
 {{--
@@ -63,104 +67,159 @@
     </div>
 </div>
 
-<form method="POST" action="{{ route('admin.profile.update') }}" data-ajax data-profile-form>
-    @csrf
-    @method('PUT')
-
-    <div class="card">
-        <div class="card-header">
-            <div>
-                <div class="card-title">Your details</div>
-                <div class="text-xs text-muted">How your name and email appear across the panel.</div>
+{{-- Read-only: Accounts holds these, and copies them down at each sign-in. --}}
+<div class="card">
+    <div class="card-header">
+        <div>
+            <div class="card-title">Your details</div>
+            <div class="text-xs text-muted">
+                Your name, email and password live in your Khana account, and are
+                the same in every Khana product you use.
             </div>
-        </div>
-
-        <div class="card-body">
-            <div class="form-row">
-                <div class="field">
-                    <label for="profile-name">Full name</label>
-                    <input id="profile-name" type="text" name="name" required autocomplete="name"
-                           value="{{ $user->name }}" aria-invalid="false">
-                </div>
-
-                <div class="field">
-                    <label for="profile-email">Email address</label>
-                    <input id="profile-email" type="email" name="email" required autocomplete="email"
-                           value="{{ $user->email }}" aria-invalid="false">
-                    <div class="form-hint">This is also the address you sign in with.</div>
-                </div>
-            </div>
-        </div>
-
-        <div class="card-footer" style="display:flex;gap:9px;justify-content:flex-end">
-            <button type="submit" class="btn btn-primary">Save changes</button>
         </div>
     </div>
-</form>
 
-<form method="POST" action="{{ route('admin.profile.password') }}" data-ajax data-reset-on-success>
-    @csrf
-    @method('PUT')
-
-    <div class="card">
-        <div class="card-header">
-            <div>
-                <div class="card-title">Password</div>
-                <div class="text-xs text-muted">
-                    Confirm the password you use today before choosing a new one.
-                </div>
-            </div>
-        </div>
-
-        <div class="card-body">
-            <div class="field" style="max-width:420px">
-                <label for="profile-current_password">Current password</label>
-                <div class="pw-wrap">
-                    <input id="profile-current_password" type="password" name="current_password" required
-                           autocomplete="current-password" aria-invalid="false">
-                    <button type="button" class="pw-toggle" data-toggle-password
-                            aria-controls="profile-current_password" aria-pressed="false">Show</button>
-                </div>
+    <div class="card-body">
+        <div class="form-row" style="margin-bottom:0">
+            <div class="field" style="margin-bottom:0">
+                <div class="form-label">Full name</div>
+                <div class="text-sm">{{ $user->name }}</div>
             </div>
 
-            <div class="form-row">
-                <div class="field">
-                    <label for="profile-password">New password</label>
-                    <div class="pw-wrap">
-                        <input id="profile-password" type="password" name="password" required
-                               autocomplete="new-password" aria-invalid="false">
-                        <button type="button" class="pw-toggle" data-toggle-password
-                                aria-controls="profile-password" aria-pressed="false">Show</button>
-                    </div>
-                    <div class="form-hint">Minimum 8 characters, and different from the current one.</div>
-                </div>
-
-                <div class="field">
-                    <label for="profile-password_confirmation">Confirm new password</label>
-                    <input id="profile-password_confirmation" type="password" name="password_confirmation"
-                           required autocomplete="new-password">
-                </div>
+            <div class="field" style="margin-bottom:0">
+                <div class="form-label">Email address</div>
+                <div class="text-sm">{{ $user->email }}</div>
             </div>
-        </div>
-
-        <div class="card-footer" style="display:flex;gap:9px;justify-content:flex-end">
-            <button type="submit" class="btn btn-primary">Change password</button>
         </div>
     </div>
-</form>
 
-{{-- Read-only: roles and access are set in Users, not here. --}}
+    @if ($accountsProfile)
+        <div class="card-footer" style="display:flex;gap:9px;justify-content:flex-end">
+            <a class="btn" href="{{ $accountsProfile }}">
+                Change name, email or password in Khana Accounts
+            </a>
+        </div>
+    @endif
+</div>
+
+{{--
+    Where this person is signed in to CRM.
+
+    Their own sessions only, so a till left signed in at the other branch or
+    a lost phone can be dealt with without asking anybody. The device in use
+    is marked and cannot be ended here - that is what Sign out is for.
+--}}
+@php
+    $openSessions = $sessions->filter->isActive();
+    $others = $openSessions->reject(fn ($session) => $session->isCurrent($currentSessionId));
+@endphp
+
+<div class="card">
+    <div class="card-header">
+        <div>
+            <div class="card-title">Signed-in devices</div>
+            <div class="text-xs text-muted">
+                Where you are signed in to CRM. Sign out anything you do not recognise.
+            </div>
+        </div>
+
+        @if ($others->isNotEmpty())
+            {{-- Cancelling has to stop the event as well as prevent it:
+                 app.js listens on document, so a plain `return false`
+                 would still post the form over AJAX. --}}
+            <form method="POST" action="{{ route('admin.profile.sessions.destroy-others') }}"
+                  data-ajax data-ajax-reload
+                  onsubmit="if (! confirm('Sign out every other device?')) { event.stopPropagation(); return false; }">
+                @csrf
+                @method('DELETE')
+                <button type="submit" class="btn btn-sm btn-danger">
+                    <x-icon name="logout" :size="14" /> Sign out other devices
+                </button>
+            </form>
+        @endif
+    </div>
+
+    <div class="table-wrap">
+        <table class="table table-list">
+            <thead>
+                <tr>
+                    <th>Device</th>
+                    <th>IP</th>
+                    <th>Last active</th>
+                    <th>Status</th>
+                    <th class="col-action">Action</th>
+                </tr>
+            </thead>
+            <tbody>
+                @forelse ($sessions as $session)
+                    @php $isCurrent = $session->isCurrent($currentSessionId); @endphp
+                    <tr>
+                        <td>
+                            <strong style="display:block;color:var(--heading)">
+                                {{ $session->device_name ?? 'Unknown device' }}
+                                @if ($isCurrent)
+                                    <span class="badge badge-brand" style="margin-left:4px">This device</span>
+                                @endif
+                            </strong>
+                            <span class="text-xs text-muted">{{ $session->describeDevice() }}</span>
+                        </td>
+                        <td class="text-sm">
+                            <span class="list-ref">{{ $session->ip_address ?? '—' }}</span>
+                            @php $place = $locations[$session->ip_address] ?? $session->location; @endphp
+                            @if ($place)
+                                <div class="text-xs text-muted" style="margin-top:2px">{{ $place }}</div>
+                            @endif
+                        </td>
+                        <td class="text-muted text-sm" style="white-space:nowrap">
+                            {{ $session->last_activity_at?->diffForHumans() ?? '—' }}
+                        </td>
+                        <td>
+                            @if ($session->isOnline())
+                                <span class="badge badge-success"><span class="badge-dot"></span> Online</span>
+                            @elseif ($session->isActive())
+                                <span class="badge badge-warning"><span class="badge-dot"></span> Idle</span>
+                            @else
+                                <span class="badge">{{ $session->status() }}</span>
+                            @endif
+                        </td>
+                        <td class="col-action">
+                            @if ($isCurrent)
+                                <span class="text-xs text-muted">In use</span>
+                            @elseif ($session->isActive())
+                                <form method="POST"
+                                      action="{{ route('admin.profile.sessions.destroy', $session) }}"
+                                      data-ajax data-ajax-reload
+                                      onsubmit="if (! confirm('Sign out {{ $session->describeDevice() }}?')) { event.stopPropagation(); return false; }">
+                                    @csrf
+                                    @method('DELETE')
+                                    <button type="submit" class="btn btn-sm">Sign out</button>
+                                </form>
+                            @endif
+                        </td>
+                    </tr>
+                @empty
+                    <tr>
+                        <td colspan="5">
+                            <div class="empty">
+                                <x-icon name="inbox" :size="26" />
+                                <h3>No devices recorded</h3>
+                                <p class="text-sm">They appear here after the next sign-in.</p>
+                            </div>
+                        </td>
+                    </tr>
+                @endforelse
+            </tbody>
+        </table>
+    </div>
+</div>
+
+{{-- Read-only: which role someone holds is set in Accounts; what it may do is set here. --}}
 <div class="card">
     <div class="card-header">
         <div>
             <div class="card-title">Account</div>
             <div class="text-xs text-muted">
-                Managed by an administrator from
-                @allows('settings.users.view')
-                    <a href="{{ route('admin.users.edit', $user) }}">Settings &rarr; Users</a>.
-                @else
-                    Settings &rarr; Users.
-                @endallows
+                Your role is given to you by the owner in Khana Accounts.
             </div>
         </div>
     </div>

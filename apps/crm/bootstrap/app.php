@@ -42,12 +42,14 @@ return Application::configure(basePath: dirname(__DIR__))
             // Runs after `admin`: a suspended company's staff are signed out.
             'tenant.active' => \App\Http\Middleware\EnsureTenantIsActive::class,
             /*
-            | The per-outlet half of the same question. Subscriptions are sold
-            | per outlet, so a lapsed branch is blocked here - without signing
-            | anybody out, because their other branches are paid up and
-            | trading. See the middleware for why the two refusals differ.
+            | The per-outlet half of the same question: has this outlet bought
+            | CRM? Accounts sells per outlet and the kit keeps its answer in
+            | Entitlements, so a lapsed branch is stopped here - without
+            | signing anybody out, because their other branches are paid up
+            | and trading. Named apart from the kit's own `entitled` alias,
+            | which reads the kit's tenancy context; see the middleware.
             */
-            'shop.subscribed' => \App\Http\Middleware\EnsureShopIsSubscribed::class,
+            'shop.entitled' => \App\Http\Middleware\EnsureShopIsEntitled::class,
             /*
             | The shop-level half of access. Reads the route's own
             | `permission:` middleware and refuses it when the branch does not

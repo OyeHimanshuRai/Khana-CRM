@@ -5,7 +5,6 @@ namespace Tests\Feature;
 use App\Models\User;
 use Illuminate\Foundation\Testing\RefreshDatabase;
 use Illuminate\Http\UploadedFile;
-use Illuminate\Support\Facades\Hash;
 use Illuminate\Support\Facades\Storage;
 use Illuminate\Support\Facades\URL;
 use Tests\TestCase;
@@ -36,7 +35,7 @@ class ProfileSmokeTest extends TestCase
             ->get('/admin/profile')
             ->assertOk()
             ->assertSee('Your details')
-            ->assertSee('Change password');
+            ->assertSee('Signed-in devices');
     }
 
     public function test_fragment_request_returns_the_cards_without_page_chrome(): void
@@ -47,7 +46,7 @@ class ProfileSmokeTest extends TestCase
 
         $response->assertOk()
             ->assertSee('Your details')
-            ->assertSee('Change password')
+            ->assertSee('Signed-in devices')
             // No layout: the modal injects this straight into .modal-body.
             ->assertDontSee('<body', false)
             ->assertDontSee('class="sidebar"', false)
@@ -55,100 +54,33 @@ class ProfileSmokeTest extends TestCase
             ->assertDontSee('<script', false);
     }
 
-    public function test_details_save_over_ajax(): void
+    /**
+     * Name, email and password are Khana Accounts'. AccountsSignIn copies
+     * the first two down at every sign-in, so an edit here would be quietly
+     * undone - the screen shows them and links there instead.
+     */
+    public function test_details_and_password_are_changed_in_accounts_not_here(): void
     {
-        $user = $this->actor();
+        config(['khana.urls.accounts' => 'https://accounts.example.test']);
 
-        $response = $this->actingAs($user)
-            ->putJson('/admin/profile', [
-                'name' => 'Renamed Admin',
-                'email' => 'renamed@example.test',
-            ]);
-
-        $response->assertOk()->assertJson([
-            'success' => true,
-            'message' => 'Profile updated.',
-        ]);
-
-        $this->assertSame('RA', $response->json('data.initials'));
-
-        $fresh = $user->fresh();
-        $this->assertSame('Renamed Admin', $fresh->name);
-        $this->assertSame('renamed@example.test', $fresh->email);
-    }
-
-    public function test_unchanged_details_do_not_write_an_audit_row(): void
-    {
         $user = $this->actor();
 
         $this->actingAs($user)
-            ->putJson('/admin/profile', ['name' => $user->name, 'email' => $user->email])
+            ->get('/admin/profile')
             ->assertOk()
-            ->assertJsonPath('message', 'No changes to save.');
-
-        $this->assertDatabaseMissing('activity_logs', ['event' => 'profile.updated']);
-    }
-
-    public function test_duplicate_email_is_rejected_with_field_errors(): void
-    {
-        $user = $this->actor();
-        $other = User::create([
-            'name' => 'Someone Else',
-            'email' => 'taken@example.test',
-            'password' => 'whatever-1234',
-            'is_admin' => true,
-        ]);
+            ->assertSee($user->email)
+            ->assertSee('href="https://accounts.example.test/profile"', false)
+            ->assertDontSee('name="current_password"', false);
 
         $this->actingAs($user)
-            ->putJson('/admin/profile', ['name' => $user->name, 'email' => $other->email])
-            ->assertStatus(422)
-            ->assertJsonPath('success', false)
-            ->assertJsonStructure(['errors' => ['email']]);
-    }
+            ->putJson('/admin/profile', ['name' => 'Someone Else', 'email' => $user->email])
+            ->assertMethodNotAllowed();
 
-    public function test_password_change_requires_the_current_password(): void
-    {
-        $this->actingAs($this->actor())
-            ->putJson('/admin/profile/password', [
-                'current_password' => 'definitely-not-it',
-                'password' => 'brand-new-secret-1',
-                'password_confirmation' => 'brand-new-secret-1',
-            ])
-            ->assertStatus(422)
-            ->assertJsonStructure(['errors' => ['current_password']]);
-    }
+        $this->actingAs($user)
+            ->putJson('/admin/profile/password', [])
+            ->assertNotFound();
 
-    public function test_password_changes_with_the_right_current_password(): void
-    {
-        $user = $this->actor();
-        $user->forceFill(['password' => Hash::make('known-password-1')])->save();
-
-        $this->actingAs($user->fresh())
-            ->putJson('/admin/profile/password', [
-                'current_password' => 'known-password-1',
-                'password' => 'known-password-2',
-                'password_confirmation' => 'known-password-2',
-            ])
-            ->assertOk()
-            ->assertJson(['success' => true, 'message' => 'Password changed.']);
-
-        $this->assertTrue(Hash::check('known-password-2', $user->fresh()->password));
-        $this->assertDatabaseHas('activity_logs', ['event' => 'profile.password_changed']);
-    }
-
-    public function test_new_password_must_differ_from_the_current_one(): void
-    {
-        $user = $this->actor();
-        $user->forceFill(['password' => Hash::make('known-password-1')])->save();
-
-        $this->actingAs($user->fresh())
-            ->putJson('/admin/profile/password', [
-                'current_password' => 'known-password-1',
-                'password' => 'known-password-1',
-                'password_confirmation' => 'known-password-1',
-            ])
-            ->assertStatus(422)
-            ->assertJsonStructure(['errors' => ['password']]);
+        $this->assertNotSame('Someone Else', $user->fresh()->name);
     }
 
     public function test_guests_are_redirected(): void
@@ -244,15 +176,18 @@ class ProfileSmokeTest extends TestCase
         Storage::disk('public')->assertMissing($path);
     }
 
-    public function test_avatar_is_not_mass_assignable_through_the_user_form(): void
+    /**
+     * The upload endpoint is the only way to set the column - nothing that
+     * fills a user from request data can point it at a file somebody chose.
+     */
+    public function test_avatar_is_not_mass_assignable(): void
     {
         $user = $this->actor();
 
-        $this->actingAs($user)->putJson('/admin/profile', [
+        $user->fill([
             'name' => $user->name,
-            'email' => $user->email,
             'avatar_path' => 'avatars/injected.jpg',
-        ])->assertOk();
+        ])->save();
 
         $this->assertNull($user->fresh()->avatar_path);
     }

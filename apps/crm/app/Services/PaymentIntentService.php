@@ -7,8 +7,6 @@ use App\Models\Alert;
 use App\Models\Payment;
 use App\Models\PaymentIntent;
 use App\Models\PaymentRefund;
-use App\Models\Plan;
-use App\Models\Subscription;
 use App\Models\TableSession;
 use App\Services\Payments\GatewayManager;
 use Illuminate\Database\Eloquent\Model;
@@ -50,7 +48,6 @@ class PaymentIntentService
     public function __construct(
         private readonly GatewayManager $gateways,
         private readonly TableBillService $bills,
-        private readonly SubscriptionService $subscriptions,
         private readonly AlertService $alerts,
     ) {}
 
@@ -108,17 +105,6 @@ class PaymentIntentService
         $opened = $gateway->open($intent);
 
         $payload = ['checkout' => $opened['checkout'] ?? null];
-
-        /*
-         | A restaurant paying for its own account (§21) has the term it is
-         | buying written down here, while the amount it is being charged is
-         | still the price the plan quoted a moment ago. Worked out again at
-         | settlement it is only a guess, and the guess is money: a plan
-         | repriced in between credits a year's payment as a month.
-         */
-        if ($payable instanceof Subscription) {
-            $payload['period'] = $this->periodPricedAt($payable, $amount);
-        }
 
         $intent->forceFill([
             'provider_order_id' => $opened['provider_order_id'] ?? null,
@@ -287,23 +273,12 @@ class PaymentIntentService
      */
     private function settleWhatWasPaidFor(PaymentIntent $intent, string $via): void
     {
-        $payable = $intent->payable;
-
         /*
-         | The other thing this system takes money for: a restaurant paying
-         | the platform for its own account (§21).
-         |
-         | Credited here rather than in the controller that opened the
-         | checkout, because the browser is only one of the two ways a
-         | payment arrives. A restaurant whose phone died on the Razorpay
-         | screen has still paid, and the webhook reaches this same method -
-         | so the term moves either way, exactly once.
+         | A guest's table is the only thing CRM takes money for. What a
+         | restaurant pays the platform is Khana Accounts' business, through
+         | its own checkout.
          */
-        if ($payable instanceof Subscription) {
-            $this->creditSubscription($payable, $intent, $via);
-
-            return;
-        }
+        $payable = $intent->payable;
 
         if (! $payable instanceof TableSession) {
             return;
@@ -335,54 +310,11 @@ class PaymentIntentService
     }
 
     /**
-     * Move a restaurant's own term, because they just paid for it (§21).
-     *
-     * Every date is written by SubscriptionService::recordPayment - the same
-     * method the back office uses when somebody pays by bank transfer - so
-     * there is one place that decides what a payment buys, and paying online
-     * ends a trial and un-cancels an account exactly as paying any other way
-     * does.
-     *
-     * Reported rather than thrown, like the table settle above: the money is
-     * already taken and the intent is already marked paid. Turning a
-     * bookkeeping failure into an exception here would fail the webhook,
-     * which the provider would then retry against a payment we have already
-     * captured.
-     */
-    private function creditSubscription(Subscription $subscription, PaymentIntent $intent, string $via): void
-    {
-        try {
-            $this->subscriptions->recordPayment(
-                subscription: $subscription,
-                amount: (float) $intent->amount,
-                method: 'razorpay',
-                providerReference: $intent->provider_payment_id,
-                period: $this->periodPaidFor($subscription, $intent),
-                note: sprintf('Paid online — %s (%s)', $intent->reference, $via),
-            );
-        } catch (\Throwable $e) {
-            report($e);
-
-            $this->flagUnapplied(
-                $intent,
-                sprintf('₹%s paid for the subscription was not credited', number_format((float) $intent->amount, 2)),
-                sprintf(
-                    '%s was captured but the term could not be moved, so the account still reads as unpaid. Record the payment against the subscription rather than asking for it again.',
-                    $intent->reference,
-                ),
-                'settings.subscriptions.view',
-                '/admin/billing',
-            );
-        }
-    }
-
-    /**
      * Say out loud that money arrived and landed nowhere.
      *
      * Swallowing the failure above is right - a guest told their payment
      * failed pays again - but a swallow that reaches nothing but the log file
-     * is a table the counter rings up a second time, or a restaurant staring
-     * at a billing screen it has already paid. So the fact goes where
+     * is a table the counter rings up a second time. So the fact goes where
      * somebody meets it without going looking for it: an alert for whoever
      * can put it right, and a line in the history of the business it happened
      * to.
@@ -420,65 +352,6 @@ class PaymentIntentService
         } catch (\Throwable $e) {
             report($e);
         }
-    }
-
-    /**
-     * Which term that payment bought.
-     *
-     * Read off the intent, where `open()` wrote it - never off the provider's
-     * callback, which returns whatever it was given, and never off a form
-     * field, which would be a month's money buying a year.
-     *
-     * Intents opened before the period was recorded fall back to the price it
-     * was charged at. An amount that is neither price is a part payment or a
-     * plan repriced mid-checkout: it buys the shorter term and leaves a
-     * trail, because the subscription's own billing period was the fallback
-     * here once, and on a yearly account that handed out a year for a month's
-     * money.
-     */
-    private function periodPaidFor(Subscription $subscription, PaymentIntent $intent): string
-    {
-        $recorded = $intent->payload['period'] ?? null;
-
-        if (in_array($recorded, Plan::PERIODS, true)) {
-            return $recorded;
-        }
-
-        $period = $this->periodPricedAt($subscription, (float) $intent->amount);
-
-        if ($period === null) {
-            report(new RuntimeException(sprintf(
-                'Payment %s of %s matches neither price on subscription %s, so one month was credited.',
-                $intent->reference,
-                $intent->amount,
-                $subscription->id,
-            )));
-        }
-
-        return $period ?? Plan::MONTHLY;
-    }
-
-    /**
-     * The term this plan charges exactly this much for, or null for neither.
-     *
-     * Monthly is tried first so that a plan whose two prices are the same -
-     * a free plan, or one somebody mis-priced - sells the shorter term.
-     */
-    private function periodPricedAt(Subscription $subscription, float $amount): ?string
-    {
-        $plan = $subscription->plan;
-
-        if ($plan === null) {
-            return null;
-        }
-
-        foreach (Plan::PERIODS as $period) {
-            if (abs($plan->priceFor($period) - $amount) < 0.01) {
-                return $period;
-            }
-        }
-
-        return null;
     }
 
     /* ------------------------------------------------------------ failing */

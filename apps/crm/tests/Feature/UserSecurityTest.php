@@ -79,13 +79,9 @@ class UserSecurityTest extends TestCase
             /*
              | Colleagues, explicitly.
              |
-             | The security screen hands back sessions, IP addresses and
-             | geolocated login history, so it refuses an account from
-             | another company - and an account belonging to no company is
-             | "another company" to everybody except a Super Admin. Nobody
-             | is signed in while this runs, so the creating hook on User
-             | has no company to copy and would leave these orphaned, which
-             | is not what any test in this file is about.
+             | Nobody is signed in while this runs, so the creating hook on
+             | User has no company to copy and would leave these orphaned,
+             | which is not what any test in this file is about.
              */
             'tenant_id' => Tenant::query()->value('id'),
             ...$attributes,
@@ -217,150 +213,7 @@ class UserSecurityTest extends TestCase
         ]);
     }
 
-    /* ------------------------------------------------------ account status */
-
-    public function test_deactivating_a_user_ends_their_sessions(): void
-    {
-        $user = $this->member();
-        $this->openSession($user);
-        $this->openSession($user);
-
-        $this->actingAs($this->admin())
-            ->putJson("/admin/users/{$user->id}/status")
-            ->assertOk()
-            ->assertJsonPath('data.is_active', false)
-            ->assertJsonPath('data.sessions_ended', 2);
-
-        $this->assertFalse($user->fresh()->is_active);
-        $this->assertSame(0, UserSession::where('user_id', $user->id)->whereNull('logout_at')->count());
-        $this->assertDatabaseHas('activity_logs', ['event' => 'user.deactivated']);
-    }
-
-    public function test_reactivating_a_user_does_not_resurrect_sessions(): void
-    {
-        $user = $this->member(['is_active' => false]);
-        $this->openSession($user, ['logout_at' => now(), 'ended_by' => 'admin']);
-
-        $this->actingAs($this->admin())
-            ->putJson("/admin/users/{$user->id}/status")
-            ->assertOk()
-            ->assertJsonPath('data.is_active', true);
-
-        $this->assertSame(0, UserSession::where('user_id', $user->id)->whereNull('logout_at')->count());
-    }
-
-    public function test_an_admin_cannot_deactivate_their_own_account(): void
-    {
-        $admin = $this->admin();
-
-        $this->actingAs($admin)
-            ->putJson("/admin/users/{$admin->id}/status")
-            ->assertStatus(422);
-
-        $this->assertTrue($admin->fresh()->is_active);
-    }
-
-    /* ------------------------------------------------------------ sessions */
-
-    public function test_ending_a_session_deletes_the_framework_row(): void
-    {
-        // phpunit.xml runs on the array driver; the delete is only meaningful
-        // on the database one, which is what the app actually uses.
-        config(['session.driver' => 'database']);
-
-        $user = $this->member();
-        $session = $this->openSession($user, ['session_id' => 'framework-session-1']);
-
-        // Stand in for the row Laravel's database session driver keeps.
-        \DB::table('sessions')->insert([
-            'id' => 'framework-session-1',
-            'user_id' => $user->id,
-            'ip_address' => '203.0.113.10',
-            'user_agent' => self::CHROME_WINDOWS,
-            'payload' => base64_encode('x'),
-            'last_activity' => now()->timestamp,
-        ]);
-
-        $this->actingAs($this->admin())
-            ->deleteJson("/admin/users/{$user->id}/sessions/{$session->id}")
-            ->assertOk();
-
-        $this->assertNotNull($session->fresh()->logout_at);
-        $this->assertSame('admin', $session->fresh()->ended_by);
-
-        // This is what actually signs the device out.
-        $this->assertDatabaseMissing('sessions', ['id' => 'framework-session-1']);
-    }
-
-    public function test_a_session_belonging_to_another_user_is_a_404(): void
-    {
-        $user = $this->member();
-        $other = $this->member(['email' => 'other@example.test']);
-        $session = $this->openSession($other);
-
-        $this->actingAs($this->admin())
-            ->deleteJson("/admin/users/{$user->id}/sessions/{$session->id}")
-            ->assertNotFound();
-
-        $this->assertNull($session->fresh()->logout_at);
-    }
-
-    public function test_logging_out_all_devices_closes_every_session(): void
-    {
-        $user = $this->member();
-        $this->openSession($user);
-        $this->openSession($user);
-        $this->openSession($user);
-
-        $this->actingAs($this->admin())
-            ->deleteJson("/admin/users/{$user->id}/sessions")
-            ->assertOk()
-            ->assertJsonPath('data.active', 0);
-
-        $this->assertSame(3, UserSession::where('user_id', $user->id)->whereNotNull('logout_at')->count());
-    }
-
     /* ----------------------------------------------------------- ip blocks */
-
-    public function test_several_ips_can_be_blocked_at_once(): void
-    {
-        $user = $this->member();
-
-        $this->actingAs($this->admin())
-            ->postJson("/admin/users/{$user->id}/blocked-ips", [
-                'ip_addresses' => "203.0.113.5, 198.51.100.22\n203.0.113.5",
-                'reason' => 'Credential stuffing',
-                'scope' => 'user',
-                'duration' => 'permanent',
-            ])
-            ->assertOk();
-
-        // The duplicate is collapsed, not stored twice.
-        $this->assertSame(2, BlockedIp::count());
-        $this->assertDatabaseHas('blocked_ips', [
-            'ip_address' => '203.0.113.5',
-            'user_id' => $user->id,
-            'reason' => 'Credential stuffing',
-            'expires_at' => null,
-        ]);
-    }
-
-    public function test_a_malformed_ip_is_refused(): void
-    {
-        $user = $this->member();
-
-        $this->actingAs($this->admin())
-            ->postJson("/admin/users/{$user->id}/blocked-ips", [
-                'ip_addresses' => '203.0.113.5, not-an-ip',
-                'scope' => 'user',
-                'duration' => 'permanent',
-            ])
-            ->assertStatus(422)
-            ->assertJsonStructure(['errors' => ['ip_addresses']]);
-
-        // Nothing is stored, so the admin is not left with a partial block.
-        $this->assertSame(0, BlockedIp::count());
-    }
 
     public function test_a_blocked_ip_stops_that_account_signing_in(): void
     {
@@ -420,25 +273,6 @@ class UserSecurityTest extends TestCase
         $this->assertAuthenticatedAs($user);
     }
 
-    public function test_a_block_can_be_lifted(): void
-    {
-        $user = $this->member();
-
-        $block = BlockedIp::create([
-            'ip_address' => '203.0.113.5',
-            'user_id' => $user->id,
-            'blocked_at' => now(),
-            'status' => BlockedIp::ACTIVE,
-        ]);
-
-        $this->actingAs($this->admin())
-            ->deleteJson("/admin/users/{$user->id}/blocked-ips/{$block->id}")
-            ->assertOk();
-
-        $this->assertSame(BlockedIp::LIFTED, $block->fresh()->status);
-        $this->assertNull(BlockedIp::blocks('203.0.113.5', $user));
-    }
-
     /* ------------------------------------------------------------ presence */
 
     public function test_presence_follows_last_seen_not_session_rows(): void
@@ -454,57 +288,6 @@ class UserSecurityTest extends TestCase
 
         $this->assertFalse($stale->fresh()->isOnline());
         $this->assertTrue($live->fresh()->isOnline());
-    }
-
-    /* --------------------------------------------------------------- views */
-
-    public function test_the_security_screen_renders(): void
-    {
-        $user = $this->member();
-        $this->openSession($user);
-        LoginHistory::record(LoginHistory::SUCCESS, $user->email, $user);
-
-        $this->actingAs($this->admin())
-            ->get("/admin/users/{$user->id}/security")
-            ->assertOk()
-            ->assertSee('Sessions')
-            ->assertSee('Login history')
-            ->assertSee('IP history')
-            ->assertSee('Blocked IPs');
-    }
-
-    public function test_the_fragment_carries_no_layout_or_scripts(): void
-    {
-        $user = $this->member();
-
-        $this->actingAs($this->admin())
-            ->withHeader('X-Fragment', '1')
-            ->get("/admin/users/{$user->id}/security")
-            ->assertOk()
-            ->assertDontSee('<body', false)
-            ->assertDontSee('<script', false);
-    }
-
-    public function test_the_user_list_can_be_filtered_by_status_and_presence(): void
-    {
-        $this->member(['email' => 'off@example.test', 'name' => 'Offline Person']);
-
-        $online = $this->member(['email' => 'on@example.test', 'name' => 'Online Person']);
-        $online->forceFill(['last_seen_at' => now()])->save();
-
-        $this->actingAs($this->admin())
-            ->get('/admin/users?presence=online')
-            ->assertOk()
-            ->assertSee('Online Person')
-            ->assertDontSee('Offline Person');
-
-        $this->member(['email' => 'dead@example.test', 'name' => 'Dormant Person', 'is_active' => false]);
-
-        $this->actingAs($this->admin())
-            ->get('/admin/users?status=inactive')
-            ->assertOk()
-            ->assertSee('Dormant Person')
-            ->assertDontSee('Online Person');
     }
 
     /* ------------------------------------------------------ ip geolocation */
@@ -567,22 +350,6 @@ class UserSecurityTest extends TestCase
         Http::assertNothingSent();
     }
 
-    public function test_the_security_screen_shows_a_resolved_location(): void
-    {
-        $this->fakeLookup();
-
-        $user = $this->member();
-        $session = $this->openSession($user, ['ip_address' => '223.181.47.195']);
-
-        $this->actingAs($this->admin())
-            ->get("/admin/users/{$user->id}/security")
-            ->assertOk()
-            ->assertSee('Jaipur, Rajasthan, India');
-
-        // Stored on the row, so it survives the cache expiring.
-        $this->assertSame('Jaipur, Rajasthan, India', $session->fresh()->location);
-    }
-
     public function test_signing_in_never_calls_the_geolocation_api(): void
     {
         $this->fakeLookup();
@@ -598,31 +365,97 @@ class UserSecurityTest extends TestCase
         Http::assertNothingSent();
     }
 
-    /* --------------------------------------------------------- permissions */
+    /* ----------------------------------------------------- your own devices */
 
-    public function test_the_security_actions_need_their_permissions(): void
+    /*
+     | Where somebody is signed in to CRM is on their own profile now.
+     | Anybody else's sessions - and switching an account off - are the
+     | owner's business in Khana Accounts, which signs people out of CRM
+     | through accounts.sessions.revoked.
+     */
+
+    public function test_the_profile_lists_your_devices_with_their_location(): void
     {
-        $viewer = $this->member(['email' => 'viewer@example.test']);
-        $viewer->givePermissionTo('settings.sessions.view');
+        $this->fakeLookup();
 
-        $target = $this->member(['email' => 'target@example.test']);
-        $session = $this->openSession($target);
+        $user = $this->member();
+        $this->openSession($user, ['ip_address' => '223.181.47.195']);
 
-        // Viewing is allowed...
-        $this->actingAs($viewer)->get("/admin/users/{$target->id}/security")->assertOk();
+        $this->actingAs($user)
+            ->get('/admin/profile')
+            ->assertOk()
+            ->assertSee('Signed-in devices')
+            ->assertSee('Windows PC')
+            ->assertSee('Jaipur, Rajasthan, India');
+    }
 
-        // ...but nothing destructive is.
-        $this->actingAs($viewer)->putJson("/admin/users/{$target->id}/status")->assertForbidden();
-        $this->actingAs($viewer)->deleteJson("/admin/users/{$target->id}/sessions")->assertForbidden();
-        $this->actingAs($viewer)
-            ->deleteJson("/admin/users/{$target->id}/sessions/{$session->id}")
-            ->assertForbidden();
-        $this->actingAs($viewer)
-            ->postJson("/admin/users/{$target->id}/blocked-ips", [
-                'ip_addresses' => '203.0.113.5',
-                'scope' => 'user',
-                'duration' => 'permanent',
-            ])
-            ->assertForbidden();
+    public function test_signing_out_one_of_your_devices_deletes_the_framework_row(): void
+    {
+        // phpunit.xml runs on the array driver; the delete is only meaningful
+        // on the database one, which is what the app actually uses.
+        config(['session.driver' => 'database']);
+
+        $user = $this->member();
+        $session = $this->openSession($user, ['session_id' => 'framework-session-1']);
+
+        // Stand in for the row Laravel's database session driver keeps.
+        \DB::table('sessions')->insert([
+            'id' => 'framework-session-1',
+            'user_id' => $user->id,
+            'ip_address' => '203.0.113.10',
+            'user_agent' => self::CHROME_WINDOWS,
+            'payload' => base64_encode('x'),
+            'last_activity' => now()->timestamp,
+        ]);
+
+        $this->actingAs($user)
+            ->deleteJson("/admin/profile/sessions/{$session->id}")
+            ->assertOk();
+
+        $this->assertNotNull($session->fresh()->logout_at);
+        $this->assertSame('user', $session->fresh()->ended_by);
+
+        // This is what actually signs the device out.
+        $this->assertDatabaseMissing('sessions', ['id' => 'framework-session-1']);
+    }
+
+    public function test_somebody_elses_session_is_a_404(): void
+    {
+        $user = $this->member();
+        $other = $this->member(['email' => 'other@example.test']);
+        $session = $this->openSession($other);
+
+        $this->actingAs($user)
+            ->deleteJson("/admin/profile/sessions/{$session->id}")
+            ->assertNotFound();
+
+        $this->assertNull($session->fresh()->logout_at);
+    }
+
+    public function test_signing_out_other_devices_closes_them_all(): void
+    {
+        $user = $this->member();
+        $first = $this->openSession($user);
+        $second = $this->openSession($user);
+
+        $bystander = $this->member(['email' => 'bystander@example.test']);
+        $theirs = $this->openSession($bystander);
+
+        $this->actingAs($user)
+            ->deleteJson('/admin/profile/sessions')
+            ->assertOk();
+
+        $this->assertNotNull($first->fresh()->logout_at);
+        $this->assertNotNull($second->fresh()->logout_at);
+        $this->assertNull($theirs->fresh()->logout_at);
+    }
+
+    /** The screens that managed other people's security went to Accounts. */
+    public function test_the_old_user_security_routes_are_gone(): void
+    {
+        $user = $this->member();
+
+        $this->actingAs($this->admin())->get("/admin/users/{$user->id}/security")->assertNotFound();
+        $this->actingAs($this->admin())->putJson("/admin/users/{$user->id}/status")->assertNotFound();
     }
 }

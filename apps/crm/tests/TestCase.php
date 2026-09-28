@@ -2,10 +2,11 @@
 
 namespace Tests;
 
+use App\Models\Shop;
 use App\Support\CurrentShop;
 use App\Support\CurrentTenant;
 use App\Support\Modules;
-use App\Support\PlanAccess;
+use Database\Seeders\CrmEntitlementSeeder;
 use Database\Seeders\DatabaseSeeder;
 use Illuminate\Foundation\Testing\RefreshDatabase;
 use Illuminate\Foundation\Testing\TestCase as BaseTestCase;
@@ -18,7 +19,8 @@ abstract class TestCase extends BaseTestCase
      * Seed the baseline once per process, when RefreshDatabase migrates.
      *
      * Almost every feature test starts from DatabaseSeeder - roles and their
-     * permissions, the first company, its plan, its shop, its catalogue - and
+     * permissions, the first company, its shop and its CRM entitlement, its
+     * catalogue - and
      * used to run it in setUp(), inside the test's transaction, so it was
      * rolled back and rebuilt for every single test. That was most of the
      * five seconds each one took. Seeded here instead, the rows are already
@@ -49,9 +51,32 @@ abstract class TestCase extends BaseTestCase
 
         $this->forgetContext();
 
+        /*
+         | Every shop a test makes has bought CRM.
+         |
+         | In a running system a shop only exists in CRM because Accounts made
+         | the outlet and sold it the product, and the entitlement arrives by
+         | event. There is no Accounts here, so without this every test that
+         | opens a second branch would meet EnsureShopIsEntitled before the
+         | thing it is testing - and a 403 from the wrong gate would pass
+         | every "is this refused?" assertion for the wrong reason.
+         |
+         | A test about the gate itself sets another state with entitle().
+         */
+        Shop::created(fn (Shop $shop) => CrmEntitlementSeeder::entitle($shop));
+
         if ($this->startsEmpty) {
             $this->emptyDatabase();
         }
+    }
+
+    /**
+     * Put a shop's CRM entitlement in the state Accounts would have sent:
+     * trial, active, grace, suspended or ended.
+     */
+    protected function entitle(Shop $shop, string $state = 'active'): void
+    {
+        CrmEntitlementSeeder::entitle($shop->fresh() ?? $shop, $state);
     }
 
     private function emptyDatabase(): void
@@ -92,7 +117,7 @@ abstract class TestCase extends BaseTestCase
     /**
      * Whose company and branch this process thinks it is in.
      *
-     * These four memoise for the life of the PHP process, not the request,
+     * These three memoise for the life of the PHP process, not the request,
      * which is right in a web app - one request is one company - and wrong
      * in a suite, where one process is hundreds of databases. A test that
      * resolved a tenant handed its id to every class that ran after it,
@@ -106,11 +131,10 @@ abstract class TestCase extends BaseTestCase
     private function forgetContext(): void
     {
         CurrentTenant::forget();
-        // Cascades into Modules and PlanAccess, which are cleared again
-        // below so that this list reads as what it guarantees rather than
-        // as something that depends on another class keeping its habit.
+        // Cascades into Modules, which is cleared again below so that this
+        // list reads as what it guarantees rather than as something that
+        // depends on another class keeping its habit.
         CurrentShop::forget();
         Modules::forget();
-        PlanAccess::forget();
     }
 }
