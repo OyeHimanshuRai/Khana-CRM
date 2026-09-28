@@ -265,7 +265,7 @@ class RolePermissionSeeder extends Seeder
      * Super Admin is deliberately absent: its grant is null, which short-
      * circuits the whole filter, so it never reaches the check below.
      */
-    private const PLATFORM_ROLES = ['Admin'];
+    public const PLATFORM_ROLES = ['Admin'];
 
     /**
      * Is this a right that crosses the company boundary?
