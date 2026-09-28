@@ -3,6 +3,7 @@
 namespace App\Models;
 
 use App\Models\Concerns\BelongsToTenant;
+use App\Models\Concerns\HasPublicId;
 use App\Models\Concerns\HasUniqueSlug;
 use App\Support\CurrentShop;
 use App\Support\PriceLists;
@@ -19,15 +20,15 @@ use Illuminate\Support\Str;
  * The product catalogue.
  *
  * Global on purpose - see the migration. Anything that varies per branch is
- * reached through the shop-scoped relations below:
+ * reached through the shop-scoped methods below:
  *
  *   sellingPriceFor()     product_shop override, falling back to the master
  *   channelPriceFor()     the same, for one order channel (§8)
- *   stockOnHand()         product_stocks in the current shop
- *   batches               lots held by the current shop
  *
- * Every one of those defaults to the shop the request is working in, so an
- * ordinary caller never has to remember to pass one.
+ * Both default to the shop the request is working in, so an ordinary caller
+ * never has to remember to pass one. CRM keeps no count of what is on a
+ * shelf - see the architecture doc's "CRM alone" table - so there is no
+ * shop-scoped stock figure to read here.
  */
 class Product extends Model
 {
@@ -41,7 +42,7 @@ class Product extends Model
      | branch is the price, the stock and whether a dish is listed, and all
      | three already live elsewhere. See the migration that added the column.
      */
-    use BelongsToTenant, HasUniqueSlug, SoftDeletes;
+    use BelongsToTenant, HasPublicId, HasUniqueSlug, SoftDeletes;
 
     /* ------------------------------------------------------------- menu */
 
@@ -215,22 +216,6 @@ class Product extends Model
                 'min_stock', 'reorder_level', 'is_active',
             ])
             ->withTimestamps();
-    }
-
-    /** Lots of this product, in whichever shops the reader may see. */
-    public function batches(): HasMany
-    {
-        return $this->hasMany(Batch::class);
-    }
-
-    public function stocks(): HasMany
-    {
-        return $this->hasMany(ProductStock::class);
-    }
-
-    public function movements(): HasMany
-    {
-        return $this->hasMany(StockMovement::class);
     }
 
     /* ------------------------------------------------------------ scopes */
@@ -427,74 +412,6 @@ class Product extends Model
         return $this->pricedField('min_stock', $shopId);
     }
 
-    /* ------------------------------------------------------------- stock */
-
-    /**
-     * Whether a count of this row means anything at all.
-     *
-     * A dish is made to order: there is no shelf of Butter Naan to count, no
-     * movement when one is sold, and a number against it is therefore a
-     * number that can only ever be wrong. What a kitchen does have a count of
-     * is flour and butter, and those come off the shelf through the recipe
-     * when the ticket is cooked - see RecipeService.
-     *
-     * Every screen that shows, values, caps or alerts on stock asks this
-     * first, so none of them can present a figure the sale will not move.
-     */
-    public function tracksStock(): bool
-    {
-        return ! (bool) $this->is_made_to_order;
-    }
-
-    /**
-     * Quantity on hand, summed across warehouses and batches.
-     *
-     * Defaults to the shop in context; in All-shops mode it is the total
-     * across every shop the reader may see, which is the only reading of
-     * "how much do we have" that makes sense from a consolidated view.
-     */
-    public function stockOnHand(?int $shopId = null): float
-    {
-        $shopId ??= CurrentShop::id();
-
-        $query = ProductStock::query()->where('product_id', $this->id);
-
-        if ($shopId !== null) {
-            $query->where('shop_id', $shopId);
-        }
-
-        return (float) $query->sum('quantity');
-    }
-
-    /** On hand minus what is held for unpicked online orders. */
-    public function availableStock(?int $shopId = null): float
-    {
-        $shopId ??= CurrentShop::id();
-
-        $query = ProductStock::query()->where('product_id', $this->id);
-
-        if ($shopId !== null) {
-            $query->where('shop_id', $shopId);
-        }
-
-        // Both figures in one pass. Two sums over the same rows was two round
-        // trips per line, and a storefront grid reads this once per tile.
-        return (float) $query
-            ->selectRaw('COALESCE(SUM(quantity), 0) - COALESCE(SUM(reserved), 0) as available')
-            ->value('available');
-    }
-
-    public function isLowStock(?int $shopId = null): bool
-    {
-        // A dish has no shelf to run low - see tracksStock().
-        if (! $this->tracksStock()) {
-            return false;
-        }
-
-        $level = $this->reorderLevelFor($shopId);
-
-        return $level > 0 && $this->stockOnHand($shopId) <= $level;
-    }
 
     /* -------------------------------------------------------------- menu */
 
@@ -724,7 +641,7 @@ class Product extends Model
      *   resumed hold - each row counts its own, exactly as before.
      * @return array<string, mixed>
      */
-    public function toLookupArray(?int $shopId, ?array $stock = null): array
+    public function toLookupArray(?int $shopId): array
     {
         return [
             'id' => $this->id,
@@ -743,8 +660,6 @@ class Product extends Model
             'tax_inclusive' => $this->tax_inclusive,
             'track_batches' => $this->track_batches,
             'is_made_to_order' => $this->is_made_to_order,
-            'on_hand' => $stock['on_hand'] ?? $this->stockOnHand($shopId),
-            'available' => $stock['available'] ?? $this->availableStock($shopId),
             'image' => $this->imageUrl(),
         ];
     }

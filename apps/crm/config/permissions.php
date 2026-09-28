@@ -476,8 +476,6 @@ return [
             'submodules' => [
                 'sales_report' => ['label' => 'Sales', 'actions' => ['view', 'export', 'print', 'download']],
                 'profit_report' => ['label' => 'Profit', 'actions' => ['view', 'export', 'print', 'download']],
-                'stock_report' => ['label' => 'Stock & Valuation', 'actions' => ['view', 'export', 'print', 'download']],
-                'expiry_report' => ['label' => 'Expiry & Low Stock', 'actions' => ['view', 'export', 'print', 'download']],
                 'dues_report' => ['label' => 'Outstanding & Dues', 'actions' => ['view', 'export', 'print', 'download']],
                 'payment_report' => ['label' => 'Payment Methods', 'actions' => ['view', 'export', 'print', 'download']],
                 'tax_report' => ['label' => 'Tax / GST', 'actions' => ['view', 'export', 'print', 'download']],

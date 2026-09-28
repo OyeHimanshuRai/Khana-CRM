@@ -97,8 +97,6 @@ class ScannerService
             // screen; on POS it is unused but costs nothing to include.
             'average_cost' => $product->purchasePriceFor($shopId),
             'tax_rate' => (float) ($product->taxRate?->rate ?? 0),
-            'on_hand' => $product->stockOnHand($shopId),
-            'available' => $product->availableStock($shopId),
             'image' => $product->imageUrl(),
         ];
     }

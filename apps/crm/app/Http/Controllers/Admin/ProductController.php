@@ -9,7 +9,6 @@ use App\Models\Category;
 use App\Models\KitchenStation;
 use App\Models\Product;
 use App\Models\ProductImage;
-use App\Models\ProductStock;
 use App\Models\TaxRate;
 use App\Models\Unit;
 use App\Services\MenuImportService;
@@ -29,10 +28,9 @@ use Symfony\Component\HttpFoundation\StreamedResponse;
 /**
  * The product catalogue.
  *
- * Products are global (see the migration), but the listing still shows
- * shop-specific numbers: the stock and price columns are read for whichever
- * shop is in context. That is the whole point of the split - one catalogue,
- * many shelves.
+ * Products are global (see the migration), but the listing still shows a
+ * shop-specific price: read for whichever shop is in context. That is the
+ * whole point of the split - one catalogue, many branches.
  *
  * Per-shop price overrides are edited here too, on the shop the user is
  * currently working in. In All-shops mode that section is hidden rather than
@@ -63,19 +61,6 @@ class ProductController extends Controller
 
         $products = $this->filtered($request)
             ->with(['category:id,name', 'brand:id,name', 'unit:id,code,name,allow_decimal,precision'])
-            /*
-             | On-hand as a sub-select rather than a join: a join against
-             | product_stocks multiplies rows by warehouse and batch, and the
-             | pagination count would then be wrong in a way nobody notices
-             | until a page is missing.
-             */
-            ->withSum(['stocks as on_hand' => function ($query) use ($shopId) {
-                if ($shopId !== null) {
-                    $query->where('shop_id', $shopId);
-                } else {
-                    $query->whereIn('shop_id', CurrentShop::accessibleIds() ?: [0]);
-                }
-            }], 'quantity')
             ->paginate($perPage)
             ->withQueryString();
 
@@ -83,7 +68,6 @@ class ProductController extends Controller
             'products' => $products,
             'search' => $request->string('q')->toString(),
             'status' => $request->string('status')->toString(),
-            'stock' => $request->string('stock')->toString(),
             'categoryId' => $request->integer('category'),
             'brandId' => $request->integer('brand'),
             'sort' => $request->string('sort')->toString() ?: 'name_asc',
@@ -92,7 +76,7 @@ class ProductController extends Controller
             'categories' => Category::active()->orderBy('name')->get(['id', 'name']),
             'brands' => Brand::active()->orderBy('name')->get(['id', 'name']),
             'shopId' => $shopId,
-            'stats' => $this->stats($shopId),
+            'stats' => $this->stats(),
         ];
 
         return $request->header('X-Fragment')
@@ -103,40 +87,17 @@ class ProductController extends Controller
     /**
      * @return array<string, mixed>
      */
-    private function stats(?int $shopId): array
+    private function stats(): array
     {
-        $scope = fn ($query) => $shopId !== null
-            ? $query->where('shop_id', $shopId)
-            : $query->whereIn('shop_id', CurrentShop::accessibleIds() ?: [0]);
-
         return [
             'total' => Product::count(),
             'active' => Product::where('is_active', true)->count(),
             'published' => Product::where('is_published', true)->count(),
-            /*
-             | What the shelf is worth.
-             |
-             | Dishes are left out, and that is the whole point of the
-             | clause: a made-to-order row has no shelf, nothing is taken off
-             | one when it sells, and any figure sitting against it is stock
-             | that will never move. Counting it here would put money in the
-             | valuation that no stock-take could ever find.
-             */
-            'stock_value' => (float) $scope(ProductStock::query())
-                ->whereExists(fn ($query) => $query
-                    ->selectRaw('1')
-                    ->from('products')
-                    ->whereColumn('products.id', 'product_stocks.product_id')
-                    ->where('products.is_made_to_order', false))
-                ->selectRaw('COALESCE(SUM(quantity * average_cost), 0) as total')
-                ->value('total'),
         ];
     }
 
     private function filtered(Request $request): Builder
     {
-        $shopId = CurrentShop::id();
-
         return Product::query()
             ->search($request->string('q')->toString())
             ->when($request->integer('category'), fn (Builder $q, int $id) => $q->where('category_id', $id))
@@ -147,42 +108,6 @@ class ProductController extends Controller
                     'inactive' => $query->where('is_active', false),
                     'published' => $query->where('is_published', true),
                     'unpublished' => $query->where('is_published', false),
-                    default => null,
-                };
-            })
-            ->when($request->string('stock')->toString(), function (Builder $query, string $filter) use ($shopId) {
-                $scope = function ($stock) use ($shopId) {
-                    if ($shopId !== null) {
-                        $stock->where('shop_id', $shopId);
-                    } else {
-                        $stock->whereIn('shop_id', CurrentShop::accessibleIds() ?: [0]);
-                    }
-                };
-
-                match ($filter) {
-                    /*
-                     | "Out of stock" has to include products with no stock
-                     | row at all, not merely those whose row reads zero -
-                     | a product nobody has ever received is exactly what the
-                     | reorder list is looking for.
-                     */
-                    'out' => $query->whereDoesntHave('stocks', function ($stock) use ($scope) {
-                        $scope($stock);
-                        $stock->where('quantity', '>', 0);
-                    }),
-                    'in' => $query->whereHas('stocks', function ($stock) use ($scope) {
-                        $scope($stock);
-                        $stock->where('quantity', '>', 0);
-                    }),
-                    // A dish has no shelf to run low - see tracksStock().
-                    'low' => $query->where('is_made_to_order', false)
-                        ->where('reorder_level', '>', 0)
-                        ->whereRaw(
-                            '(SELECT COALESCE(SUM(quantity), 0) FROM product_stocks
-                                WHERE product_stocks.product_id = products.id'
-                            .($shopId !== null ? ' AND product_stocks.shop_id = '.(int) $shopId : '')
-                            .') <= products.reorder_level'
-                        ),
                     default => null,
                 };
             })
@@ -213,18 +138,9 @@ class ProductController extends Controller
 
     public function show(Product $product): View
     {
-        $shopId = CurrentShop::id();
-
         return view('admin.products._show', [
             'product' => $product->load(['category', 'brand', 'unit', 'taxRate', 'images', 'variants', 'modifiers']),
-            'shopId' => $shopId,
-            'onHand' => $product->stockOnHand($shopId),
-            'available' => $product->availableStock($shopId),
-            'stockRows' => ProductStock::with(['warehouse:id,name', 'batch:id,batch_no,expiry_date'])
-                ->where('product_id', $product->id)
-                ->where('quantity', '!=', 0)
-                ->orderBy('warehouse_id')
-                ->get(),
+            'shopId' => CurrentShop::id(),
         ]);
     }
 
@@ -346,25 +262,10 @@ class ProductController extends Controller
     /**
      * Remove a product.
      *
-     * Soft, always: invoice lines and stock movements name it, and they have
-     * to stay readable. Refused while any shop still holds stock of it -
-     * withdrawing something that is physically on a shelf hides it from the
-     * count rather than from sale.
+     * Soft, always: invoice lines name it, and they have to stay readable.
      */
     public function destroy(Product $product): JsonResponse
     {
-        $held = (float) ProductStock::allShops()
-            ->where('product_id', $product->id)
-            ->sum('quantity');
-
-        if (abs($held) > 0.0005) {
-            return ApiResponse::error(sprintf(
-                '"%s" still has %s in stock. Adjust or transfer it out before removing the product.',
-                $product->name,
-                rtrim(rtrim(number_format($held, 3, '.', ''), '0'), '.'),
-            ));
-        }
-
         $name = $product->name;
         $product->delete();
 

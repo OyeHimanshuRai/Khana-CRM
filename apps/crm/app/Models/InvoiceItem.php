@@ -14,8 +14,8 @@ use Illuminate\Database\Eloquent\Relations\BelongsTo;
 class InvoiceItem extends Model
 {
     protected $fillable = [
-        'invoice_id', 'product_id', 'batch_id',
-        'product_name', 'sku', 'hsn_code', 'unit_code', 'batch_no', 'expiry_date',
+        'invoice_id', 'product_id',
+        'product_name', 'sku', 'hsn_code', 'unit_code',
         'quantity', 'mrp', 'unit_price',
         'discount_percent', 'discount_amount', 'taxable_value',
         'tax_rate', 'cgst_amount', 'sgst_amount', 'igst_amount', 'cess_amount',
@@ -25,7 +25,6 @@ class InvoiceItem extends Model
     protected function casts(): array
     {
         return [
-            'expiry_date' => 'date',
             'quantity' => 'decimal:3',
             'mrp' => 'decimal:4',
             'unit_price' => 'decimal:4',
@@ -53,11 +52,6 @@ class InvoiceItem extends Model
     public function product(): BelongsTo
     {
         return $this->belongsTo(Product::class);
-    }
-
-    public function batch(): BelongsTo
-    {
-        return $this->belongsTo(Batch::class);
     }
 
     /* --------------------------------------------------------- behaviour */

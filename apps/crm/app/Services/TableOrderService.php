@@ -227,13 +227,6 @@ class TableOrderService
              | this order's status is the kitchen's to move.
              */
             'kitchen_status' => Order::PENDING,
-            /*
-             | Nothing reserved. A kitchen cooks to order and the stock it
-             | consumes comes off through recipes when the dish is made - see
-             | the inventory work still to come. Reserving a plate of food the
-             | way a warehouse reserves a box would be a fiction.
-             */
-            'reserved_batches' => null,
         ]);
 
         foreach ($options as $option) {

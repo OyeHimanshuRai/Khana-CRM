@@ -5,17 +5,14 @@ namespace App\Services;
 use App\Mail\OrderPlacedMail;
 use App\Models\ActivityLog;
 use App\Models\Address;
-use App\Models\Batch;
 use App\Models\Coupon;
 use App\Models\CouponRedemption;
 use App\Models\Customer;
 use App\Models\Invoice;
 use App\Models\Order;
-use App\Models\OrderItem;
 use App\Models\Product;
 use App\Models\Shop;
 use App\Models\User;
-use App\Models\Warehouse;
 use Illuminate\Http\Request;
 use Illuminate\Support\Facades\DB;
 use Illuminate\Support\Facades\Mail;
@@ -25,18 +22,16 @@ use RuntimeException;
 /**
  * The checkout-to-delivery state machine for a storefront order.
  *
- * Built entirely from StockService's and InvoiceService's own primitives -
- * this class never touches product_stocks directly and never prices or
- * taxes a line itself. Stock is *reserved* at place() (a hold, no ledger
- * row) and only actually *issued* at markPaid(), when InvoiceService raises
- * the real Invoice - see the Order model's docblock for why the two are
- * kept apart.
+ * Built entirely from InvoiceService's own primitives - this class never
+ * prices or taxes a line itself. There is no stock to reserve at place() or
+ * release on cancellation: CRM tracks none, so an order simply carries its
+ * priced lines through to markPaid(), when InvoiceService raises the real
+ * Invoice - see the Order model's docblock for why the two are kept apart.
  */
 class OrderService
 {
     public function __construct(
         private readonly CartService $cart,
-        private readonly StockService $stock,
         private readonly CouponService $coupons,
         private readonly InvoiceService $invoices,
     ) {}
@@ -200,10 +195,8 @@ class OrderService
         }
 
         $address = $this->resolveAddress($shop, $customer, $data);
-        $warehouse = Warehouse::defaultFor($shop->id)
-            ?? throw new RuntimeException('This shop has no warehouse to fulfil orders from.');
 
-        return DB::transaction(function () use ($shop, $customer, $request, $lines, $address, $warehouse, $data) {
+        return DB::transaction(function () use ($shop, $customer, $request, $lines, $address, $data) {
             $subtotal = round((float) $lines->sum('line_total'), 2);
 
             $coupon = null;
@@ -221,7 +214,6 @@ class OrderService
             $order = new Order([
                 'shop_id' => $shop->id,
                 'customer_id' => $customer->id,
-                'warehouse_id' => $warehouse->id,
                 'status' => Order::PENDING,
                 'payment_method' => $data['payment_method'],
                 'payment_status' => Order::PAYMENT_PENDING,
@@ -257,8 +249,6 @@ class OrderService
                 $product = $line['product'];
                 $quantity = (float) $line['quantity'];
 
-                $allocations = $this->reserveForLine($product, $quantity, $warehouse, $shop);
-
                 $order->items()->create([
                     'product_id' => $product->id,
                     'product_name' => $product->name,
@@ -266,7 +256,6 @@ class OrderService
                     'quantity' => $quantity,
                     'unit_price' => $line['unit_price'],
                     'line_total' => $line['line_total'],
-                    'reserved_batches' => $allocations,
                 ]);
             }
 
@@ -353,36 +342,16 @@ class OrderService
 
         return DB::transaction(function () use ($order, $staff, $payment) {
             $shop = $order->shop;
-            $warehouse = $order->warehouse;
 
-            foreach ($order->items as $item) {
-                $this->releaseLine($item, $shop);
-            }
-
-            $invoiceItems = $order->items->flatMap(function ($item) {
-                $allocations = $item->reserved_batches;
-
-                if (empty($allocations)) {
-                    return [[
-                        'product_id' => $item->product_id,
-                        'quantity' => (float) $item->quantity,
-                        'unit_price' => (float) $item->unit_price,
-                        'price_includes_tax' => true,
-                    ]];
-                }
-
-                return collect($allocations)->map(fn (array $a) => [
-                    'product_id' => $item->product_id,
-                    'batch_id' => $a['batch_id'] ?? null,
-                    'quantity' => (float) $a['quantity'],
-                    'unit_price' => (float) $item->unit_price,
-                    'price_includes_tax' => true,
-                ]);
-            })->all();
+            $invoiceItems = $order->items->map(fn ($item) => [
+                'product_id' => $item->product_id,
+                'quantity' => (float) $item->quantity,
+                'unit_price' => (float) $item->unit_price,
+                'price_includes_tax' => true,
+            ])->all();
 
             $invoice = $this->invoices->create([
                 'shop' => $shop,
-                'warehouse' => $warehouse,
                 'customer' => $order->customer,
                 'channel' => Invoice::ONLINE,
                 'items' => $invoiceItems,
@@ -428,8 +397,10 @@ class OrderService
     }
 
     /**
-     * Cancel an order, releasing whatever stock is still only reserved, or
-     * reversing the Invoice if one has already been raised.
+     * Cancel an order: reverse the Invoice if one has already been raised.
+     *
+     * Nothing to release otherwise - there is no reservation, only a
+     * pending order that never became a bill.
      */
     public function cancel(Order $order, string $reason, User $staff): Order
     {
@@ -444,12 +415,6 @@ class OrderService
         return DB::transaction(function () use ($order, $reason, $staff) {
             if ($order->hasInvoice()) {
                 $this->invoices->cancel($order->invoice, $reason);
-            } else {
-                $shop = $order->shop;
-
-                foreach ($order->items as $item) {
-                    $this->releaseLine($item, $shop);
-                }
             }
 
             $order->forceFill([
@@ -466,102 +431,6 @@ class OrderService
     }
 
     /* ------------------------------------------------------------ internals */
-
-    /**
-     * Reserve stock for one cart line, allocated FEFO exactly like a real
-     * sale would be, and return the allocation to freeze onto the order
-     * item.
-     *
-     * @return array<int, array{batch_id: int|null, warehouse_id: int, quantity: float}>
-     */
-    private function reserveForLine(Product $product, float $quantity, Warehouse $warehouse, Shop $shop): array
-    {
-        /*
-         | A dish is made to order, so there is nothing to hold.
-         |
-         | Reserving a plate of food the way a warehouse reserves a box would
-         | be a fiction, and the availability check below would refuse an
-         | online biryani order on a night the kitchen is perfectly able to
-         | cook it. An empty allocation also means releaseLine() has nothing
-         | to give back if the order is cancelled, which is correct.
-         |
-         | Whether the kitchen can still make it is the sold-out tap and the
-         | serving window, which the menu already enforces.
-         */
-        if ($product->is_made_to_order) {
-            return [];
-        }
-
-        $plan = $this->stock->planPick($product, $quantity, $warehouse, $shop->id);
-        $picked = (float) $plan->sum('quantity');
-
-        if ($picked + 0.0005 < $quantity && ! $shop->allow_negative_stock) {
-            throw new RuntimeException(sprintf(
-                'Only %s of "%s" is available right now.',
-                rtrim(rtrim(number_format($picked, 3, '.', ''), '0'), '.') ?: '0',
-                $product->name,
-            ));
-        }
-
-        if ($plan->isEmpty()) {
-            // Nothing on the shelf and the shop allows it: reserve against
-            // no particular lot, same as a negative-stock sale would.
-            $this->stock->reserve($product, $quantity, $warehouse, null, $shop->id);
-
-            return [['batch_id' => null, 'warehouse_id' => $warehouse->id, 'quantity' => $quantity]];
-        }
-
-        $allocations = $plan->map(fn (array $row) => [
-            'batch' => $row['batch'],
-            'quantity' => (float) $row['quantity'],
-        ])->all();
-
-        $shortfall = $quantity - $picked;
-
-        if ($shortfall > 0.0005) {
-            $allocations[count($allocations) - 1]['quantity'] += $shortfall;
-        }
-
-        $result = [];
-
-        foreach ($allocations as $allocation) {
-            /** @var Batch|null $batch */
-            $batch = $allocation['batch'];
-
-            $this->stock->reserve($product, $allocation['quantity'], $warehouse, $batch, $shop->id);
-
-            $result[] = [
-                'batch_id' => $batch?->id,
-                'warehouse_id' => $warehouse->id,
-                'quantity' => $allocation['quantity'],
-            ];
-        }
-
-        return $result;
-    }
-
-    /** Release exactly the reservation an order item was given at placement. */
-    private function releaseLine(OrderItem $item, Shop $shop): void
-    {
-        $allocations = $item->reserved_batches ?? [];
-        $product = $item->product;
-
-        if ($product === null) {
-            return;
-        }
-
-        foreach ($allocations as $allocation) {
-            $warehouse = Warehouse::allShops()->find($allocation['warehouse_id']);
-
-            if ($warehouse === null) {
-                continue;
-            }
-
-            $batch = $allocation['batch_id'] ? Batch::allShops()->find($allocation['batch_id']) : null;
-
-            $this->stock->release($product, (float) $allocation['quantity'], $warehouse, $batch, $shop->id);
-        }
-    }
 
     /**
      * Resolve the shipping address for a checkout: an existing address-book

@@ -9,7 +9,6 @@ use App\Models\InvoiceItem;
 use App\Models\SalesReturn;
 use App\Models\SalesReturnItem;
 use App\Models\Shop;
-use App\Models\Warehouse;
 use App\Services\SalesReturnService;
 use App\Support\ApiResponse;
 use App\Support\CurrentShop;
@@ -113,7 +112,7 @@ class SalesReturnController extends Controller
         if ($invoice && $invoice->isCancelled()) {
             return redirect()
                 ->route('admin.sales-returns.create')
-                ->with('error', 'That invoice was cancelled — its goods are already back on the shelf.');
+                ->with('error', 'That invoice has already been cancelled.');
         }
 
         return view('admin.sales-returns.form', [
@@ -126,7 +125,6 @@ class SalesReturnController extends Controller
                 ? $invoice->items->reject(fn (InvoiceItem $i) => $i->isFullyReturned())->values()
                 : collect(),
             'shop' => $shop,
-            'warehouses' => Warehouse::active()->orderByDesc('is_default')->orderBy('name')->get(),
             'reference' => SalesReturn::nextReference($shop),
             'recent' => Invoice::query()
                 ->counted()
@@ -140,7 +138,7 @@ class SalesReturnController extends Controller
     public function show(SalesReturn $return): View
     {
         return view('admin.sales-returns.show', [
-            'return' => $return->load(['invoice', 'customer', 'warehouse', 'shop']),
+            'return' => $return->load(['invoice', 'customer', 'shop']),
             'items' => $return->items()->with('product:id,name,sku')->get(),
         ]);
     }
@@ -160,7 +158,7 @@ class SalesReturnController extends Controller
         $invoice = isset($data['invoice_id']) ? Invoice::find($data['invoice_id']) : null;
 
         if ($invoice && $invoice->isCancelled()) {
-            return ApiResponse::error('That invoice was cancelled — its goods are already back on the shelf.');
+            return ApiResponse::error('That invoice has already been cancelled.');
         }
 
         try {
@@ -169,7 +167,6 @@ class SalesReturnController extends Controller
 
                 $return = new SalesReturn([
                     'shop_id' => $shop->id,
-                    'warehouse_id' => $data['warehouse_id'],
                     'invoice_id' => $invoice?->id,
                     'customer_id' => $invoice?->customer_id,
                     'customer_name' => $invoice?->billedTo(),
@@ -244,7 +241,7 @@ class SalesReturnController extends Controller
         }
 
         return ApiResponse::success(
-            "Return {$return->reference} accepted. Resalable goods are back on the shelf.",
+            "Return {$return->reference} accepted.",
             [],
             route('admin.sales-returns.show', $return),
         );
@@ -316,11 +313,9 @@ class SalesReturnController extends Controller
             $return->items()->create([
                 'invoice_item_id' => $source->id,
                 'product_id' => $source->product_id,
-                'batch_id' => $source->batch_id,
                 'product_name' => $source->product_name,
                 'sku' => $source->sku,
                 'unit_code' => $source->unit_code,
-                'batch_no' => $source->batch_no,
                 'quantity' => $quantity,
                 'condition' => $line['condition'] ?? SalesReturnItem::RESALABLE,
                 // Copied so the credit matches what was charged, discount
@@ -353,10 +348,6 @@ class SalesReturnController extends Controller
                 'required', 'integer',
                 Rule::exists('invoices', 'id')->where('shop_id', $shopId),
             ],
-            'warehouse_id' => [
-                'required', 'integer',
-                Rule::exists('warehouses', 'id')->where('shop_id', $shopId),
-            ],
             'returned_on' => ['required', 'date', 'before_or_equal:today'],
             'reason_code' => ['required', Rule::in(array_keys(SalesReturn::REASONS))],
             'reason' => ['nullable', 'string', 'max:2000'],
@@ -371,7 +362,6 @@ class SalesReturnController extends Controller
         ], [
             'invoice_id.required' => 'Find the invoice the goods were sold on first.',
             'invoice_id.exists' => 'That invoice is not available in this shop.',
-            'warehouse_id.exists' => 'Choose a warehouse belonging to this shop.',
             'returned_on.before_or_equal' => 'Goods cannot come back in the future.',
             'items.required' => 'Enter a quantity against at least one line.',
         ]);

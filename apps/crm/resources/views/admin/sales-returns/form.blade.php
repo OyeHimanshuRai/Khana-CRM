@@ -103,19 +103,6 @@
                 <div class="card-body">
                     <div class="settings-grid">
                         <div class="field">
-                            <label for="sr-warehouse">Back into</label>
-                            <select id="sr-warehouse" name="warehouse_id" class="form-control" required
-                                    aria-invalid="false">
-                                @foreach ($warehouses as $warehouse)
-                                    <option value="{{ $warehouse->id }}"
-                                        @selected($invoice->warehouse_id === $warehouse->id)>
-                                        {{ $warehouse->name }} ({{ $warehouse->code }})
-                                    </option>
-                                @endforeach
-                            </select>
-                        </div>
-
-                        <div class="field">
                             <label for="sr-date">Returned on</label>
                             <input id="sr-date" type="date" name="returned_on" class="form-control" required
                                    value="{{ today()->toDateString() }}"
@@ -166,8 +153,7 @@
                     <div>
                         <div class="card-title">What came back</div>
                         <div class="text-xs text-muted">
-                            Leave a quantity at zero for anything the customer kept. Condition decides
-                            whether the goods go back on the shelf.
+                            Leave a quantity at zero for anything the customer kept.
                         </div>
                     </div>
                 </div>
@@ -177,7 +163,6 @@
                         <thead>
                             <tr>
                                 <th>Item</th>
-                                <th>Batch</th>
                                 <th style="text-align:right">Sold</th>
                                 <th style="text-align:right">Already back</th>
                                 <th style="width:130px;text-align:right">Returning</th>
@@ -206,8 +191,6 @@
                                             {{ $line->sku }}
                                         </span>
                                     </td>
-
-                                    <td class="text-sm">{{ $line->batch_no ?: '—' }}</td>
 
                                     <td style="text-align:right" class="text-sm">
                                         {{ $line->quantityLabel() }}
@@ -246,7 +229,7 @@
                                 </tr>
                             @empty
                                 <tr>
-                                    <td colspan="7">
+                                    <td colspan="6">
                                         <div class="empty">
                                             <x-icon name="user-check" :size="26" />
                                             <h3>Everything on this invoice has already come back</h3>

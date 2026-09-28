@@ -76,7 +76,7 @@ class SignupService
             $owner = $this->owner($tenant, $shop, $data);
 
             /*
-             | The vocabulary the software speaks, and somewhere to put stock.
+             | The vocabulary the software speaks.
              |
              | Units and GST slabs used to be seeded once per install and
              | shared by everybody; now that the catalogue belongs to a
@@ -86,7 +86,6 @@ class SignupService
              | product. See App\Services\CatalogStarter.
              */
             $this->starter->forTenant($tenant);
-            $this->starter->forShop($shop);
 
             $subscription = $this->subscriptions->subscribeShop(
                 shop: $shop,

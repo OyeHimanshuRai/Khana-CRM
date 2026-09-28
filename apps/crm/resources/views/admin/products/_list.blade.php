@@ -1,10 +1,8 @@
 {{--
     Swappable fragment: the table plus its pagination.
 
-    Price and stock are read for the shop in context, not from the master —
-    which is the point of a global catalogue with per-shop shelves. In
-    All-shops mode the stock column is the total across the reader's shops,
-    and the header says so.
+    Price is read for the shop in context, not from the master — which is
+    the point of a global catalogue with per-branch prices.
 --}}
 
 <div class="table-wrap">
@@ -15,12 +13,6 @@
                 <th>Product</th>
                 <th>Category</th>
                 <th style="text-align:right">Price</th>
-                <th style="text-align:right">
-                    Stock
-                    @if ($shopId === null)
-                        <span class="text-xs text-muted" style="display:block;font-weight:400">all shops</span>
-                    @endif
-                </th>
                 <th>Store</th>
                 <th>Status</th>
                 <th class="col-action">Actions</th>
@@ -31,17 +23,6 @@
             @forelse ($products as $product)
                 @php
                     $image = $product->imageUrl();
-                    $onHand = (float) ($product->on_hand ?? 0);
-                    $reorder = $product->reorderLevelFor($shopId);
-                    /*
-                     | A dish is made when it is ordered, so it has no shelf
-                     | to count and nothing comes off one when it sells. The
-                     | column says so rather than showing a number that the
-                     | next sale will leave exactly where it is - see
-                     | Product::tracksStock().
-                     */
-                    $tracksStock = $product->tracksStock();
-                    $isLow = $tracksStock && $reorder > 0 && $onHand <= $reorder;
                 @endphp
                 <tr>
                     <td>
@@ -97,24 +78,6 @@
                             <span class="text-xs text-muted" style="display:block">
                                 MRP ₹{{ number_format($mrp, 2) }}
                             </span>
-                        @endif
-                    </td>
-
-                    <td style="text-align:right;white-space:nowrap">
-                        @if (! $tracksStock)
-                            <span class="text-xs text-muted">Made to order</span>
-                        @elseif ($onHand > 0)
-                            <span class="{{ $isLow ? '' : '' }}"
-                                  @if ($isLow) style="color:var(--warning);font-weight:600" @endif>
-                                {{ $product->unit?->format($onHand) ?? number_format($onHand, 3) }}
-                            </span>
-                            @if ($isLow)
-                                <span class="text-xs" style="display:block;color:var(--warning)">
-                                    at reorder level
-                                </span>
-                            @endif
-                        @else
-                            <span class="badge badge-danger">Out of stock</span>
                         @endif
                     </td>
 
@@ -215,7 +178,7 @@
                 </tr>
             @empty
                 <tr>
-                    <td colspan="8">
+                    <td colspan="7">
                         <div class="empty">
                             <x-icon name="inbox" :size="28" />
                             <h3>No products found</h3>
@@ -238,10 +201,6 @@
     @forelse ($products as $product)
         @php
             $image = $product->imageUrl();
-            $onHand = (float) ($product->on_hand ?? 0);
-            $reorder = $product->reorderLevelFor($shopId);
-            $tracksStock = $product->tracksStock();
-            $isLow = $tracksStock && $reorder > 0 && $onHand <= $reorder;
             $price = $product->sellingPriceFor($shopId);
             $mrp = $product->mrpFor($shopId);
         @endphp
@@ -287,20 +246,6 @@
                     </dd>
                 </div>
 
-                <div>
-                    <dt>Stock @if ($shopId === null)<span class="text-xs text-muted">(all)</span>@endif</dt>
-                    <dd>
-                        @if (! $tracksStock)
-                            <span class="text-xs text-muted">Made to order</span>
-                        @elseif ($onHand > 0)
-                            <span @if ($isLow) style="color:var(--warning);font-weight:600" @endif>
-                                {{ $product->unit?->format($onHand) ?? number_format($onHand, 3) }}
-                            </span>
-                        @else
-                            <span class="badge badge-danger">Out of stock</span>
-                        @endif
-                    </dd>
-                </div>
             </dl>
 
             <div class="product-card-toggles">

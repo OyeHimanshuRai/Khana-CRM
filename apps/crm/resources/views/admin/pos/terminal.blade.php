@@ -148,16 +148,6 @@
             <div class="till-grid"
                  data-line-items
                  data-pos-menu
-                 {{--
-                     The till is the one line editor that sells, so it is the
-                     one that caps a quantity at what is on the shelf - by the
-                     keyboard as well as the +/- buttons. Left off for a shop
-                     that allows negative stock, where selling past the count
-                     is a decision somebody has already made.
-
-                     A dish is exempt whatever this says: see tracksStock().
-                 --}}
-                 @unless ($shop->allow_negative_stock) data-line-stock-cap @endunless
                  data-lookup-url="{{ route('admin.products.lookup') }}"
                  data-scanner-product-url="{{ route('admin.scanner.product') }}"
                  data-scanner-settings='{{ json_encode(ScannerSettings::forJs()) }}'
@@ -579,17 +569,6 @@
                                 </div>
                             </div>
                         @endif
-
-                        <div class="field">
-                            <label for="pos-warehouse">Sell from</label>
-                            <select id="pos-warehouse" name="warehouse_id" class="form-control" required>
-                                @foreach ($warehouses as $warehouse)
-                                    <option value="{{ $warehouse->id }}">
-                                        {{ $warehouse->name }} ({{ $warehouse->code }})
-                                    </option>
-                                @endforeach
-                            </select>
-                        </div>
                     </div>
 
                     {{--

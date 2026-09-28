@@ -59,7 +59,7 @@ class Invoice extends Model
     ];
 
     protected $fillable = [
-        'shop_id', 'warehouse_id', 'customer_id', 'table_session_id',
+        'shop_id', 'customer_id', 'table_session_id',
         'customer_name', 'customer_mobile', 'customer_gstin', 'customer_state', 'billing_address',
         'number', 'channel', 'status', 'invoiced_at',
         'is_inter_state', 'place_of_supply',
@@ -112,11 +112,6 @@ class Invoice extends Model
     public function tableSession(): BelongsTo
     {
         return $this->belongsTo(TableSession::class, 'table_session_id');
-    }
-
-    public function warehouse(): BelongsTo
-    {
-        return $this->belongsTo(Warehouse::class);
     }
 
     public function items(): HasMany

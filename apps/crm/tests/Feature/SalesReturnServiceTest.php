@@ -9,15 +9,12 @@ use App\Models\Product;
 use App\Models\SalesReturn;
 use App\Models\SalesReturnItem;
 use App\Models\Shop;
-use App\Models\StockMovement;
 use App\Models\TaxRate;
 use App\Models\Unit;
-use App\Models\Warehouse;
 use App\Services\AlertService;
 use App\Services\InvoiceService;
 use App\Services\LedgerService;
 use App\Services\SalesReturnService;
-use App\Services\StockService;
 use App\Support\CurrentShop;
 use Illuminate\Foundation\Testing\RefreshDatabase;
 use RuntimeException;
@@ -28,23 +25,22 @@ use Tests\TestCase;
  *
  * The properties that matter:
  *
- *   - only resalable goods return to sellable stock; damaged ones are
- *     written off where the loss can be seen
  *   - the credit matches what was charged, discount and all
  *   - the invoice line remembers how much has come back, so the same units
  *     cannot be returned twice
  *   - the cost is unwound at the figure the sale was booked at, so a month
  *     already reported does not quietly change
+ *
+ * There is no shelf for resalable goods to go back on and no stock to write
+ * off as damaged - CRM tracks none. What condition the goods came back in
+ * is still recorded (see SalesReturnItem::isResalable()); it just does not
+ * move anything.
  */
 class SalesReturnServiceTest extends TestCase
 {
     use RefreshDatabase;
 
     private Shop $shop;
-
-    private Warehouse $warehouse;
-
-    private StockService $stock;
 
     private InvoiceService $invoices;
 
@@ -58,23 +54,20 @@ class SalesReturnServiceTest extends TestCase
         CurrentShop::forget();
 
         $this->shop = Shop::firstOrFail();
-        $this->warehouse = Warehouse::allShops()->where('shop_id', $this->shop->id)->firstOrFail();
 
-        $this->stock = new StockService();
         $ledger = new LedgerService();
         /*
          | Built through the container rather than by hand.
          |
          | Constructed literally, this breaks every time the service gains a
-         | dependency - which it has, twice - and the failure lands on four
-         | test files that have nothing to do with the change. What these
-         | tests DO care about is holding on to the same collaborators, so
-         | those are bound explicitly and the rest is resolved.
+         | dependency, and the failure lands on test files that have nothing
+         | to do with the change. What these tests DO care about is holding
+         | on to the same LedgerService, so that is bound explicitly and the
+         | rest is resolved.
          */
-        $this->app->instance(StockService::class, $this->stock);
         $this->app->instance(LedgerService::class, $ledger);
         $this->invoices = $this->app->make(InvoiceService::class);
-        $this->returns = new SalesReturnService($this->stock, $ledger);
+        $this->returns = new SalesReturnService($ledger);
     }
 
     protected function tearDown(): void
@@ -91,7 +84,7 @@ class SalesReturnServiceTest extends TestCase
         static $counter = 0;
         $counter++;
 
-        $product = Product::create([
+        return Product::create([
             'name' => 'Return Product '.$counter,
             'slug' => Product::uniqueSlug('Return Product '.$counter),
             'sku' => Product::generateSku('RET'.$counter),
@@ -101,11 +94,6 @@ class SalesReturnServiceTest extends TestCase
             'selling_price' => $price,
             'tax_inclusive' => true,
         ]);
-
-        $this->stock->receive($product, 200, $this->warehouse, null, $cost,
-            StockMovement::PURCHASE, null, null, $this->shop->id);
-
-        return $product;
     }
 
     private function customer(array $attributes = []): Customer
@@ -136,7 +124,6 @@ class SalesReturnServiceTest extends TestCase
     {
         return $this->invoices->create([
             'shop' => $this->shop,
-            'warehouse' => $this->warehouse,
             'customer' => $customer,
             'channel' => Invoice::MANUAL,
             'items' => $items,
@@ -153,7 +140,6 @@ class SalesReturnServiceTest extends TestCase
     {
         $return = new SalesReturn([
             'shop_id' => $this->shop->id,
-            'warehouse_id' => $this->warehouse->id,
             'invoice_id' => $invoice->id,
             'customer_id' => $invoice->customer_id,
             'customer_name' => $invoice->billedTo(),
@@ -172,7 +158,6 @@ class SalesReturnServiceTest extends TestCase
             $return->items()->create([
                 'invoice_item_id' => $source->id,
                 'product_id' => $source->product_id,
-                'batch_id' => $source->batch_id,
                 'product_name' => $source->product_name,
                 'sku' => $source->sku,
                 'unit_code' => $source->unit_code,
@@ -187,80 +172,6 @@ class SalesReturnServiceTest extends TestCase
         }
 
         return $return->fresh();
-    }
-
-    /* -------------------------------------------------------------- stock */
-
-    public function test_resalable_goods_go_back_on_the_shelf(): void
-    {
-        $product = $this->product();
-        $customer = $this->customer();
-
-        $invoice = $this->sell($customer, [
-            ['product_id' => $product->id, 'quantity' => 10],
-        ], [['method' => Payment::CASH, 'amount' => 1000]]);
-
-        $this->assertSame(190.0, $product->stockOnHand($this->shop->id));
-
-        $this->returns->approve($this->raise($invoice, [['line' => 0, 'quantity' => 4]]));
-
-        $this->assertSame(194.0, $product->stockOnHand($this->shop->id));
-    }
-
-    public function test_damaged_goods_never_reach_sellable_stock(): void
-    {
-        /*
-         | Restocking a burst bag would make the next count wrong and the
-         | loss invisible, which is the opposite of what a returns document
-         | is for.
-         */
-        $product = $this->product();
-        $customer = $this->customer();
-
-        $invoice = $this->sell($customer, [
-            ['product_id' => $product->id, 'quantity' => 10],
-        ], [['method' => Payment::CASH, 'amount' => 1000]]);
-
-        $this->returns->approve($this->raise($invoice, [
-            ['line' => 0, 'quantity' => 4, 'condition' => SalesReturnItem::DAMAGED],
-        ]));
-
-        // Back where it was before the return, not four higher.
-        $this->assertSame(190.0, $product->stockOnHand($this->shop->id));
-
-        // And the write-off is a movement somebody can find.
-        $this->assertSame(1, StockMovement::allShops()
-            ->where('product_id', $product->id)
-            ->where('type', StockMovement::WASTAGE)
-            ->count());
-    }
-
-    public function test_a_mixed_return_restocks_only_the_good_part(): void
-    {
-        $product = $this->product();
-        $customer = $this->customer();
-
-        $invoice = $this->sell($customer, [
-            ['product_id' => $product->id, 'quantity' => 10],
-        ], [['method' => Payment::CASH, 'amount' => 1000]]);
-
-        $return = $this->raise($invoice, [['line' => 0, 'quantity' => 6]]);
-
-        // Split the line: four good, two damaged.
-        $return->items()->first()->forceFill(['quantity' => 4])->save();
-        $return->items()->create([
-            'invoice_item_id' => $invoice->items[0]->id,
-            'product_id' => $product->id,
-            'product_name' => $product->name,
-            'quantity' => 2,
-            'condition' => SalesReturnItem::DAMAGED,
-            'unit_price' => 100,
-            'unit_cost' => 60,
-        ]);
-
-        $this->returns->approve($return->fresh());
-
-        $this->assertSame(194.0, $product->stockOnHand($this->shop->id));
     }
 
     /* -------------------------------------------------------------- credit */
@@ -339,7 +250,7 @@ class SalesReturnServiceTest extends TestCase
         $this->assertSame(200.00, (float) $return->fresh()->refund_amount);
     }
 
-    public function test_an_exchange_moves_stock_but_no_money(): void
+    public function test_an_exchange_settles_with_no_money(): void
     {
         $product = $this->product();
         $customer = $this->customer();
@@ -352,7 +263,6 @@ class SalesReturnServiceTest extends TestCase
             $this->raise($invoice, [['line' => 0, 'quantity' => 3]], SalesReturn::NONE)
         );
 
-        $this->assertSame(193.0, $product->stockOnHand($this->shop->id));
         $this->assertSame(0.00, (float) $customer->fresh()->balance);
         $this->assertSame(0, Payment::allShops()->where('direction', Payment::OUT)->count());
     }
@@ -407,7 +317,6 @@ class SalesReturnServiceTest extends TestCase
         $this->returns->reject($return, 'Outside the return window');
 
         $this->assertSame(SalesReturn::REJECTED, $return->fresh()->status);
-        $this->assertSame(190.0, $product->stockOnHand($this->shop->id));
         $this->assertSame(0.00, (float) $customer->fresh()->balance);
     }
 
@@ -443,8 +352,8 @@ class SalesReturnServiceTest extends TestCase
     public function test_the_cost_is_unwound_at_the_figure_the_sale_was_booked_at(): void
     {
         /*
-         | A later, dearer purchase must not change the margin on a month
-         | that has already been reported.
+         | A later, dearer catalogue update must not change the margin on a
+         | month that has already been reported.
          */
         $product = $this->product(cost: 60);
         $customer = $this->customer();
@@ -453,8 +362,7 @@ class SalesReturnServiceTest extends TestCase
             ['product_id' => $product->id, 'quantity' => 10],
         ], [['method' => Payment::CASH, 'amount' => 1000]]);
 
-        $this->stock->receive($product, 100, $this->warehouse, null, 200,
-            StockMovement::PURCHASE, null, null, $this->shop->id);
+        $product->update(['purchase_price' => 200]);
 
         $return = $this->returns->approve($this->raise($invoice, [['line' => 0, 'quantity' => 5]]));
 

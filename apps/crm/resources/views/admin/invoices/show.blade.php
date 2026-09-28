@@ -88,7 +88,6 @@
         <div class="card-body">
             <dl class="sec-facts">
                 <div><dt>Shop</dt><dd>{{ $shop?->name ?? '—' }}</dd></div>
-                <div><dt>Sold from</dt><dd>{{ $invoice->warehouse?->name ?? '—' }}</dd></div>
                 <div>
                     <dt>Customer</dt>
                     <dd>
@@ -139,7 +138,6 @@
                 <thead>
                     <tr>
                         <th>Item</th>
-                        <th>Batch</th>
                         <th style="text-align:right">Qty</th>
                         <th style="text-align:right">Rate</th>
                         <th style="text-align:right">Discount</th>
@@ -157,15 +155,6 @@
                                 <span class="text-xs text-muted" style="display:block">
                                     {{ $item->sku }}@if ($item->hsn_code) · HSN {{ $item->hsn_code }}@endif
                                 </span>
-                            </td>
-
-                            <td class="text-sm">
-                                {{ $item->batch_no ?: '—' }}
-                                @if ($item->expiry_date)
-                                    <span class="text-xs text-muted" style="display:block">
-                                        exp {{ $item->expiry_date->format('M Y') }}
-                                    </span>
-                                @endif
                             </td>
 
                             <td style="text-align:right" class="text-sm">{{ $item->quantityLabel() }}</td>

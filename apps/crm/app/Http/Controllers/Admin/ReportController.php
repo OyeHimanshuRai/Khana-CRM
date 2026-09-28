@@ -4,7 +4,6 @@ namespace App\Http\Controllers\Admin;
 
 use App\Http\Controllers\Controller;
 use App\Models\ActivityLog;
-use App\Models\Batch;
 use App\Services\ReportService;
 use App\Support\CurrentShop;
 use App\Support\ReportFilters;
@@ -30,9 +29,9 @@ class ReportController extends Controller
      * Every report, and what it needs.
      *
      * `dated` says whether the report is about a period or about right now:
-     * a sales report is the former, a stock valuation the latter, and
-     * offering a date range on a stock report would promise history the
-     * system does not keep.
+     * a sales report is the former, an outstanding-dues report the latter,
+     * and offering a date range on a right-now report would promise history
+     * the system does not keep.
      *
      * @var array<string, array<string, mixed>>
      */
@@ -93,27 +92,6 @@ class ReportController extends Controller
             'icon' => 'file',
             'dated' => true,
         ],
-        'stock' => [
-            'label' => 'Stock & Valuation',
-            'blurb' => 'What is on the shelf now, at weighted average cost.',
-            'permission' => 'reports.stock_report',
-            'icon' => 'package',
-            'dated' => false,
-        ],
-        'low-stock' => [
-            'label' => 'Low Stock',
-            'blurb' => 'Products at or below their reorder level.',
-            'permission' => 'reports.expiry_report',
-            'icon' => 'trend-down',
-            'dated' => false,
-        ],
-        'expiry' => [
-            'label' => 'Expiry',
-            'blurb' => 'Batches expiring soon, or already gone, that still hold stock.',
-            'permission' => 'reports.expiry_report',
-            'icon' => 'clock',
-            'dated' => false,
-        ],
         'outstanding' => [
             'label' => 'Outstanding',
             'blurb' => 'Who owes the shop, and how much.',
@@ -126,13 +104,6 @@ class ReportController extends Controller
             'blurb' => 'What came back over the counter.',
             'permission' => 'reports.returns_report',
             'icon' => 'trend-down',
-            'dated' => true,
-        ],
-        'transfers' => [
-            'label' => 'Stock Transfers',
-            'blurb' => 'Stock moved between branches, and what is still on the van.',
-            'permission' => 'reports.stock_report',
-            'icon' => 'truck',
             'dated' => true,
         ],
         'day-closing' => [
@@ -202,17 +173,15 @@ class ReportController extends Controller
         abort_unless(auth()->user()->can($meta['permission'].'.view'), 403);
 
         $range = ReportFilters::fromRequest($request);
-        $days = (int) $request->integer('days', Batch::NEAR_EXPIRY_DAYS);
 
         return view('admin.reports.show', [
             'key' => $report,
             'meta' => $meta,
             'range' => $range,
-            'days' => $days,
             'presets' => ReportFilters::PRESETS,
             'canExport' => auth()->user()->can($meta['permission'].'.export'),
             'showsShop' => CurrentShop::id() === null,
-            'data' => $this->build($report, $range, $days),
+            'data' => $this->build($report, $range),
         ]);
     }
 
@@ -221,7 +190,7 @@ class ReportController extends Controller
      *
      * @return array<string, mixed>
      */
-    private function build(string $report, ReportFilters $range, int $days): array
+    private function build(string $report, ReportFilters $range): array
     {
         return match ($report) {
             'sales' => [
@@ -241,18 +210,11 @@ class ReportController extends Controller
             'tax' => [
                 'rows' => $this->reports->taxByHsn($range),
             ],
-            'stock' => ['rows' => $this->reports->stockValuation()->limit(500)->get()],
-            'low-stock' => ['rows' => $this->reports->lowStock()->limit(500)->get()],
-            'expiry' => ['rows' => $this->reports->expiring($days)->limit(500)->get()],
             'outstanding' => ['rows' => $this->reports->outstanding()->limit(500)->get()],
 
             'returns' => [
                 'summary' => $this->reports->returnsSummary($range),
                 'rows' => $this->reports->returnsByDay($range),
-            ],
-            'transfers' => [
-                'summary' => $this->reports->transferSummary($range),
-                'rows' => $this->reports->stockTransfers($range)->limit(500)->get(),
             ],
             'day-closing' => [
                 'summary' => $this->reports->dayCloseSummary($range),
@@ -294,9 +256,8 @@ class ReportController extends Controller
         abort_unless(auth()->user()->can($meta['permission'].'.export'), 403);
 
         $range = ReportFilters::fromRequest($request);
-        $days = (int) $request->integer('days', Batch::NEAR_EXPIRY_DAYS);
 
-        [$columns, $rows] = $this->exportRows($report, $range, $days);
+        [$columns, $rows] = $this->exportRows($report, $range);
 
         $filename = $report.'-'.($meta['dated'] ? $range->slug() : today()->format('Ymd')).'.csv';
 
@@ -330,7 +291,7 @@ class ReportController extends Controller
      *
      * @return array{0: array<int, string>, 1: iterable<int, array<int, mixed>>}
      */
-    private function exportRows(string $report, ReportFilters $range, int $days): array
+    private function exportRows(string $report, ReportFilters $range): array
     {
         $money = fn ($value) => number_format((float) $value, 2, '.', '');
         $qty = fn ($value) => number_format((float) $value, 3, '.', '');
@@ -417,43 +378,6 @@ class ReportController extends Controller
                 ]),
             ],
 
-            'stock' => [
-                ['SKU', 'Product', 'Warehouse', 'Batch', 'Expiry', 'On hand', 'Avg cost', 'Value'],
-                $this->reports->stockValuation()->lazy(500)->map(fn ($r) => [
-                    $r->product?->sku,
-                    $r->product?->name,
-                    $r->warehouse?->name,
-                    $r->batch?->batch_no,
-                    $r->batch?->expiry_date?->format('Y-m-d'),
-                    $qty($r->quantity),
-                    $money($r->average_cost),
-                    $money($r->value()),
-                ]),
-            ],
-
-            'low-stock' => [
-                ['SKU', 'Product', 'On hand', 'Reorder level', 'Short by'],
-                $this->reports->lowStock()->lazy(500)->map(fn ($r) => [
-                    $r->sku,
-                    $r->name,
-                    $qty($r->on_hand ?? 0),
-                    $qty($r->reorder_level),
-                    $qty(max(0, (float) $r->reorder_level - (float) ($r->on_hand ?? 0))),
-                ]),
-            ],
-
-            'expiry' => [
-                ['SKU', 'Product', 'Batch', 'Expiry', 'Days left', 'On hand'],
-                $this->reports->expiring($days)->lazy(500)->map(fn ($r) => [
-                    $r->product?->sku,
-                    $r->product?->name,
-                    $r->batch_no,
-                    $r->expiry_date?->format('Y-m-d'),
-                    $r->daysToExpiry(),
-                    $qty($r->on_hand ?? 0),
-                ]),
-            ],
-
             'outstanding' => [
                 ['Code', 'Customer', 'Mobile', 'Village', 'Credit limit', 'Owes'],
                 $this->reports->outstanding()->lazy(500)->map(fn ($r) => [
@@ -469,21 +393,6 @@ class ReportController extends Controller
                     $r->sales_returns,
                     $money($r->sales_value),
                     $money($r->refunded),
-                ]),
-            ],
-
-            'transfers' => [
-                ['Reference', 'Date', 'From', 'To', 'Status', 'Quantity', 'Value', 'Dispatched', 'Received'],
-                $this->reports->stockTransfers($range)->lazy(500)->map(fn ($r) => [
-                    $r->reference,
-                    $r->transfer_date?->format('Y-m-d'),
-                    trim(($r->shop?->name ?? '').' / '.($r->fromWarehouse?->name ?? ''), ' /'),
-                    trim(($r->toShop?->name ?? '').' / '.($r->toWarehouse?->name ?? ''), ' /'),
-                    $r->statusLabel(),
-                    $qty($r->total_quantity),
-                    $money($r->total_value),
-                    $r->dispatched_at?->format('Y-m-d H:i'),
-                    $r->received_at?->format('Y-m-d H:i'),
                 ]),
             ],
 

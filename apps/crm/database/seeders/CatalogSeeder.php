@@ -2,7 +2,6 @@
 
 namespace Database\Seeders;
 
-use App\Models\Shop;
 use App\Models\Tenant;
 use App\Services\CatalogStarter;
 use Illuminate\Database\Seeder;
@@ -19,8 +18,7 @@ class CatalogSeeder extends Seeder
      * The lists themselves live in App\Services\CatalogStarter, because a
      * business that signs itself up needs exactly the same rows and there must
      * not be two copies of the GST slabs to keep in step. This seeder is now
-     * the installer's caller: every company on the install gets a set, every
-     * branch gets a warehouse.
+     * the installer's caller: every company on the install gets a set.
      *
      * Idempotent on the natural keys, so re-running never duplicates a slab
      * and never overwrites a rate the business has since corrected.
@@ -42,13 +40,5 @@ class CatalogSeeder extends Seeder
             $tenants->count(),
             $tenants->count() === 1 ? 'y' : 'ies',
         ));
-
-        $shops = Shop::withTrashed()->get();
-
-        foreach ($shops as $shop) {
-            $starter->forShop($shop);
-        }
-
-        $this->command?->info(sprintf('  %d shop(s) have somewhere to put stock.', $shops->count()));
     }
 }

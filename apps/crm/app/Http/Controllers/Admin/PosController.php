@@ -10,8 +10,6 @@ use App\Models\Order;
 use App\Models\ParkedSale;
 use App\Models\Payment;
 use App\Models\Product;
-use App\Models\ProductStock;
-use App\Models\Warehouse;
 use App\Services\InvoiceService;
 use App\Support\ApiResponse;
 use App\Support\CurrentShop;
@@ -69,20 +67,11 @@ class PosController extends Controller
                 ->with('error', 'Choose a single shop before billing — a sale happens at one counter.');
         }
 
-        $warehouses = Warehouse::active()->orderByDesc('is_default')->orderBy('name')->get();
-
-        if ($warehouses->isEmpty()) {
-            return redirect()
-                ->route('admin.warehouses.index')
-                ->with('error', 'This shop has no warehouse to sell from. Create one first.');
-        }
-
         $menu = $this->menu();
 
         return view('admin.pos.terminal', [
             'shop' => $shop,
             'channel' => $channel,
-            'warehouses' => $warehouses,
             'methods' => Payment::METHODS,
             'menu' => $menu,
             // Built from the dishes actually on the grid, so a category with
@@ -141,33 +130,14 @@ class PosController extends Controller
             ->limit(self::MENU_TILES)
             ->get();
 
-        /*
-         | Stock for the whole grid in one grouped query. Left to the model,
-         | each tile would ask the stock table three times - a few hundred
-         | queries for a screen that is opened and re-opened all day.
-         */
-        $stock = ProductStock::query()
-            ->whereIn('product_id', $products->modelKeys())
-            ->when($shopId !== null, fn ($query) => $query->where('shop_id', $shopId))
-            ->selectRaw('product_id')
-            ->selectRaw('COALESCE(SUM(quantity), 0) as on_hand')
-            ->selectRaw('COALESCE(SUM(quantity), 0) - COALESCE(SUM(reserved), 0) as available')
-            ->groupBy('product_id')
-            ->get()
-            ->keyBy('product_id');
-
-        return $products->map(function (Product $product) use ($shopId, $stock) {
-            $counted = $stock->get($product->id);
-
+        return $products->map(function (Product $product) use ($shopId) {
             return [
                 'product' => $product,
                 // Why it cannot be sold right now - sold out, off the menu,
-                // outside its serving hours - or null when it can.
+                // outside its serving hours - or null when it can. A manual
+                // flag, not a stock count - see Product::unavailableReason().
                 'reason' => $product->unavailableReason(),
-                'payload' => $product->toLookupArray($shopId, [
-                    'on_hand' => (float) ($counted->on_hand ?? 0),
-                    'available' => (float) ($counted->available ?? 0),
-                ]),
+                'payload' => $product->toLookupArray($shopId),
             ];
         });
     }
@@ -252,7 +222,6 @@ class PosController extends Controller
         try {
             $invoice = $this->invoices->create([
                 'shop' => $shop,
-                'warehouse' => Warehouse::find($data['warehouse_id']),
                 'customer' => $customer,
                 'channel' => $data['channel'],
                 'invoiced_at' => $data['invoiced_at'] ?? null,
@@ -596,11 +565,6 @@ class PosController extends Controller
         return $request->validate([
             'channel' => ['required', Rule::in([Invoice::POS, Invoice::MANUAL])],
 
-            'warehouse_id' => [
-                'required', 'integer',
-                Rule::exists('warehouses', 'id')->where('shop_id', $shopId),
-            ],
-
             'customer_id' => [
                 'nullable', 'integer',
                 Rule::exists('customers', 'id')->where('shop_id', $shopId)->whereNull('deleted_at'),
@@ -624,10 +588,6 @@ class PosController extends Controller
                 'required', 'integer',
                 Rule::exists('products', 'id')->whereNull('deleted_at')->where('is_active', true),
             ],
-            'items.*.batch_id' => [
-                'nullable', 'integer',
-                Rule::exists('batches', 'id')->where('shop_id', $shopId),
-            ],
             'items.*.quantity' => ['required', 'numeric', 'gt:0'],
             'items.*.unit_price' => ['nullable', 'numeric', 'min:0'],
             'items.*.discount_percent' => ['nullable', 'numeric', 'between:0,100'],
@@ -644,7 +604,6 @@ class PosController extends Controller
             'items.min' => 'Scan or add at least one product before completing the sale.',
             'items.*.quantity.gt' => 'Every line needs a quantity above zero.',
             'customer_id.exists' => 'That customer is not available in this shop.',
-            'warehouse_id.exists' => 'Choose a warehouse belonging to this shop.',
             'invoiced_at.before_or_equal' => 'An invoice cannot be dated in the future.',
             'due_date.after_or_equal' => 'A due date in the past is already overdue — set a real one.',
         ]);

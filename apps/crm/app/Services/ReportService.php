@@ -2,7 +2,6 @@
 
 namespace App\Services;
 
-use App\Models\Batch;
 use App\Models\CashRegister;
 use App\Models\CouponRedemption;
 use App\Models\Customer;
@@ -11,9 +10,6 @@ use App\Models\InvoiceItem;
 use App\Models\Order;
 use App\Models\OrderItem;
 use App\Models\Payment;
-use App\Models\Product;
-use App\Models\ProductStock;
-use App\Models\StockTransfer;
 use App\Support\CurrentShop;
 use App\Support\ReportFilters;
 use Illuminate\Database\Eloquent\Builder;
@@ -376,62 +372,6 @@ class ReportService
             ->get();
     }
 
-    /* -------------------------------------------------------------- stock */
-
-    /**
-     * What is on the shelf and what it is worth.
-     *
-     * @return Builder
-     */
-    public function stockValuation(): Builder
-    {
-        return ProductStock::query()
-            ->with(['product:id,name,sku,unit_id,reorder_level', 'product.unit:id,code',
-                'warehouse:id,name', 'batch:id,batch_no,expiry_date'])
-            ->where('quantity', '!=', 0)
-            ->orderByRaw('quantity * average_cost DESC');
-    }
-
-    /**
-     * Products at or below their reorder level.
-     *
-     * @return Builder
-     */
-    public function lowStock(): Builder
-    {
-        $list = implode(',', array_map('intval', $this->shopIds()));
-
-        return Product::query()
-            ->active()
-            // Dishes are not stocked - see Product::tracksStock().
-            ->where('is_made_to_order', false)
-            ->where('reorder_level', '>', 0)
-            ->withSum(['stocks as on_hand' => fn ($q) => $q->whereIn('shop_id', $this->shopIds())], 'quantity')
-            ->whereRaw(
-                '(SELECT COALESCE(SUM(quantity), 0) FROM product_stocks
-                    WHERE product_stocks.product_id = products.id
-                    AND product_stocks.shop_id IN ('.$list.')
-                 ) <= products.reorder_level'
-            )
-            ->orderBy('name');
-    }
-
-    /**
-     * Batches expiring soon, or already gone, that still hold stock.
-     *
-     * @return Builder
-     */
-    public function expiring(int $days): Builder
-    {
-        return Batch::query()
-            ->with(['product:id,name,sku', 'shop:id,name'])
-            ->withSum('stocks as on_hand', 'quantity')
-            ->whereNotNull('expiry_date')
-            ->whereDate('expiry_date', '<=', today()->addDays($days))
-            ->whereHas('stocks', fn ($q) => $q->where('quantity', '>', 0))
-            ->fefo();
-    }
-
     /* --------------------------------------------------------------- dues */
 
     /**
@@ -494,58 +434,6 @@ class ReportService
             // what went out. A rupee total on its own says nothing about
             // whether it is a lot.
             'return_rate' => $sold > 0 ? round($returned / $sold * 100, 2) : 0.0,
-        ];
-    }
-
-    /* ---------------------------------------------------------- transfers */
-
-    /**
-     * Stock moved between branches, in the period (SRS 13).
-     *
-     * Read across shops rather than through the usual scope, because a
-     * transfer has two sides and only one of them carries `shop_id`. Filtered
-     * to the branches the reader may see on either side, so a transfer with
-     * one end outside their reach still shows - it is their stock leaving or
-     * arriving, and hiding it would make the shortfall unexplainable.
-     *
-     * @return Builder
-     */
-    public function stockTransfers(ReportFilters $range): Builder
-    {
-        $shops = $this->shopIds();
-
-        return StockTransfer::allShops()
-            ->with(['fromWarehouse:id,name', 'toWarehouse:id,name', 'shop:id,name', 'toShop:id,name'])
-            ->where(fn (Builder $q) => $q
-                ->whereIn('shop_id', $shops)
-                ->orWhereIn('to_shop_id', $shops))
-            ->whereNotIn('status', [StockTransfer::DRAFT, StockTransfer::CANCELLED])
-            ->whereBetween('transfer_date', [$range->from->toDateString(), $range->to->toDateString()])
-            ->orderByDesc('transfer_date')
-            ->orderByDesc('id');
-    }
-
-    /**
-     * @return array<string, float|int>
-     */
-    public function transferSummary(ReportFilters $range): array
-    {
-        $base = fn () => $this->stockTransfers($range);
-
-        $inFlight = (clone $base())->where('status', StockTransfer::DISPATCHED);
-
-        return [
-            'transfers' => $base()->count(),
-            'quantity' => round((float) $base()->sum('total_quantity'), 3),
-            'value' => round((float) $base()->sum('total_value'), 2),
-            'received' => (clone $base())->where('status', StockTransfer::RECEIVED)->count(),
-            // The number a stock controller actually needs: goods that are on
-            // the van and therefore in neither warehouse.
-            'in_transit' => $inFlight->count(),
-            'in_transit_value' => round((float) $inFlight->sum('total_value'), 2),
-            'pending' => (clone $base())
-                ->whereIn('status', [StockTransfer::PENDING, StockTransfer::APPROVED])
-                ->count(),
         ];
     }
 

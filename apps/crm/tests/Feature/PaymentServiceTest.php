@@ -8,15 +8,12 @@ use App\Models\Invoice;
 use App\Models\Payment;
 use App\Models\Product;
 use App\Models\Shop;
-use App\Models\StockMovement;
 use App\Models\TaxRate;
 use App\Models\Unit;
-use App\Models\Warehouse;
 use App\Services\AlertService;
 use App\Services\InvoiceService;
 use App\Services\LedgerService;
 use App\Services\PaymentService;
-use App\Services\StockService;
 use App\Support\CurrentShop;
 use Illuminate\Foundation\Testing\RefreshDatabase;
 use RuntimeException;
@@ -40,10 +37,6 @@ class PaymentServiceTest extends TestCase
 
     private Shop $shop;
 
-    private Warehouse $warehouse;
-
-    private StockService $stock;
-
     private InvoiceService $invoices;
 
     private PaymentService $payments;
@@ -58,20 +51,17 @@ class PaymentServiceTest extends TestCase
         CurrentShop::forget();
 
         $this->shop = Shop::firstOrFail();
-        $this->warehouse = Warehouse::allShops()->where('shop_id', $this->shop->id)->firstOrFail();
 
-        $this->stock = new StockService();
         $this->ledger = new LedgerService();
         /*
          | Built through the container rather than by hand.
          |
          | Constructed literally, this breaks every time the service gains a
-         | dependency - which it has, twice - and the failure lands on four
-         | test files that have nothing to do with the change. What these
-         | tests DO care about is holding on to the same collaborators, so
-         | those are bound explicitly and the rest is resolved.
+         | dependency, and the failure lands on test files that have nothing
+         | to do with the change. What these tests DO care about is holding
+         | on to the same LedgerService, so that is bound explicitly and the
+         | rest is resolved.
          */
-        $this->app->instance(StockService::class, $this->stock);
         $this->app->instance(LedgerService::class, $this->ledger);
         $this->invoices = $this->app->make(InvoiceService::class);
         $this->payments = new PaymentService($this->ledger, new AlertService());
@@ -91,7 +81,7 @@ class PaymentServiceTest extends TestCase
         static $counter = 0;
         $counter++;
 
-        $product = Product::create([
+        return Product::create([
             'name' => 'Payment Test Product '.$counter,
             'slug' => Product::uniqueSlug('Payment Test Product '.$counter),
             'sku' => Product::generateSku('PAY'.$counter),
@@ -101,11 +91,6 @@ class PaymentServiceTest extends TestCase
             'selling_price' => 100,
             'tax_inclusive' => true,
         ]);
-
-        $this->stock->receive($product, 1000, $this->warehouse, null, 50,
-            StockMovement::PURCHASE, null, null, $this->shop->id);
-
-        return $product;
     }
 
     private function customer(array $attributes = []): Customer
@@ -136,7 +121,6 @@ class PaymentServiceTest extends TestCase
 
         return $this->invoices->create([
             'shop' => $this->shop,
-            'warehouse' => $this->warehouse,
             'customer' => $customer,
             'channel' => Invoice::MANUAL,
             'invoiced_at' => now()->subDays($daysAgo),

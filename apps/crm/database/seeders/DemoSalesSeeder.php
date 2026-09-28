@@ -8,11 +8,9 @@ use App\Models\Payment;
 use App\Models\Product;
 use App\Models\SalesReturn;
 use App\Models\SalesReturnItem;
-use App\Models\Warehouse;
 use App\Services\InvoiceService;
 use App\Services\PaymentService;
 use App\Services\SalesReturnService;
-use App\Services\StockService;
 use App\Support\CurrentShop;
 use Database\Seeders\Concerns\SeedsDemoData;
 use Illuminate\Database\Seeder;
@@ -29,8 +27,8 @@ use RuntimeException;
  * including today, is the smallest number that makes every one of them say
  * something true.
  *
- * Billed through InvoiceService, which is what takes the stock, splits the
- * GST, numbers the invoice and posts to the customer's ledger. The mix of
+ * Billed through InvoiceService, which is what splits the GST, numbers the
+ * invoice and posts to the customer's ledger. The mix of
  * settlements is chosen so each downstream screen has work on it: cash sales
  * that are done with, credit sales that are not, cheques that have not
  * cleared, and a tail of overdue accounts for the dues and reminder modules.
@@ -51,7 +49,6 @@ class DemoSalesSeeder extends Seeder
         private readonly InvoiceService $invoices,
         private readonly PaymentService $payments,
         private readonly SalesReturnService $returns,
-        private readonly StockService $stock,
     ) {}
 
     public function run(): void
@@ -85,7 +82,6 @@ class DemoSalesSeeder extends Seeder
         }
 
         $shop = CurrentShop::get();
-        $warehouse = Warehouse::defaultFor($shop->id);
         $customers = Customer::query()
             ->where('is_active', true)
             ->where('allow_credit', true)
@@ -108,7 +104,7 @@ class DemoSalesSeeder extends Seeder
                 default => Carbon::today()->subDays($this->between(0, self::WINDOW_DAYS)),
             };
 
-            $items = $this->basket($warehouse);
+            $items = $this->basket($shop->id);
 
             if ($items === []) {
                 $skipped++;
@@ -128,7 +124,6 @@ class DemoSalesSeeder extends Seeder
 
             $data = [
                 'shop' => $shop,
-                'warehouse' => $warehouse,
                 'customer' => $customer,
                 'channel' => $this->chance(75) ? Invoice::POS : Invoice::MANUAL,
                 'invoiced_at' => $this->tradingHour($day),
@@ -167,7 +162,7 @@ class DemoSalesSeeder extends Seeder
             $raised++;
         }
 
-        $this->say(sprintf('%d invoices raised, %d not (stock or credit limit).', $raised, $skipped));
+        $this->say(sprintf('%d invoices raised, %d not (empty menu or credit limit).', $raised, $skipped));
     }
 
     /**
@@ -255,58 +250,34 @@ class DemoSalesSeeder extends Seeder
     }
 
     /**
-     * A basket of lines the shelf can actually cover.
+     * A basket of a few things off this shop's menu.
      *
-     * "In stock" is asked of StockService::planPick rather than worked out
-     * from a SUM here, because the two answers differ in exactly the ways
-     * that matter: the picker is confined to the warehouse being sold from,
-     * and it refuses expired lots when the shop says to. A basket built from
-     * the raw total would be accepted here and then thrown out by
-     * InvoiceService, losing the sale for a reason no report would explain.
+     * Sellable and available here, the same two filters the till applies, so
+     * InvoiceService never throws a line out for a reason the seeder did not
+     * ask about. There is no shelf to check: CRM keeps no count of stock.
      *
      * @return array<int, array<string, mixed>>
      */
-    private function basket(Warehouse $warehouse): array
+    private function basket(int $shopId): array
     {
-        $products = Product::query()
-            ->active()
-            ->whereHas('stocks', fn ($q) => $q->where('quantity', '>', 0))
+        return Product::query()
+            ->sellable()
+            ->availableAt($shopId)
             ->inRandomOrder()
             ->take($this->between(1, 5))
-            ->get();
-
-        $items = [];
-
-        foreach ($products as $product) {
-            $wanted = $this->between(1, 8);
-
-            $sellable = (float) $this->stock
-                ->planPick($product, $wanted, $warehouse, CurrentShop::id())
-                ->sum('quantity');
-
-            // Leave something on the shelf: a seeder that sells a product
-            // down to nothing every time leaves the reorder and out-of-stock
-            // screens saying the same thing about all twenty.
-            $quantity = (int) floor(min($wanted, $sellable));
-
-            if ($quantity < 1) {
-                continue;
-            }
-
-            $items[] = [
+            ->get()
+            ->map(fn (Product $product) => [
                 'product_id' => $product->id,
-                'quantity' => $quantity,
-            ];
-        }
-
-        return $items;
+                'quantity' => $this->between(1, 4),
+            ])
+            ->all();
     }
 
     /**
      * Cancel a couple, so the cancelled state is reachable on the list.
      *
-     * Through the service, so the stock goes back and the ledger entry is
-     * reversed rather than the row simply being restamped.
+     * Through the service, so the ledger entry is reversed rather than the
+     * row simply being restamped.
      */
     private function maybeCancel(Invoice $invoice, int $index): void
     {
@@ -393,9 +364,8 @@ class DemoSalesSeeder extends Seeder
     /**
      * Goods brought back.
      *
-     * Approved through the service so the stock returns to the shelf and the
-     * customer is credited or refunded - the settlement is what the dues
-     * screen then has to account for.
+     * Approved through the service so the customer is credited or refunded -
+     * the settlement is what the dues screen then has to account for.
      */
     private function salesReturns(): void
     {
@@ -427,7 +397,6 @@ class DemoSalesSeeder extends Seeder
 
             $return = SalesReturn::query()->create([
                 'shop_id' => $shop->id,
-                'warehouse_id' => $invoice->warehouse_id,
                 'invoice_id' => $invoice->id,
                 'customer_id' => $invoice->customer_id,
                 'customer_name' => $invoice->customer_name,
@@ -449,13 +418,11 @@ class DemoSalesSeeder extends Seeder
                 'sales_return_id' => $return->id,
                 'invoice_item_id' => $line->id,
                 'product_id' => $line->product_id,
-                'batch_id' => $line->batch_id,
                 'product_name' => $line->product_name,
                 'sku' => $line->sku,
                 'unit_code' => $line->unit_code,
-                'batch_no' => $line->batch_no,
                 'quantity' => $quantity,
-                'condition' => $this->pick(['resaleable', 'damaged']),
+                'condition' => $this->pick([SalesReturnItem::RESALABLE, SalesReturnItem::DAMAGED]),
                 'unit_price' => $line->unit_price,
                 'taxable_value' => $taxable,
                 'tax_rate' => $rate,
@@ -473,7 +440,7 @@ class DemoSalesSeeder extends Seeder
 
             // Half left pending, so the approvals screen has a queue.
             if ($index % 2 === 0) {
-                $this->returns->approve($return, 'Checked at the counter, stock back on the shelf.');
+                $this->returns->approve($return, 'Checked at the counter.');
                 $approved++;
             }
         }

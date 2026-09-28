@@ -4,7 +4,6 @@
 
 @section('content')
     @php
-        $stock = $product->availableStock($shop->id);
         $mrp = $product->mrpFor($shop->id);
         $price = $product->counterPriceFor($shop->id);
         $images = $product->images;
@@ -41,10 +40,8 @@
                 @endif
             </div>
 
-            @if ($stock <= 0)
+            @if ($product->is_sold_out)
                 <div class="shop-badge shop-badge-danger" style="margin-bottom:16px;">Out of stock</div>
-            @elseif ($product->isLowStock($shop->id))
-                <div class="shop-badge shop-badge-warning" style="margin-bottom:16px;">Only {{ rtrim(rtrim(number_format($stock, 2), '0'), '.') }} {{ $product->unit?->code }} left</div>
             @else
                 <div class="shop-badge shop-badge-success" style="margin-bottom:16px;">In stock</div>
             @endif
@@ -57,7 +54,7 @@
                     <input type="number" name="quantity" value="1" min="1" step="1">
                     <button type="button" onclick="this.previousElementSibling.stepUp()">+</button>
                 </div>
-                <button type="submit" class="shop-btn" @disabled($stock <= 0)>Add to cart</button>
+                <button type="submit" class="shop-btn" @disabled($product->is_sold_out)>Add to cart</button>
 
                 @auth('customer')
                     <button type="button" class="shop-btn shop-btn-outline"

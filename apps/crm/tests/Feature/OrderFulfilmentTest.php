@@ -7,13 +7,10 @@ use App\Models\Invoice;
 use App\Models\Order;
 use App\Models\Product;
 use App\Models\Shop;
-use App\Models\StockMovement;
 use App\Models\TaxRate;
 use App\Models\Unit;
 use App\Models\User;
-use App\Models\Warehouse;
 use App\Services\OrderService;
-use App\Services\StockService;
 use App\Support\CurrentShop;
 use Illuminate\Foundation\Testing\RefreshDatabase;
 use Illuminate\Support\Facades\Hash;
@@ -22,18 +19,13 @@ use Tests\TestCase;
 
 /**
  * Staff confirming and paying an online order - the point at which the
- * real Invoice is raised (OrderService::markPaid()) and stock actually
- * leaves the shelf via InvoiceService/StockService, not before.
+ * real Invoice is raised (OrderService::markPaid()), not before.
  */
 class OrderFulfilmentTest extends TestCase
 {
     use RefreshDatabase;
 
     private Shop $shop;
-
-    private Warehouse $warehouse;
-
-    private StockService $stock;
 
     private OrderService $orders;
 
@@ -47,8 +39,6 @@ class OrderFulfilmentTest extends TestCase
         CurrentShop::forget();
 
         $this->shop = Shop::first();
-        $this->warehouse = Warehouse::defaultFor($this->shop->id);
-        $this->stock = new StockService();
         $this->orders = app(OrderService::class);
     }
 
@@ -78,12 +68,12 @@ class OrderFulfilmentTest extends TestCase
         return $user;
     }
 
-    private function product(float $stock = 50): Product
+    private function product(): Product
     {
         static $counter = 0;
         $counter++;
 
-        $product = Product::create([
+        return Product::create([
             'name' => 'Fulfilment Product '.$counter,
             'slug' => Product::uniqueSlug('Fulfilment Product '.$counter),
             'sku' => Product::generateSku('FUL'.$counter),
@@ -96,10 +86,6 @@ class OrderFulfilmentTest extends TestCase
             'is_active' => true,
             'is_published' => true,
         ]);
-
-        $this->stock->receive($product, $stock, $this->warehouse, null, 100, StockMovement::PURCHASE, null, null, $this->shop->id);
-
-        return $product;
     }
 
     private function customer(): Customer
@@ -132,7 +118,7 @@ class OrderFulfilmentTest extends TestCase
         ]);
     }
 
-    public function test_confirm_then_mark_paid_raises_a_real_invoice_and_issues_stock(): void
+    public function test_confirm_then_mark_paid_raises_a_real_invoice(): void
     {
         $product = $this->product();
         $customer = $this->customer();
@@ -158,15 +144,6 @@ class OrderFulfilmentTest extends TestCase
         $invoice = Invoice::allShops()->findOrFail($order->invoice_id);
         $this->assertSame(Invoice::ONLINE, $invoice->channel);
         $this->assertEqualsWithDelta((float) $order->grand_total, (float) $invoice->grand_total, 0.02);
-
-        // Reservation released and stock actually issued exactly once.
-        $this->assertEqualsWithDelta(47.0, $product->fresh()->stockOnHand($this->shop->id), 0.01);
-        $this->assertEqualsWithDelta(47.0, $product->fresh()->availableStock($this->shop->id), 0.01);
-
-        $this->assertDatabaseHas('stock_movements', [
-            'product_id' => $product->id,
-            'type' => StockMovement::SALE,
-        ]);
     }
 
     public function test_marking_delivered_before_invoicing_is_refused(): void

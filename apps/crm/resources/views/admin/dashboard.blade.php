@@ -780,8 +780,8 @@
             </div>
         @endif
 
-        {{-- -------------------------------------------- the room and the shelf --}}
-        @if ($room || $stock || $customers)
+        {{-- ------------------------------------------------------- the room --}}
+        @if ($room || $customers)
             <div class="dash-row">
                 @if ($room)
                     <div class="dash-card">
@@ -852,57 +852,6 @@
                                     </dd>
                                 </div>
                                 <div><dt>Cleaning</dt><dd>{{ number_format($room['cleaning']) }}</dd></div>
-                            </dl>
-                        </div>
-                    </div>
-                @endif
-
-                @if ($stock)
-                    <div class="dash-card">
-                        <div class="dash-card-head">
-                            <div>
-                                <div class="dash-card-title">Stock</div>
-                                <div class="dash-card-sub">
-                                    {{ number_format($stock['lines']) }} line(s) on the shelf
-                                </div>
-                            </div>
-
-                            @allows('inventory.stock.view')
-                                <a class="btn btn-sm" href="{{ route('admin.stock.index') }}">Open</a>
-                            @endallows
-                        </div>
-
-                        <div class="dash-card-body">
-                            <div class="mix-head" style="margin-bottom: 14px">
-                                <strong title="{{ $money($stock['value']) }}">{{ $compact($stock['value']) }}</strong>
-                                <span>at average cost</span>
-                            </div>
-
-                            <dl class="metrics">
-                                <div>
-                                    <dt>At reorder level</dt>
-                                    <dd class="{{ $stock['low'] > 0 ? 'is-warn' : 'is-muted' }}">
-                                        {{ number_format($stock['low']) }}
-                                    </dd>
-                                </div>
-                                <div>
-                                    <dt>Out of stock</dt>
-                                    <dd class="{{ $stock['out'] > 0 ? 'is-bad' : 'is-muted' }}">
-                                        {{ number_format($stock['out']) }}
-                                    </dd>
-                                </div>
-                                <div>
-                                    <dt>Near expiry</dt>
-                                    <dd class="{{ $stock['near_expiry'] > 0 ? 'is-warn' : 'is-muted' }}">
-                                        {{ number_format($stock['near_expiry']) }}
-                                    </dd>
-                                </div>
-                                <div>
-                                    <dt>Expired, still held</dt>
-                                    <dd class="{{ $stock['expired'] > 0 ? 'is-bad' : 'is-muted' }}">
-                                        {{ number_format($stock['expired']) }}
-                                    </dd>
-                                </div>
                             </dl>
                         </div>
                     </div>
@@ -1014,7 +963,7 @@
             </div>
         @endif
 
-        @if (! $sales && ! $stock && ! $dues && ! $payments && ! $customers)
+        @if (! $sales && ! $dues && ! $payments && ! $customers)
             {{-- Somebody with a very narrow role. Better an honest empty screen
                  than a wall of tiles reading zero. --}}
             <div class="dash-card">

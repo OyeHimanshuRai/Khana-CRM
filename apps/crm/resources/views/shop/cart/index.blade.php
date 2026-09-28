@@ -24,9 +24,6 @@
                         <div>
                             <a href="{{ route('shop.product', [$shop, $product]) }}" class="shop-card-name">{{ $product->name }}</a>
                             <div class="shop-card-meta">₹{{ number_format($line['unit_price'], 2) }} / unit</div>
-                            @if ($line['quantity'] > $line['available_stock'])
-                                <div class="shop-stock-out">Only {{ rtrim(rtrim(number_format($line['available_stock'], 2), '0'), '.') ?: '0' }} available</div>
-                            @endif
                         </div>
 
                         <form action="{{ route('shop.cart.update', [$shop, $product]) }}" method="POST">

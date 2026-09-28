@@ -7,7 +7,6 @@ use App\Models\Customer;
 use App\Models\Payment;
 use App\Models\Product;
 use App\Models\TableSession;
-use App\Models\Warehouse;
 use App\Models\TableCartItem;
 use App\Services\MenuService;
 use App\Services\TableBillService;
@@ -89,7 +88,6 @@ class TableBillController extends Controller
         $data = [
             'session' => $session,
             'summary' => $this->bills->summary($session),
-            'warehouses' => Warehouse::active()->orderByDesc('is_default')->orderBy('name')->get(),
             'methods' => Payment::METHODS,
             'targets' => Gate::allows('pos.tables.move')
                 ? $this->bills->mergeTargets($session)
@@ -174,7 +172,6 @@ class TableBillController extends Controller
             'lines.*.order_item_id' => ['required', 'integer'],
             'lines.*.quantity' => ['required', 'numeric', 'min:0'],
             'customer_id' => ['nullable', 'integer'],
-            'warehouse_id' => ['nullable', 'integer'],
             'payments' => ['nullable', 'array'],
             'payments.*.method' => ['required', Rule::in(array_keys(Payment::METHODS))],
             'payments.*.amount' => ['required', 'numeric', 'min:0'],
@@ -207,7 +204,6 @@ class TableBillController extends Controller
                 // is not the same as "everything" - only an absent key is.
                 'lines' => $data['lines'] ?? null,
                 'customer' => $customer,
-                'warehouse' => isset($data['warehouse_id']) ? Warehouse::find($data['warehouse_id']) : null,
                 'payments' => $data['payments'] ?? [],
                 'invoice_discount' => (float) ($data['invoice_discount'] ?? 0),
                 'invoice_discount_percent' => (float) ($data['invoice_discount_percent'] ?? 0),

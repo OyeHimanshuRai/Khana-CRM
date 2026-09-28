@@ -9,19 +9,13 @@ use Illuminate\Database\Eloquent\Relations\HasMany;
 
 /**
  * One product line on an order, priced and named as it was at checkout.
- *
- * `reserved_batches` is the exact FEFO allocation StockService::reserve()
- * was given at placement time - [{batch_id, warehouse_id, quantity}, ...] -
- * kept so OrderService can release precisely that reservation later without
- * re-deriving it. A fresh pick at fulfilment time could legitimately choose
- * a different lot than the one actually held.
  */
 class OrderItem extends Model
 {
     protected $fillable = [
         'order_id', 'product_id', 'product_variant_id',
         'product_name', 'variant_name', 'sku', 'note',
-        'quantity', 'settled_quantity', 'unit_price', 'line_total', 'reserved_batches',
+        'quantity', 'settled_quantity', 'unit_price', 'line_total',
         'kitchen_station_id', 'kitchen_status',
         'kitchen_started_at', 'kitchen_ready_at', 'recipe_consumed_at',
     ];
@@ -33,7 +27,6 @@ class OrderItem extends Model
             'settled_quantity' => 'decimal:3',
             'unit_price' => 'decimal:4',
             'line_total' => 'decimal:2',
-            'reserved_batches' => 'array',
             'kitchen_started_at' => 'datetime',
             'kitchen_ready_at' => 'datetime',
             'recipe_consumed_at' => 'datetime',

@@ -1,5 +1,4 @@
 @php
-    $stock = $product->availableStock($shop->id);
     $mrp = $product->mrpFor($shop->id);
     $price = $product->counterPriceFor($shop->id);
     $image = $product->images->first()?->url();
@@ -28,18 +27,16 @@
             @endif
         </div>
 
-        @if ($stock <= 0)
+        @if ($product->is_sold_out)
             <div class="shop-stock-out">Out of stock</div>
-        @elseif ($product->isLowStock($shop->id))
-            <div class="shop-stock-low">Only a few left</div>
         @endif
 
         <form action="{{ route('shop.cart.add', $shop) }}" method="POST" data-ajax data-toast-success="false">
             @csrf
             <input type="hidden" name="product_id" value="{{ $product->id }}">
             <input type="hidden" name="quantity" value="1">
-            <button type="submit" class="shop-btn shop-btn-block shop-btn-sm" @disabled($stock <= 0)>
-                {{ $stock <= 0 ? 'Out of stock' : 'Add to cart' }}
+            <button type="submit" class="shop-btn shop-btn-block shop-btn-sm" @disabled($product->is_sold_out)>
+                {{ $product->is_sold_out ? 'Out of stock' : 'Add to cart' }}
             </button>
         </form>
     </div>

@@ -7,7 +7,6 @@ use App\Models\Invoice;
 use App\Models\Order;
 use App\Models\OrderItem;
 use App\Models\TableSession;
-use App\Models\Warehouse;
 use Illuminate\Support\Collection;
 use Illuminate\Support\Facades\DB;
 use RuntimeException;
@@ -126,7 +125,6 @@ class TableBillService
      * @param  array{
      *     lines?: array<int, array{order_item_id: int|string, quantity: float|string}>,
      *     customer?: \App\Models\Customer|null,
-     *     warehouse?: Warehouse|null,
      *     payments?: array<int, array<string, mixed>>,
      *     invoice_discount?: float,
      *     invoice_discount_percent?: float,
@@ -162,7 +160,6 @@ class TableBillService
             $invoice = $this->invoices->create([
                 'shop' => $session->shop,
                 'table_session_id' => $session->id,
-                'warehouse' => $options['warehouse'] ?? Warehouse::defaultFor($session->shop_id),
                 'customer' => $options['customer'] ?? $session->customer,
                 'channel' => Invoice::POS,
                 /*

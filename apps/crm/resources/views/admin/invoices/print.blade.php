@@ -134,11 +134,6 @@
 
                     <td>
                         {{ $item->product_name }}
-                        @if ($item->batch_no)
-                            <span class="doc-sub">
-                                Batch {{ $item->batch_no }}@if ($item->expiry_date) · Exp {{ $item->expiry_date->format('m/Y') }}@endif
-                            </span>
-                        @endif
                         @if ((float) $item->discount_amount > 0)
                             <span class="doc-sub">Less ₹{{ number_format((float) $item->discount_amount, 2) }}</span>
                         @endif

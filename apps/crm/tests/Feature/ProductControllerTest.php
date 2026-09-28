@@ -143,27 +143,7 @@ class ProductControllerTest extends TestCase
         $this->assertEqualsWithDelta(150.0, (float) $product->fresh()->selling_price, 0.01);
     }
 
-    public function test_a_product_holding_stock_cannot_be_deleted(): void
-    {
-        $staff = $this->staff(['inventory.products.delete']);
-
-        $product = Product::create([
-            'name' => 'Stocked Product', 'slug' => Product::uniqueSlug('Stocked Product'),
-            'sku' => Product::generateSku('STK'), 'unit_id' => $this->unit->id, 'selling_price' => 100,
-        ]);
-
-        $warehouse = \App\Models\Warehouse::allShops()->where('shop_id', $this->shop->id)->firstOrFail();
-        app(\App\Services\StockService::class)->receive(
-            $product, 10, $warehouse, null, 50, \App\Models\StockMovement::PURCHASE, null, null, $this->shop->id
-        );
-
-        $response = $this->actingAs($staff)->deleteJson(route('admin.products.destroy', $product));
-
-        $response->assertStatus(422)->assertJsonPath('success', false);
-        $this->assertNotNull($product->fresh());
-    }
-
-    public function test_a_product_with_no_stock_can_be_deleted(): void
+    public function test_a_product_can_be_deleted(): void
     {
         $staff = $this->staff(['inventory.products.delete']);
 

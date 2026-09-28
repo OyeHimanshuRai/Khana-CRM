@@ -2,11 +2,9 @@
 
 namespace App\Services;
 
-use App\Models\Shop;
 use App\Models\TaxRate;
 use App\Models\Tenant;
 use App\Models\Unit;
-use App\Models\Warehouse;
 
 /**
  * The vocabulary a new business cannot open without (§8, §10).
@@ -108,34 +106,6 @@ class CatalogStarter
                 'sort_order' => $index,
             ]);
         }
-    }
-
-    /**
-     * Somewhere for an outlet to put stock.
-     *
-     * Every branch needs one before a purchase can be received or a recipe can
-     * consume anything, and a restaurant should not have to know that to open
-     * its doors.
-     */
-    public function forShop(Shop|int $shop): void
-    {
-        $shopId = $shop instanceof Shop ? $shop->id : $shop;
-
-        if (Warehouse::allShops()->where('shop_id', $shopId)->exists()) {
-            return;
-        }
-
-        // withoutEvents, like the seeder: the shop is named explicitly and the
-        // model's own stamping would only ask the request which branch it is
-        // working in - which, at signup, is none yet.
-        Warehouse::withoutEvents(fn () => Warehouse::query()->create([
-            'shop_id' => $shopId,
-            'name' => 'Main Store',
-            'code' => 'MAIN',
-            'is_default' => true,
-            'is_active' => true,
-            'sort_order' => 0,
-        ]));
     }
 
     /* ----------------------------------------------------------- the lists */

@@ -220,8 +220,6 @@ class RolePermissionSeeder extends Seeder
                         'dashboard.overview.view',
                         'sales.orders.view', 'sales.orders.edit',
                         'sales.returns.view', 'sales.returns.create',
-                        'reports.stock_report.view', 'reports.stock_report.export',
-                        'reports.expiry_report.view', 'reports.expiry_report.export',
                     ], true),
             ],
 

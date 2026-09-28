@@ -4,11 +4,6 @@
     $image = $product->imageUrl();
     $price = $product->sellingPriceFor($shopId);
     $mrp = $product->mrpFor($shopId);
-    $reorder = $product->reorderLevelFor($shopId);
-    // A dish is cooked when it is ordered: no shelf, no count, no low-stock
-    // state to be in. See Product::tracksStock().
-    $tracksStock = $product->tracksStock();
-    $isLow = $tracksStock && $reorder > 0 && $onHand <= $reorder;
 @endphp
 
 <div class="cat-view">
@@ -36,16 +31,8 @@
                 {{ $product->is_published ? 'In online store' : 'Not listed online' }}
             </span>
 
-            @if ($product->track_batches)
-                <span class="badge badge-brand">Batch tracked</span>
-            @endif
-
-            @if (! $tracksStock)
-                <span class="badge badge-brand">Made to order</span>
-            @elseif ($onHand <= 0)
-                <span class="badge badge-danger">Out of stock</span>
-            @elseif ($isLow)
-                <span class="badge badge-warning">At reorder level</span>
+            @if ($product->is_sold_out)
+                <span class="badge badge-danger">Sold out</span>
             @endif
         </div>
 
@@ -66,33 +53,6 @@
             <div><dt>Unit</dt><dd>{{ $product->unit?->name ?? '—' }} ({{ $product->unit?->code }})</dd></div>
             <div><dt>Category</dt><dd>{{ $product->category?->name ?? '—' }}</dd></div>
             <div><dt>Brand</dt><dd>{{ $product->brand?->name ?? '—' }}</dd></div>
-            @if ($tracksStock)
-                <div>
-                    <dt>On hand{{ $shopId === null ? ' (all shops)' : '' }}</dt>
-                    <dd>{{ $product->unit?->format($onHand) ?? number_format($onHand, 3) }}</dd>
-                </div>
-                <div>
-                    <dt>Available</dt>
-                    <dd>
-                        {{ $product->unit?->format($available) ?? number_format($available, 3) }}
-                        @if ($available < $onHand)
-                            <span class="text-xs text-muted" style="display:block">rest is reserved for orders</span>
-                        @endif
-                    </dd>
-                </div>
-                <div><dt>Reorder level</dt><dd>{{ $reorder > 0 ? number_format($reorder, 3) : '—' }}</dd></div>
-            @else
-                <div>
-                    <dt>Stock</dt>
-                    <dd>
-                        Made to order
-                        <span class="text-xs text-muted" style="display:block">
-                            Its ingredients come off the shelf through the recipe when
-                            the kitchen cooks it, not when the bill is raised.
-                        </span>
-                    </dd>
-                </div>
-            @endif
             <div><dt>Manufacturer</dt><dd>{{ $product->manufacturer ?: '—' }}</dd></div>
         </dl>
 
@@ -150,48 +110,6 @@
         @endif
     </div>
 </div>
-
-@if ($stockRows->isNotEmpty())
-    <div style="margin-top:18px">
-        <div class="form-label">Where this stock is</div>
-
-        <div class="table-wrap" style="margin-top:6px">
-            <table class="table">
-                <thead>
-                    <tr>
-                        <th>Warehouse</th>
-                        <th>Batch</th>
-                        <th>Expiry</th>
-                        <th style="text-align:right">On hand</th>
-                        <th style="text-align:right">Reserved</th>
-                        <th style="text-align:right">Avg cost</th>
-                    </tr>
-                </thead>
-                <tbody>
-                    @foreach ($stockRows as $row)
-                        <tr>
-                            <td>{{ $row->warehouse?->name ?? '—' }}</td>
-                            <td>{{ $row->batch?->batch_no ?? '—' }}</td>
-                            <td>
-                                @if ($row->batch?->expiry_date)
-                                    @php $tone = $row->batch->expiryTone(); @endphp
-                                    <span @if ($tone) class="badge badge-{{ $tone }}" @endif>
-                                        {{ $row->batch->expiryLabel() }}
-                                    </span>
-                                @else
-                                    —
-                                @endif
-                            </td>
-                            <td style="text-align:right">{{ number_format((float) $row->quantity, 3) }}</td>
-                            <td style="text-align:right">{{ number_format((float) $row->reserved, 3) }}</td>
-                            <td style="text-align:right">₹{{ number_format((float) $row->average_cost, 2) }}</td>
-                        </tr>
-                    @endforeach
-                </tbody>
-            </table>
-        </div>
-    </div>
-@endif
 
 <div class="modal-actions">
     <button type="button" class="btn" data-modal-close>Close</button>

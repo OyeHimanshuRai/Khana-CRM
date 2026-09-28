@@ -28,8 +28,8 @@ class SalesReturnItem extends Model
     ];
 
     protected $fillable = [
-        'sales_return_id', 'invoice_item_id', 'product_id', 'batch_id',
-        'product_name', 'sku', 'unit_code', 'batch_no',
+        'sales_return_id', 'invoice_item_id', 'product_id',
+        'product_name', 'sku', 'unit_code',
         'quantity', 'condition',
         'unit_price', 'taxable_value', 'tax_rate', 'tax_amount', 'line_total',
         'unit_cost', 'note',
@@ -63,11 +63,6 @@ class SalesReturnItem extends Model
     public function product(): BelongsTo
     {
         return $this->belongsTo(Product::class);
-    }
-
-    public function batch(): BelongsTo
-    {
-        return $this->belongsTo(Batch::class);
     }
 
     /* --------------------------------------------------------- behaviour */

@@ -7,7 +7,6 @@ use App\Models\ParkedSale;
 use App\Models\Product;
 use App\Models\Shop;
 use App\Models\User;
-use App\Models\Warehouse;
 use App\Support\CurrentShop;
 use Illuminate\Foundation\Testing\RefreshDatabase;
 use Illuminate\Support\Facades\URL;
@@ -91,11 +90,6 @@ class HeldSaleTest extends TestCase
         ]);
     }
 
-    private function warehouse(): Warehouse
-    {
-        return Warehouse::query()->firstOrFail();
-    }
-
     /** @return array<string, mixed> */
     private function cart(?Product $dish = null): array
     {
@@ -103,7 +97,6 @@ class HeldSaleTest extends TestCase
 
         return [
             'channel' => Invoice::POS,
-            'warehouse_id' => $this->warehouse()->id,
             'items' => [
                 ['product_id' => $dish->id, 'quantity' => 2, 'unit_price' => 280],
             ],
@@ -209,7 +202,6 @@ class HeldSaleTest extends TestCase
 
         $this->postJson(route('admin.pos.park'), [
             'channel' => Invoice::POS,
-            'warehouse_id' => $this->warehouse()->id,
             'items' => [],
         ])->assertStatus(422);
     }

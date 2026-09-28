@@ -131,7 +131,7 @@ class Order extends Model
     public const PAYMENT_REFUNDED = 'refunded';
 
     protected $fillable = [
-        'shop_id', 'customer_id', 'warehouse_id',
+        'shop_id', 'customer_id',
         'table_session_id', 'order_type', 'guest_name', 'guest_mobile',
         'order_number', 'status', 'payment_method', 'payment_status',
         'subtotal', 'discount_total', 'coupon_id', 'coupon_code',
@@ -254,11 +254,6 @@ class Order extends Model
         }
     }
 
-
-    public function warehouse(): BelongsTo
-    {
-        return $this->belongsTo(Warehouse::class);
-    }
 
     public function items(): HasMany
     {

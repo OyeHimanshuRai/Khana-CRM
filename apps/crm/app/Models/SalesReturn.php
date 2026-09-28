@@ -64,7 +64,7 @@ class SalesReturn extends Model
     ];
 
     protected $fillable = [
-        'shop_id', 'warehouse_id', 'invoice_id', 'customer_id', 'customer_name',
+        'shop_id', 'invoice_id', 'customer_id', 'customer_name',
         'reference', 'returned_on', 'status',
         'reason_code', 'reason', 'settlement', 'review_note',
     ];
@@ -94,11 +94,6 @@ class SalesReturn extends Model
     public function customer(): BelongsTo
     {
         return $this->belongsTo(Customer::class);
-    }
-
-    public function warehouse(): BelongsTo
-    {
-        return $this->belongsTo(Warehouse::class);
     }
 
     public function items(): HasMany

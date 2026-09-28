@@ -62,15 +62,6 @@
                     </div>
                 @endif
 
-                @if ($key === 'expiry')
-                    <div class="field">
-                        <label for="r-days">Within days</label>
-                        <input id="r-days" type="number" name="days" class="form-control"
-                               value="{{ $days }}" min="0" max="3650">
-                        <div class="form-hint">Anything already expired is always included.</div>
-                    </div>
-                @endif
-
                 <div class="field" style="align-self:end">
                     <button type="submit" class="btn btn-primary">Run report</button>
                 </div>
@@ -174,54 +165,6 @@
                     {{-- A rupee total says nothing about whether it is a lot;
                          share of what went out does. --}}
                     <span class="text-xs text-muted">of what was sold in the period</span>
-                </div>
-            </div>
-        </div>
-    @endif
-
-    @if ($key === 'transfers')
-        @php $s = $data['summary']; @endphp
-
-        <div class="stat-grid">
-            <div class="stat">
-                <div class="stat-icon is-info"><x-icon name="truck" :size="21" /></div>
-                <div class="stat-body">
-                    <div class="stat-label">Transfers</div>
-                    <div class="stat-value">{{ number_format($s['transfers']) }}</div>
-                    <span class="text-xs text-muted">{{ number_format($s['received']) }} booked in</span>
-                </div>
-            </div>
-
-            <div class="stat">
-                <div class="stat-icon"><x-icon name="package" :size="21" /></div>
-                <div class="stat-body">
-                    <div class="stat-label">Stock moved</div>
-                    <div class="stat-value">{{ $short($s['value']) }}</div>
-                    <span class="text-xs text-muted">{{ number_format($s['quantity'], 3) }} unit(s)</span>
-                </div>
-            </div>
-
-            <div class="stat">
-                <div class="stat-icon" style="background: var(--warning-soft); color: var(--warning)">
-                    <x-icon name="clock" :size="21" />
-                </div>
-                <div class="stat-body">
-                    <div class="stat-label">On the van</div>
-                    <div class="stat-value">{{ $short($s['in_transit_value']) }}</div>
-                    {{-- In neither warehouse, which is the whole reason a
-                         transfer is two steps rather than one. --}}
-                    <span class="text-xs text-muted">
-                        {{ number_format($s['in_transit']) }} dispatched, not yet received
-                    </span>
-                </div>
-            </div>
-
-            <div class="stat">
-                <div class="stat-icon"><x-icon name="file" :size="21" /></div>
-                <div class="stat-body">
-                    <div class="stat-label">Awaiting dispatch</div>
-                    <div class="stat-value">{{ number_format($s['pending']) }}</div>
-                    <span class="text-xs text-muted">raised or approved, not sent</span>
                 </div>
             </div>
         </div>

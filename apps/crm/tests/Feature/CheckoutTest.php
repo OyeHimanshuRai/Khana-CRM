@@ -8,11 +8,8 @@ use App\Models\Invoice;
 use App\Models\Order;
 use App\Models\Product;
 use App\Models\Shop;
-use App\Models\StockMovement;
 use App\Models\TaxRate;
 use App\Models\Unit;
-use App\Models\Warehouse;
-use App\Services\StockService;
 use App\Support\CurrentShop;
 use Illuminate\Foundation\Testing\RefreshDatabase;
 use Illuminate\Support\Facades\Hash;
@@ -20,19 +17,14 @@ use Illuminate\Support\Facades\URL;
 use Tests\TestCase;
 
 /**
- * Checkout: cart -> Order, with stock reserved (not issued) and no Invoice
- * raised yet - see the Order model's docblock for why the two documents
- * are kept apart.
+ * Checkout: cart -> Order, with no Invoice raised yet - see the Order
+ * model's docblock for why the two documents are kept apart.
  */
 class CheckoutTest extends TestCase
 {
     use RefreshDatabase;
 
     private Shop $shop;
-
-    private Warehouse $warehouse;
-
-    private StockService $stock;
 
     protected function setUp(): void
     {
@@ -44,8 +36,6 @@ class CheckoutTest extends TestCase
         CurrentShop::forget();
 
         $this->shop = Shop::first();
-        $this->warehouse = Warehouse::defaultFor($this->shop->id);
-        $this->stock = new StockService();
     }
 
     protected function tearDown(): void
@@ -55,12 +45,12 @@ class CheckoutTest extends TestCase
         parent::tearDown();
     }
 
-    private function product(float $stock = 50): Product
+    private function product(): Product
     {
         static $counter = 0;
         $counter++;
 
-        $product = Product::create([
+        return Product::create([
             'name' => 'Checkout Product '.$counter,
             'slug' => Product::uniqueSlug('Checkout Product '.$counter),
             'sku' => Product::generateSku('CHK'.$counter),
@@ -73,12 +63,6 @@ class CheckoutTest extends TestCase
             'is_active' => true,
             'is_published' => true,
         ]);
-
-        if ($stock > 0) {
-            $this->stock->receive($product, $stock, $this->warehouse, null, 100, StockMovement::PURCHASE, null, null, $this->shop->id);
-        }
-
-        return $product;
     }
 
     private function customer(array $attributes = []): Customer
@@ -129,7 +113,7 @@ class CheckoutTest extends TestCase
         ];
     }
 
-    public function test_cod_checkout_creates_a_pending_order_and_reserves_stock_without_invoicing(): void
+    public function test_cod_checkout_creates_a_pending_order_without_invoicing(): void
     {
         $product = $this->product();
         $customer = $this->customer();
@@ -150,9 +134,6 @@ class CheckoutTest extends TestCase
         $this->assertSame(Order::PAYMENT_PENDING, $order->payment_status);
         $this->assertNull($order->invoice_id);
         $this->assertSame(0, Invoice::allShops()->count());
-
-        $this->assertEqualsWithDelta(47.0, $product->fresh()->availableStock($this->shop->id), 0.01);
-        $this->assertEqualsWithDelta(50.0, $product->fresh()->stockOnHand($this->shop->id), 0.01);
     }
 
     public function test_a_valid_coupon_reduces_the_order_total_correctly(): void
@@ -184,24 +165,6 @@ class CheckoutTest extends TestCase
         $this->assertEqualsWithDelta(360.0, (float) $order->subtotal, 0.01);
         $this->assertEqualsWithDelta(36.0, (float) $order->discount_total, 0.01);
         $this->assertEqualsWithDelta(324.0, (float) $order->grand_total, 0.01);
-    }
-
-    public function test_checking_out_more_than_available_stock_is_refused_and_leaves_no_reservation(): void
-    {
-        $product = $this->product(5);
-        $customer = $this->customer();
-        $this->loginAs($customer);
-
-        $this->post(route('shop.cart.add', $this->shop), [
-            'product_id' => $product->id,
-            'quantity' => 100,
-        ]);
-
-        $this->post(route('shop.checkout.store', $this->shop), $this->checkoutPayload())
-            ->assertRedirect();
-
-        $this->assertSame(0, Order::forShop($this->shop->id)->where('customer_id', $customer->id)->count());
-        $this->assertEqualsWithDelta(5.0, $product->fresh()->availableStock($this->shop->id), 0.01);
     }
 
     public function test_a_shop_a_customer_cannot_check_out_against_shop_b(): void

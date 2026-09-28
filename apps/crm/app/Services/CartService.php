@@ -47,7 +47,6 @@ class CartService
                     'quantity' => $quantity,
                     'unit_price' => $price,
                     'line_total' => round($price * $quantity, 2),
-                    'available_stock' => $product->availableStock($shop->id),
                 ];
             })
             ->values();

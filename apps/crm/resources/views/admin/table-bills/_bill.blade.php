@@ -229,19 +229,6 @@
                         </p>
                     </div>
 
-                    @if ($warehouses->count() > 1)
-                        <div class="field">
-                            <label for="tb-warehouse">Serve from</label>
-                            <select id="tb-warehouse" name="warehouse_id" class="form-control">
-                                @foreach ($warehouses as $warehouse)
-                                    <option value="{{ $warehouse->id }}" @selected($warehouse->is_default)>
-                                        {{ $warehouse->name }}
-                                    </option>
-                                @endforeach
-                            </select>
-                        </div>
-                    @endif
-
                     @if ($canDiscount)
                         <div class="field">
                             <label for="tb-discount">Bill discount (₹)</label>

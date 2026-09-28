@@ -3,16 +3,12 @@
 namespace App\Services;
 
 use App\Models\ActivityLog;
-use App\Models\Batch;
 use App\Models\Customer;
 use App\Models\CustomerLedger;
 use App\Models\Invoice;
 use App\Models\Payment;
 use App\Models\Product;
-use App\Models\ProductStock;
 use App\Models\Shop;
-use App\Models\StockMovement;
-use App\Models\Warehouse;
 use Illuminate\Support\Collection;
 use Illuminate\Support\Facades\Auth;
 use Illuminate\Support\Facades\DB;
@@ -22,9 +18,14 @@ use RuntimeException;
  * Raising, and reversing, a sales invoice.
  *
  * The whole of billing happens in one transaction: number, lines, tax,
- * stock, payments and the customer's ledger. Half a sale is worse than no sale
- * - stock gone with no invoice, or an invoice with no stock movement - so there
- * is no path here that can leave one without the others.
+ * payments and the customer's ledger. Half a sale is worse than no sale, so
+ * there is no path here that can leave one without the others.
+ *
+ * Stock is deliberately not one of the things this books. CRM tracks no
+ * stock of its own - see the architecture doc's "CRM alone" table - so there
+ * is nothing here to reserve, allocate by batch, or move. A dish's cost is
+ * whatever the catalogue says it costs to make, typed in by hand, not a
+ * weighted average read off a shelf that does not exist in this service.
  *
  * Rounding is decided in one place and stated once: money to 2 decimals at
  * every step, and the grand total rounded to the nearest rupee with the
@@ -34,7 +35,6 @@ use RuntimeException;
 class InvoiceService
 {
     public function __construct(
-        private readonly StockService $stock,
         private readonly LedgerService $ledger,
         private readonly AlertService $alerts,
         private readonly LoyaltyService $loyalty,
@@ -45,7 +45,6 @@ class InvoiceService
      *
      * @param  array{
      *     shop: Shop,
-     *     warehouse?: Warehouse|null,
      *     customer?: Customer|null,
      *     channel?: string,
      *     invoiced_at?: \DateTimeInterface|null,
@@ -69,15 +68,11 @@ class InvoiceService
         // one sitting. Null everywhere else. See TableBillService.
         $sessionId = $data['table_session_id'] ?? null;
 
-        $warehouse = $data['warehouse']
-            ?? Warehouse::defaultFor($shop->id)
-            ?? throw new RuntimeException('That shop has no warehouse to sell from.');
-
         if (empty($data['items'])) {
             throw new RuntimeException('An invoice needs at least one line.');
         }
 
-        $invoice = DB::transaction(function () use ($data, $shop, $customer, $channel, $warehouse, $sessionId) {
+        $invoice = DB::transaction(function () use ($data, $shop, $customer, $channel, $sessionId) {
             /*
              | Whether GST splits as CGST+SGST or as IGST is decided once,
              | here, from the two addresses as they stand today - and then
@@ -88,7 +83,6 @@ class InvoiceService
 
             $invoice = new Invoice([
                 'shop_id' => $shop->id,
-                'warehouse_id' => $warehouse->id,
                 'customer_id' => $customer?->id,
                 'table_session_id' => $sessionId,
                 'customer_name' => $customer?->name ?? ($data['walk_in_name'] ?? null),
@@ -113,8 +107,8 @@ class InvoiceService
 
             $invoice->save();
 
-            // 1. Work out the lines, allocating batches where needed.
-            $lines = $this->buildLines($data['items'], $shop, $warehouse, $interState);
+            // 1. Work out the lines: priced, discounted and taxed.
+            $lines = $this->buildLines($data['items'], $shop, $interState);
 
             // 2. Spread any invoice-level discount across them, so the tax
             //    on each line reflects what was actually charged for it.
@@ -125,8 +119,8 @@ class InvoiceService
                 $interState,
             );
 
-            // 3. Persist the lines and take the stock.
-            $this->commitLines($invoice, $lines, $warehouse, $shop);
+            // 3. Persist the lines.
+            $this->commitLines($invoice, $lines);
 
             // 4. Total it up.
             $this->settleTotals($invoice, $lines, (float) ($data['invoice_discount_percent'] ?? 0));
@@ -192,16 +186,14 @@ class InvoiceService
     /**
      * Turn the submitted rows into priced, taxed lines.
      *
-     * A batch-tracked product with no batch chosen is allocated across lots
-     * oldest-expiry-first, which can turn one submitted row into several
-     * lines. That is correct rather than tidy: two lots bought at different
-     * costs are two different things on the shelf, and the invoice has to
-     * say which one the customer got.
+     * One row in, one line out. There is no batch to split a quantity
+     * across - see the class docblock - so what the counter asked for is
+     * exactly what gets priced.
      *
      * @param  array<int, array<string, mixed>>  $items
      * @return Collection<int, array<string, mixed>>
      */
-    private function buildLines(array $items, Shop $shop, Warehouse $warehouse, bool $interState): Collection
+    private function buildLines(array $items, Shop $shop, bool $interState): Collection
     {
         $lines = collect();
 
@@ -217,82 +209,10 @@ class InvoiceService
                 $quantity = $product->unit->normalise($quantity);
             }
 
-            $batchId = isset($row['batch_id']) && $row['batch_id'] !== '' ? (int) $row['batch_id'] : null;
-
-            $allocations = match (true) {
-                /*
-                 | A dish is made, not taken off a shelf.
-                 |
-                 | No lot, no availability check and - below - no movement.
-                 | A restaurant has no stock of Butter Naan, and refusing to
-                 | bill a table because a counter says there are none would be
-                 | refusing money for food that has already been eaten.
-                 |
-                 | See the migration, and §10's recipes, which will deduct the
-                 | ingredients this dish was actually made from.
-                 */
-                (bool) $product->is_made_to_order => [['batch' => null, 'quantity' => $quantity]],
-
-                $batchId !== null || ! $product->track_batches
-                    => [['batch' => $batchId ? Batch::findOrFail($batchId) : null, 'quantity' => $quantity]],
-
-                default => $this->allocate($product, $quantity, $warehouse, $shop),
-            };
-
-            foreach ($allocations as $allocation) {
-                $lines->push($this->priceLine(
-                    $product,
-                    $allocation['batch'],
-                    $allocation['quantity'],
-                    $row,
-                    $shop,
-                    $warehouse,
-                    $interState,
-                ));
-            }
+            $lines->push($this->priceLine($product, $quantity, $row, $shop, $interState));
         }
 
         return $lines;
-    }
-
-    /**
-     * Split a quantity across lots, oldest expiry first.
-     *
-     * @return array<int, array{batch: Batch|null, quantity: float}>
-     */
-    private function allocate(Product $product, float $quantity, Warehouse $warehouse, Shop $shop): array
-    {
-        $plan = $this->stock->planPick($product, $quantity, $warehouse, $shop->id);
-        $picked = (float) $plan->sum('quantity');
-
-        if ($picked + 0.0005 < $quantity && ! $shop->allow_negative_stock) {
-            throw new RuntimeException(sprintf(
-                'Only %s of "%s" is available to sell%s.',
-                rtrim(rtrim(number_format($picked, 3, '.', ''), '0'), '.') ?: '0',
-                $product->name,
-                $shop->block_expired_sale ? ' (expired lots excluded)' : '',
-            ));
-        }
-
-        if ($plan->isEmpty()) {
-            // Nothing on the shelf and the shop permits going negative:
-            // sell against no lot rather than refusing the customer.
-            return [['batch' => null, 'quantity' => $quantity]];
-        }
-
-        $allocations = $plan
-            ->map(fn (array $row) => ['batch' => $row['batch'], 'quantity' => (float) $row['quantity']])
-            ->all();
-
-        // A shortfall the shop has allowed goes onto the last lot, so the
-        // quantities still add up to what was asked for.
-        $shortfall = $quantity - $picked;
-
-        if ($shortfall > 0.0005) {
-            $allocations[count($allocations) - 1]['quantity'] += $shortfall;
-        }
-
-        return $allocations;
     }
 
     /**
@@ -303,11 +223,9 @@ class InvoiceService
      */
     private function priceLine(
         Product $product,
-        ?Batch $batch,
         float $quantity,
         array $row,
         Shop $shop,
-        Warehouse $warehouse,
         bool $interState,
     ): array {
         $taxRate = $product->taxRate;
@@ -323,8 +241,6 @@ class InvoiceService
              */
             array_key_exists('unit_price', $row) && $row['unit_price'] !== null && $row['unit_price'] !== ''
                 => (float) $row['unit_price'],
-
-            $batch && (float) $batch->selling_price > 0 => (float) $batch->selling_price,
 
             default => $product->sellingPriceFor($shop->id),
         };
@@ -367,9 +283,8 @@ class InvoiceService
 
         return [
             'product' => $product,
-            'batch' => $batch,
             'quantity' => $quantity,
-            'mrp' => $batch && (float) $batch->mrp > 0 ? (float) $batch->mrp : $product->mrpFor($shop->id),
+            'mrp' => $product->mrpFor($shop->id),
             'unit_price' => $unitExclusive,
             'entered_price' => $entered,
             'discount_percent' => $discountPercent,
@@ -382,7 +297,7 @@ class InvoiceService
             'sgst' => $split['sgst'],
             'igst' => $split['igst'],
             'cess' => $split['cess'],
-            'unit_cost' => $this->costOf($product, $batch, $warehouse, $shop),
+            'unit_cost' => $this->costOf($product, $shop),
             'note' => $row['note'] ?? null,
             /*
              | What the bill calls this line, when the caller knows better
@@ -401,27 +316,14 @@ class InvoiceService
     /**
      * What this line's goods cost the shop.
      *
-     * Read from the exact slot being sold from, so a batch bought dear and a
-     * batch bought cheap are costed differently on the same invoice. Falls
-     * back to the product's purchase price when the slot has no cost yet -
-     * without which the margin on a first sale would read as pure profit.
+     * The catalogue's own purchase price - "optional cost typed by hand" per
+     * the architecture doc's CRM-alone row. There is no weighted-average
+     * stock cost to read here; a shop that wants a live recipe cost instead
+     * gets one from ERP.
      */
-    private function costOf(Product $product, ?Batch $batch, Warehouse $warehouse, Shop $shop): float
+    private function costOf(Product $product, Shop $shop): float
     {
-        $cost = (float) (ProductStock::allShops()
-            ->where('shop_id', $shop->id)
-            ->where('warehouse_id', $warehouse->id)
-            ->where('product_id', $product->id)
-            ->where('batch_id', $batch?->id)
-            ->value('average_cost') ?? 0);
-
-        if ($cost > 0) {
-            return $cost;
-        }
-
-        $batchCost = (float) ($batch?->purchase_price ?? 0);
-
-        return $batchCost > 0 ? $batchCost : (float) $product->purchasePriceFor($shop->id);
+        return (float) $product->purchasePriceFor($shop->id);
     }
 
     /**
@@ -479,29 +381,24 @@ class InvoiceService
     }
 
     /**
-     * Write the lines and take the stock.
+     * Write the lines.
      *
      * @param  Collection<int, array<string, mixed>>  $lines
      */
-    private function commitLines(Invoice $invoice, Collection $lines, Warehouse $warehouse, Shop $shop): void
+    private function commitLines(Invoice $invoice, Collection $lines): void
     {
         foreach ($lines as $line) {
             /** @var Product $product */
             $product = $line['product'];
-            /** @var Batch|null $batch */
-            $batch = $line['batch'];
 
             $tax = $line['cgst'] + $line['sgst'] + $line['igst'] + $line['cess'];
 
             $invoice->items()->create([
                 'product_id' => $product->id,
-                'batch_id' => $batch?->id,
                 'product_name' => $line['name'] ?? $product->name,
                 'sku' => $product->sku,
                 'hsn_code' => $product->hsn_code,
                 'unit_code' => $product->unit?->code,
-                'batch_no' => $batch?->batch_no,
-                'expiry_date' => $batch?->expiry_date,
                 'quantity' => $line['quantity'],
                 'mrp' => $line['mrp'],
                 'unit_price' => $line['unit_price'],
@@ -516,21 +413,6 @@ class InvoiceService
                 'line_total' => round($line['taxable_value'] + $tax, 2),
                 'unit_cost' => $line['unit_cost'],
             ]);
-
-            // Nothing moves for a dish: there was never a count of it to
-            // move. See buildLines().
-            if (! $product->is_made_to_order) {
-                $this->stock->issue(
-                    $product,
-                    $line['quantity'],
-                    $warehouse,
-                    $batch,
-                    StockMovement::SALE,
-                    $invoice,
-                    'Invoice '.$invoice->number,
-                    $shop->id,
-                );
-            }
         }
     }
 
@@ -742,27 +624,6 @@ class InvoiceService
         }
 
         return DB::transaction(function () use ($invoice, $reason) {
-            $shop = Shop::withTrashed()->findOrFail($invoice->shop_id);
-            $warehouse = $invoice->warehouse;
-
-            foreach ($invoice->items as $item) {
-                if ($item->product === null || $warehouse === null) {
-                    continue;
-                }
-
-                $this->stock->receive(
-                    $item->product,
-                    (float) $item->quantity,
-                    $warehouse,
-                    $item->batch,
-                    (float) $item->unit_cost,
-                    StockMovement::SALE_RETURN,
-                    $invoice,
-                    'Cancelled invoice '.$invoice->number,
-                    $shop->id,
-                );
-            }
-
             $customer = $invoice->customer;
 
             if ($customer) {

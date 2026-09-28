@@ -2,21 +2,17 @@
 
 namespace Tests\Feature;
 
-use App\Models\Batch;
 use App\Models\Customer;
 use App\Models\CustomerLedger;
 use App\Models\Invoice;
 use App\Models\Payment;
 use App\Models\Product;
 use App\Models\Shop;
-use App\Models\StockMovement;
 use App\Models\TaxRate;
 use App\Models\Unit;
-use App\Models\Warehouse;
 use App\Services\AlertService;
 use App\Services\InvoiceService;
 use App\Services\LedgerService;
-use App\Services\StockService;
 use App\Support\CurrentShop;
 use Illuminate\Foundation\Testing\RefreshDatabase;
 use RuntimeException;
@@ -32,8 +28,7 @@ use Tests\TestCase;
  *   - GST splits the right way for the place of supply
  *   - an invoice-level discount reduces each line's taxable value, so the
  *     tax on the return matches the tax on the paper
- *   - stock leaves exactly when an invoice is raised, and comes back exactly
- *     when it is cancelled
+ *   - the cost of a sale is captured at billing time and never restated
  *   - credit is refused when it should be, before anything else happens
  */
 class InvoiceServiceTest extends TestCase
@@ -41,10 +36,6 @@ class InvoiceServiceTest extends TestCase
     use RefreshDatabase;
 
     private Shop $shop;
-
-    private Warehouse $warehouse;
-
-    private StockService $stock;
 
     private InvoiceService $invoices;
 
@@ -58,19 +49,6 @@ class InvoiceServiceTest extends TestCase
         $this->shop = Shop::firstOrFail();
         $this->shop->forceFill(['state' => 'Maharashtra', 'state_code' => '27'])->save();
 
-        $this->warehouse = Warehouse::allShops()->where('shop_id', $this->shop->id)->firstOrFail();
-
-        $this->stock = new StockService();
-        /*
-         | Built through the container rather than by hand.
-         |
-         | Constructed literally, this breaks every time the service gains a
-         | dependency - which it has, twice - and the failure lands on four
-         | test files that have nothing to do with the change. The one thing
-         | these tests DO care about is holding on to the same StockService,
-         | so that is bound explicitly and the rest is resolved.
-         */
-        $this->app->instance(StockService::class, $this->stock);
         $this->invoices = $this->app->make(InvoiceService::class);
     }
 
@@ -83,8 +61,8 @@ class InvoiceServiceTest extends TestCase
 
     /* ------------------------------------------------------------ fixtures */
 
-    /** A product priced tax-inclusive at 18%, with stock on the shelf. */
-    private function product(array $attributes = [], float $stock = 100, float $cost = 200): Product
+    /** A product priced tax-inclusive at 18%. */
+    private function product(array $attributes = [], float $cost = 200): Product
     {
         $unit = Unit::where('code', 'PCS')->firstOrFail();
         $gst18 = TaxRate::where('name', 'GST 18%')->firstOrFail();
@@ -92,7 +70,7 @@ class InvoiceServiceTest extends TestCase
         static $counter = 0;
         $counter++;
 
-        $product = Product::create([
+        return Product::create([
             'name' => 'Test Product '.$counter,
             'slug' => Product::uniqueSlug('Test Product '.$counter),
             'sku' => Product::generateSku('TEST'.$counter),
@@ -104,15 +82,6 @@ class InvoiceServiceTest extends TestCase
             'tax_inclusive' => true,
             ...$attributes,
         ]);
-
-        if ($stock > 0) {
-            $this->stock->receive(
-                $product, $stock, $this->warehouse, null, $cost,
-                StockMovement::PURCHASE, null, null, $this->shop->id
-            );
-        }
-
-        return $product;
     }
 
     private function customer(array $attributes = []): Customer
@@ -142,7 +111,6 @@ class InvoiceServiceTest extends TestCase
     {
         return $this->invoices->create([
             'shop' => $this->shop,
-            'warehouse' => $this->warehouse,
             'items' => $items,
             ...$extra,
         ]);
@@ -305,113 +273,6 @@ class InvoiceServiceTest extends TestCase
         );
     }
 
-    /* -------------------------------------------------------------- stock */
-
-    public function test_raising_an_invoice_takes_the_stock(): void
-    {
-        $product = $this->product(stock: 50);
-
-        $this->bill([
-            ['product_id' => $product->id, 'quantity' => 12],
-        ], ['payments' => [['method' => 'cash', 'amount' => 2832]]]);
-
-        $this->assertSame(38.0, $product->stockOnHand($this->shop->id));
-
-        $movement = StockMovement::allShops()
-            ->where('product_id', $product->id)
-            ->where('type', StockMovement::SALE)
-            ->sole();
-
-        $this->assertSame(-12.0, (float) $movement->quantity);
-    }
-
-    public function test_selling_more_than_is_on_the_shelf_is_refused(): void
-    {
-        $product = $this->product(stock: 5);
-
-        $this->expectException(RuntimeException::class);
-
-        $this->bill([
-            ['product_id' => $product->id, 'quantity' => 9],
-        ], ['payments' => [['method' => 'cash', 'amount' => 2124]]]);
-    }
-
-    public function test_a_refused_sale_leaves_no_invoice_and_no_stock_movement(): void
-    {
-        // The whole sale is one transaction: a line that cannot be filled
-        // must not leave a numbered invoice behind with nothing on it.
-        $product = $this->product(stock: 5);
-
-        try {
-            $this->bill([
-                ['product_id' => $product->id, 'quantity' => 9],
-            ], ['payments' => [['method' => 'cash', 'amount' => 2124]]]);
-        } catch (RuntimeException) {
-            // expected
-        }
-
-        $this->assertSame(0, Invoice::allShops()->count());
-        $this->assertSame(5.0, $product->stockOnHand($this->shop->id));
-        $this->assertSame(0, Payment::allShops()->count());
-    }
-
-    public function test_a_batch_tracked_product_is_sold_oldest_expiry_first(): void
-    {
-        $unit = Unit::where('code', 'PCS')->firstOrFail();
-
-        $product = Product::create([
-            'name' => 'Batched Product',
-            'slug' => Product::uniqueSlug('Batched Product'),
-            'sku' => Product::generateSku('BATCH'),
-            'unit_id' => $unit->id,
-            'selling_price' => 100,
-            'tax_inclusive' => false,
-            'track_batches' => true,
-        ]);
-
-        $soon = $this->batch($product, 'SOON', now()->addMonth()->toDateString());
-        $late = $this->batch($product, 'LATE', now()->addYear()->toDateString());
-
-        $this->stock->receive($product, 4, $this->warehouse, $soon, 60,
-            StockMovement::PURCHASE, null, null, $this->shop->id);
-        $this->stock->receive($product, 10, $this->warehouse, $late, 70,
-            StockMovement::PURCHASE, null, null, $this->shop->id);
-
-        $invoice = $this->bill([
-            ['product_id' => $product->id, 'quantity' => 6],
-        ], ['payments' => [['method' => 'cash', 'amount' => 600]]]);
-
-        // One submitted row, two lines - because two different lots left the
-        // shelf and the invoice has to say which.
-        $this->assertCount(2, $invoice->items);
-
-        $first = $invoice->items[0];
-        $second = $invoice->items[1];
-
-        $this->assertSame('SOON', $first->batch_no);
-        $this->assertSame(4.0, (float) $first->quantity);
-        $this->assertSame('LATE', $second->batch_no);
-        $this->assertSame(2.0, (float) $second->quantity);
-
-        // Each line carries its own lot's cost.
-        $this->assertSame(60.0, (float) $first->unit_cost);
-        $this->assertSame(70.0, (float) $second->unit_cost);
-    }
-
-    private function batch(Product $product, string $number, string $expiry): Batch
-    {
-        $batch = new Batch([
-            'shop_id' => $this->shop->id,
-            'product_id' => $product->id,
-            'batch_no' => $number,
-            'expiry_date' => $expiry,
-        ]);
-
-        $batch->saveQuietly();
-
-        return $batch;
-    }
-
     /* ------------------------------------------------------------- credit */
 
     public function test_a_cash_only_customer_cannot_be_billed_on_credit(): void
@@ -524,9 +385,9 @@ class InvoiceServiceTest extends TestCase
 
     /* ------------------------------------------------------------ cancel */
 
-    public function test_cancelling_puts_the_stock_back_and_reverses_the_account(): void
+    public function test_cancelling_reverses_the_account(): void
     {
-        $product = $this->product(stock: 50);
+        $product = $this->product();
         $customer = $this->customer(['allow_credit' => true, 'credit_limit' => 10000]);
 
         $invoice = $this->bill(
@@ -534,13 +395,11 @@ class InvoiceServiceTest extends TestCase
             ['customer' => $customer, 'payments' => []],
         );
 
-        $this->assertSame(40.0, $product->stockOnHand($this->shop->id));
         $this->assertSame(2360.00, (float) $customer->fresh()->balance);
 
         $this->invoices->cancel($invoice, 'Customer changed their mind');
 
         $this->assertSame(Invoice::CANCELLED, $invoice->fresh()->status);
-        $this->assertSame(50.0, $product->stockOnHand($this->shop->id));
         $this->assertSame(0.00, (float) $customer->fresh()->balance);
         $this->assertSame(0.00, (float) $invoice->fresh()->due_total);
     }
@@ -614,9 +473,9 @@ class InvoiceServiceTest extends TestCase
 
     public function test_the_cost_of_sale_is_captured_at_billing_time(): void
     {
-        // A later, dearer purchase must not restate the margin on a sale
-        // already made.
-        $product = $this->product(stock: 20, cost: 150);
+        // A later, dearer catalogue update must not restate the margin on a
+        // sale already made - cost_total is a snapshot, not a live read.
+        $product = $this->product(cost: 150);
 
         $invoice = $this->bill([
             ['product_id' => $product->id, 'quantity' => 5],
@@ -625,8 +484,7 @@ class InvoiceServiceTest extends TestCase
         $this->assertSame(750.0, (float) $invoice->cost_total);
         $this->assertSame(250.0, $invoice->grossProfit());
 
-        $this->stock->receive($product, 20, $this->warehouse, null, 400,
-            StockMovement::PURCHASE, null, null, $this->shop->id);
+        $product->update(['purchase_price' => 400]);
 
         $this->assertSame(750.0, (float) $invoice->fresh()->cost_total);
     }
@@ -635,7 +493,7 @@ class InvoiceServiceTest extends TestCase
 
     public function test_invoice_numbers_run_in_a_per_shop_series(): void
     {
-        $product = $this->product(stock: 100);
+        $product = $this->product();
 
         $first = $this->bill([['product_id' => $product->id, 'quantity' => 1]],
             ['payments' => [['method' => 'cash', 'amount' => 236]]]);

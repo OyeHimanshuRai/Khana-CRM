@@ -47,7 +47,6 @@
         <div class="card-body">
             <dl class="sec-facts">
                 <div><dt>Shop</dt><dd>{{ $return->shop?->name ?? '—' }}</dd></div>
-                <div><dt>Back into</dt><dd>{{ $return->warehouse?->name ?? '—' }}</dd></div>
                 <div>
                     <dt>Invoice</dt>
                     <dd>
@@ -116,7 +115,6 @@
                 <thead>
                     <tr>
                         <th>Item</th>
-                        <th>Batch</th>
                         <th style="text-align:right">Quantity</th>
                         <th>Condition</th>
                         <th style="text-align:right">Unit credit</th>
@@ -132,8 +130,6 @@
                                 <strong>{{ $item->product_name }}</strong>
                                 <span class="text-xs text-muted" style="display:block">{{ $item->sku }}</span>
                             </td>
-
-                            <td class="text-sm">{{ $item->batch_no ?: '—' }}</td>
 
                             <td style="text-align:right" class="text-sm">
                                 {{ rtrim(rtrim(number_format((float) $item->quantity, 3), '0'), '.') }}
@@ -163,7 +159,7 @@
 
                 <tfoot>
                     <tr>
-                        <th colspan="6">Total credited</th>
+                        <th colspan="5">Total credited</th>
                         <th style="text-align:right">₹{{ number_format((float) $return->grand_total, 2) }}</th>
                     </tr>
                 </tfoot>

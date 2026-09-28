@@ -9,7 +9,6 @@ use App\Models\Payment;
 use App\Models\SalesReturn;
 use App\Models\SalesReturnItem;
 use App\Models\Shop;
-use App\Models\StockMovement;
 use Illuminate\Support\Facades\Auth;
 use Illuminate\Support\Facades\DB;
 use RuntimeException;
@@ -17,22 +16,21 @@ use RuntimeException;
 /**
  * Accepting goods back.
  *
- * Approving a return does four things at once, and either all of them happen
- * or none do:
+ * Approving a return does three things at once, and either all of them
+ * happen or none do:
  *
- *   resalable goods go back on the shelf, at the cost they left at
- *   damaged goods are written off, visibly
  *   the invoice line records how much has now come back
  *   the customer is credited, refunded, or neither
+ *   the return is signed off
  *
- * The cost the goods left at, not today's average, is deliberate. Unwinding
- * a sale at a different cost than it was booked at would quietly change the
- * margin on a month that has already been reported.
+ * There is no shelf to put resalable goods back on and no stock to write off
+ * as damaged - CRM tracks none. What condition the goods came back in is
+ * still recorded on the line (see SalesReturnItem::isResalable()); it just
+ * no longer moves anything.
  */
 class SalesReturnService
 {
     public function __construct(
-        private readonly StockService $stock,
         private readonly LedgerService $ledger,
     ) {}
 
@@ -49,7 +47,7 @@ class SalesReturnService
             throw new RuntimeException('That return has already been '.strtolower($return->statusLabel()).'.');
         }
 
-        $items = $return->items()->with(['product', 'batch', 'invoiceItem'])->get();
+        $items = $return->items()->with(['product', 'invoiceItem'])->get();
 
         if ($items->isEmpty()) {
             throw new RuntimeException('There is nothing to accept — the return has no lines.');
@@ -57,12 +55,10 @@ class SalesReturnService
 
         return DB::transaction(function () use ($return, $items, $note) {
             $shop = Shop::withTrashed()->findOrFail($return->shop_id);
-            $warehouse = $return->warehouse;
 
             $this->settleTotals($return, $items);
 
             foreach ($items as $item) {
-                $this->restock($return, $item, $shop, $warehouse);
                 $this->markInvoiceLine($item);
             }
 
@@ -157,68 +153,6 @@ class SalesReturnService
             'grand_total' => round($subtotal + $tax, 2),
             'cost_total' => round($cost, 4),
         ])->save();
-    }
-
-    /* ------------------------------------------------------------- stock */
-
-    /**
-     * Put one line's goods back, if they are fit to sell.
-     */
-    private function restock(SalesReturn $return, SalesReturnItem $item, Shop $shop, $warehouse): void
-    {
-        if ($item->product === null || $warehouse === null) {
-            return;
-        }
-
-        $quantity = (float) $item->quantity;
-
-        if ($quantity <= 0) {
-            return;
-        }
-
-        if (! $item->isResalable()) {
-            /*
-             | Damaged or expired goods never touch sellable stock. They are
-             | recorded as wastage so the loss is a number somebody can see,
-             | rather than a quantity that silently never came back.
-             */
-            $this->stock->receive(
-                $item->product,
-                $quantity,
-                $warehouse,
-                $item->batch,
-                (float) $item->unit_cost,
-                StockMovement::SALE_RETURN,
-                $return,
-                'Returned on '.$return->reference.' — '.$item->conditionLabel(),
-                $shop->id,
-            );
-
-            $this->stock->issue(
-                $item->product,
-                $quantity,
-                $warehouse,
-                $item->batch,
-                StockMovement::WASTAGE,
-                $return,
-                'Written off from '.$return->reference.' — '.$item->conditionLabel(),
-                $shop->id,
-            );
-
-            return;
-        }
-
-        $this->stock->receive(
-            $item->product,
-            $quantity,
-            $warehouse,
-            $item->batch,
-            (float) $item->unit_cost,
-            StockMovement::SALE_RETURN,
-            $return,
-            'Returned on '.$return->reference,
-            $shop->id,
-        );
     }
 
     /**

@@ -70,13 +70,6 @@
             </div>
         </div>
 
-        <div class="stat">
-            <div class="stat-icon"><x-icon name="wallet" :size="21" /></div>
-            <div class="stat-body">
-                <div class="stat-label">Stock Value</div>
-                <div class="stat-value">₹{{ number_format($stats['stock_value'], 0) }}</div>
-            </div>
-        </div>
     </div>
 
     <div class="card" data-ajax-list="{{ route('admin.products.index') }}">
@@ -108,14 +101,6 @@
                             {{ $brand->name }}
                         </option>
                     @endforeach
-                </select>
-
-                <label for="f-stock" class="sr-only">Stock</label>
-                <select id="f-stock" name="stock" data-ajax-filter>
-                    <option value="">Any stock</option>
-                    <option value="in" @selected($stock === 'in')>In stock</option>
-                    <option value="out" @selected($stock === 'out')>Out of stock</option>
-                    <option value="low" @selected($stock === 'low')>At or below reorder</option>
                 </select>
 
                 <label for="f-status" class="sr-only">Status</label>

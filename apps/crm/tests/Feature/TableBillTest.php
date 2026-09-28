@@ -11,7 +11,6 @@ use App\Models\Product;
 use App\Models\ProductVariant;
 use App\Models\RestaurantTable;
 use App\Models\Shop;
-use App\Models\StockMovement;
 use App\Models\TableSession;
 use App\Models\User;
 use App\Services\TableBillService;
@@ -397,11 +396,12 @@ class TableBillTest extends TestCase
     /* ------------------------------------------------------------- stock */
 
     /**
-     * The failure that would make this feature useless in practice.
+     * The failure that would make this feature useless in practice - and,
+     * since CRM tracks no stock at all, now the only behaviour there is.
      */
     public function test_a_dish_bills_when_there_is_no_stock_of_it(): void
     {
-        $dish = $this->dish(['name' => 'Butter Naan', 'selling_price' => 60, 'is_made_to_order' => true]);
+        $dish = $this->dish(['name' => 'Butter Naan', 'selling_price' => 60]);
 
         $session = $this->ate([[$dish, 3]]);
 
@@ -410,38 +410,6 @@ class TableBillTest extends TestCase
         ]);
 
         $this->assertSame(180.0, (float) $invoice->grand_total);
-
-        // And nothing moved, because there was never a count of it to move.
-        $this->assertSame(
-            0,
-            StockMovement::allShops()->where('product_id', $dish->id)->count(),
-        );
-    }
-
-    /**
-     * The contrast, and the reason this is a flag rather than a rule.
-     *
-     * A bottle of water really is stock, and selling one the shop does not
-     * have is still refused.
-     */
-    public function test_a_stocked_product_with_no_stock_is_still_refused(): void
-    {
-        $water = $this->dish([
-            'name' => 'Bottled Water',
-            'selling_price' => 20,
-            'is_made_to_order' => false,
-        ]);
-
-        $session = $this->ate([[$water, 1]]);
-
-        // Paid in full, so the refusal under test is the stock one and not
-        // the credit-sale one.
-        $this->expectException(RuntimeException::class);
-        $this->expectExceptionMessage('Not enough stock');
-
-        app(TableBillService::class)->settle($session, [
-            'payments' => [['method' => 'cash', 'amount' => 20]],
-        ]);
     }
 
     /* --------------------------------------------------- moving and merging */

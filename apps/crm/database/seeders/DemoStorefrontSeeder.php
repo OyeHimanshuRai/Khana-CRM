@@ -22,10 +22,9 @@ use RuntimeException;
  * Orders are placed the way a customer places them - items into the cart
  * through CartService, then OrderService::place - rather than by writing
  * rows into `orders`. That matters more here than anywhere else in these
- * seeders, because placing an order reserves stock and confirming one turns
- * it into an invoice; an order table filled in by hand would show the right
- * numbers on the list screen while the shelf and the sales ledger knew
- * nothing about it.
+ * seeders, because paying for an order turns it into an invoice; an order
+ * table filled in by hand would show the right numbers on the list screen
+ * while the sales ledger knew nothing about it.
  *
  * The services want a Request because a guest's cart lives in the session.
  * Every customer here is signed in, so the cart is a database row and the
@@ -152,9 +151,8 @@ class DemoStorefrontSeeder extends Seeder
 
         foreach ($customers as $index => $customer) {
             $products = Product::query()
-                ->active()
-                ->where('is_published', true)
-                ->whereHas('stocks', fn ($q) => $q->where('quantity', '>', 10))
+                ->published()
+                ->availableAt($shop->id)
                 ->inRandomOrder()
                 ->take($this->between(1, 3))
                 ->get();
@@ -179,7 +177,7 @@ class DemoStorefrontSeeder extends Seeder
                     'customer_note' => $this->chance(25) ? 'Please deliver before the weekend.' : null,
                 ]);
             } catch (RuntimeException) {
-                // No stock left to reserve, or the address went away. Either
+                // The cart came out empty, or the address went away. Either
                 // way the customer would have been told, not charged.
                 continue;
             }
@@ -231,7 +229,7 @@ class DemoStorefrontSeeder extends Seeder
      *
      * Every state is represented: pending ones for the shop to action,
      * confirmed and packed ones in hand, delivered ones done with, and a
-     * couple cancelled - which returns the stock it had reserved.
+     * couple cancelled.
      */
     private function advance(
         Order $order,
@@ -309,8 +307,8 @@ class DemoStorefrontSeeder extends Seeder
             $delivered++;
         } catch (RuntimeException) {
             /*
-             | A guard refused a step: no stock left to reserve, or the
-             | customer is at their credit limit. The order stays where it got
+             | A guard refused a step: the customer is at their credit
+             | limit, say. The order stays where it got
              | to, which is what would have happened in the shop.
              |
              | Deliberately RuntimeException and not Throwable - a Throwable

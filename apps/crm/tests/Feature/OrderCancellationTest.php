@@ -6,14 +6,11 @@ use App\Models\Customer;
 use App\Models\Order;
 use App\Models\Product;
 use App\Models\Shop;
-use App\Models\StockMovement;
 use App\Models\TaxRate;
 use App\Models\Unit;
 use App\Models\User;
-use App\Models\Warehouse;
 use App\Services\CartService;
 use App\Services\OrderService;
-use App\Services\StockService;
 use App\Support\CurrentShop;
 use Illuminate\Foundation\Testing\RefreshDatabase;
 use Illuminate\Support\Facades\Hash;
@@ -21,19 +18,16 @@ use Illuminate\Support\Facades\URL;
 use Tests\TestCase;
 
 /**
- * Cancelling an order: releases the reservation cleanly when nothing has
- * been invoiced yet, or delegates to InvoiceService::cancel() once it has -
- * see OrderService::cancel().
+ * Cancelling an order: marks a pending one cancelled outright, or delegates
+ * to InvoiceService::cancel() once it has been invoiced - see
+ * OrderService::cancel(). There is no reservation to release either way -
+ * CRM tracks no stock.
  */
 class OrderCancellationTest extends TestCase
 {
     use RefreshDatabase;
 
     private Shop $shop;
-
-    private Warehouse $warehouse;
-
-    private StockService $stock;
 
     private OrderService $orders;
 
@@ -47,8 +41,6 @@ class OrderCancellationTest extends TestCase
         CurrentShop::forget();
 
         $this->shop = Shop::first();
-        $this->warehouse = Warehouse::defaultFor($this->shop->id);
-        $this->stock = new StockService();
         $this->orders = app(OrderService::class);
     }
 
@@ -78,12 +70,12 @@ class OrderCancellationTest extends TestCase
         return $user;
     }
 
-    private function product(float $stock = 50): Product
+    private function product(): Product
     {
         static $counter = 0;
         $counter++;
 
-        $product = Product::create([
+        return Product::create([
             'name' => 'Cancellation Product '.$counter,
             'slug' => Product::uniqueSlug('Cancellation Product '.$counter),
             'sku' => Product::generateSku('CAN'.$counter),
@@ -96,10 +88,6 @@ class OrderCancellationTest extends TestCase
             'is_active' => true,
             'is_published' => true,
         ]);
-
-        $this->stock->receive($product, $stock, $this->warehouse, null, 100, StockMovement::PURCHASE, null, null, $this->shop->id);
-
-        return $product;
     }
 
     private function customer(): Customer
@@ -132,13 +120,11 @@ class OrderCancellationTest extends TestCase
         ]);
     }
 
-    public function test_cancelling_a_pending_order_fully_releases_its_reservation(): void
+    public function test_cancelling_a_pending_order_marks_it_cancelled(): void
     {
-        $product = $this->product(50);
+        $product = $this->product();
         $customer = $this->customer();
         $order = $this->placeOrder($product, $customer, 4);
-
-        $this->assertEqualsWithDelta(46.0, $product->fresh()->availableStock($this->shop->id), 0.01);
 
         $staff = $this->staff();
         $response = $this->actingAs($staff)->putJson(route('admin.orders.cancel', $order), [
@@ -148,13 +134,11 @@ class OrderCancellationTest extends TestCase
         $response->assertOk()->assertJsonPath('success', true);
 
         $this->assertSame(Order::CANCELLED, $order->fresh()->status);
-        $this->assertEqualsWithDelta(50.0, $product->fresh()->availableStock($this->shop->id), 0.01);
-        $this->assertEqualsWithDelta(50.0, $product->fresh()->stockOnHand($this->shop->id), 0.01);
     }
 
     public function test_cancelling_an_invoiced_order_reverses_the_invoice(): void
     {
-        $product = $this->product(50);
+        $product = $this->product();
         $customer = $this->customer();
         $order = $this->placeOrder($product, $customer, 3);
         $staff = $this->staff();
@@ -164,7 +148,6 @@ class OrderCancellationTest extends TestCase
 
         $order->refresh();
         $this->assertNotNull($order->invoice_id);
-        $this->assertEqualsWithDelta(47.0, $product->fresh()->stockOnHand($this->shop->id), 0.01);
 
         $response = $this->actingAs($staff)->putJson(route('admin.orders.cancel', $order), [
             'reason' => 'Customer returned everything',
@@ -175,9 +158,6 @@ class OrderCancellationTest extends TestCase
         $order->refresh();
         $this->assertSame(Order::CANCELLED, $order->status);
         $this->assertTrue($order->invoice->fresh()->isCancelled());
-
-        // Stock returned via the invoice reversal.
-        $this->assertEqualsWithDelta(50.0, $product->fresh()->stockOnHand($this->shop->id), 0.01);
     }
 
     public function test_cancelling_requires_a_reason(): void

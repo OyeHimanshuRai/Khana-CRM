@@ -3,7 +3,6 @@
 namespace App\Http\Controllers\Admin;
 
 use App\Http\Controllers\Controller;
-use App\Models\Batch;
 use App\Models\Customer;
 use App\Models\Invoice;
 use App\Models\InvoiceItem;
@@ -11,9 +10,7 @@ use App\Models\Order;
 use App\Models\Payment;
 use App\Models\PaymentReminder;
 use App\Models\Product;
-use App\Models\ProductStock;
 use App\Models\RestaurantTable;
-use App\Models\StockTransfer;
 use App\Support\CurrentShop;
 use App\Support\Modules;
 use Illuminate\Database\Eloquent\Builder;
@@ -41,7 +38,6 @@ class DashboardController extends Controller
             'shop' => CurrentShop::get(),
             'sales' => $this->when('reports.sales_report.view', fn () => $this->sales()),
             'profit' => $this->when('reports.profit_report.view', fn () => $this->profit()),
-            'stock' => $this->when('inventory.stock.view', fn () => $this->stock()),
             'room' => $this->when('dining.tables.view', fn () => $this->room()),
             'kitchen' => $this->when('kitchen.tickets.view', fn () => $this->kitchen()),
             'dues' => $this->when('crm.dues.view', fn () => $this->dues()),
@@ -240,61 +236,6 @@ class DashboardController extends Controller
         return $counts;
     }
 
-    /* -------------------------------------------------------------- stock */
-
-    /**
-     * @return array<string, mixed>
-     */
-    private function stock(): array
-    {
-        return [
-            'value' => (float) ProductStock::query()
-                ->selectRaw('COALESCE(SUM(quantity * average_cost), 0) as total')
-                ->value('total'),
-            'lines' => ProductStock::query()->where('quantity', '>', 0)->count(),
-            'low' => $this->lowStockCount(),
-            'out' => Product::query()
-                ->active()
-                ->whereDoesntHave('stocks', fn ($q) => $q->where('quantity', '>', 0))
-                ->count(),
-            'near_expiry' => Batch::query()->nearExpiry()
-                ->whereHas('stocks', fn ($q) => $q->where('quantity', '>', 0))
-                ->count(),
-            'expired' => Batch::query()->expired()
-                ->whereHas('stocks', fn ($q) => $q->where('quantity', '>', 0))
-                ->count(),
-        ];
-    }
-
-    /**
-     * Products at or below their reorder level.
-     *
-     * The sub-query is built from shop ids that came out of the pivot, never
-     * from request input, so interpolating them is safe.
-     */
-    private function lowStockCount(): int
-    {
-        $ids = CurrentShop::id() !== null
-            ? [CurrentShop::id()]
-            : (CurrentShop::accessibleIds() ?: [0]);
-
-        $list = implode(',', array_map('intval', $ids));
-
-        return Product::query()
-            ->active()
-            // A dish cannot run low: there is no shelf of it. Its ingredients
-            // can, and they are rows in their own right - see tracksStock().
-            ->where('is_made_to_order', false)
-            ->where('reorder_level', '>', 0)
-            ->whereRaw(
-                '(SELECT COALESCE(SUM(quantity), 0) FROM product_stocks
-                    WHERE product_stocks.product_id = products.id
-                    AND product_stocks.shop_id IN ('.$list.')
-                 ) <= products.reorder_level'
-            )
-            ->count();
-    }
-
     /* --------------------------------------------------------------- dues */
 
     /**
@@ -431,48 +372,6 @@ class DashboardController extends Controller
     {
         $alerts = collect();
 
-        if ($this->may('inventory.stock.view')) {
-            $low = $this->lowStockCount();
-
-            if ($low > 0) {
-                $alerts->push([
-                    'tone' => 'warning',
-                    'icon' => 'trend-down',
-                    'title' => $low.' product'.($low === 1 ? '' : 's').' at or below reorder level',
-                    'action' => route('admin.products.index', ['stock' => 'low']),
-                    'label' => 'See the list',
-                ]);
-            }
-
-            $expired = Batch::query()->expired()
-                ->whereHas('stocks', fn ($q) => $q->where('quantity', '>', 0))
-                ->count();
-
-            if ($expired > 0) {
-                $alerts->push([
-                    'tone' => 'danger',
-                    'icon' => 'x',
-                    'title' => $expired.' expired batch'.($expired === 1 ? '' : 'es').' still holding stock',
-                    'action' => route('admin.batches.index', ['expiry' => 'expired', 'stocked' => 'held']),
-                    'label' => 'Write them off',
-                ]);
-            }
-
-            $near = Batch::query()->nearExpiry()
-                ->whereHas('stocks', fn ($q) => $q->where('quantity', '>', 0))
-                ->count();
-
-            if ($near > 0) {
-                $alerts->push([
-                    'tone' => 'warning',
-                    'icon' => 'clock',
-                    'title' => $near.' batch'.($near === 1 ? '' : 'es').' expiring within '.Batch::NEAR_EXPIRY_DAYS.' days',
-                    'action' => route('admin.batches.index', ['expiry' => 'near', 'stocked' => 'held']),
-                    'label' => 'Move them on',
-                ]);
-            }
-        }
-
         if ($this->may('crm.dues.view')) {
             $overdue = Invoice::query()->overdue()->count();
 
@@ -483,23 +382,6 @@ class DashboardController extends Controller
                     'title' => $overdue.' invoice'.($overdue === 1 ? '' : 's').' past their due date',
                     'action' => route('admin.invoices.index', ['settlement' => 'overdue']),
                     'label' => 'Chase them',
-                ]);
-            }
-        }
-
-        if ($this->may('inventory.transfers.view')) {
-            $incoming = StockTransfer::allShops()
-                ->incomingFor(CurrentShop::accessibleIds())
-                ->where('status', StockTransfer::DISPATCHED)
-                ->count();
-
-            if ($incoming > 0) {
-                $alerts->push([
-                    'tone' => 'info',
-                    'icon' => 'truck',
-                    'title' => $incoming.' consignment'.($incoming === 1 ? '' : 's').' in transit to you',
-                    'action' => route('admin.stock-transfers.index', ['direction' => 'incoming']),
-                    'label' => 'Book them in',
                 ]);
             }
         }

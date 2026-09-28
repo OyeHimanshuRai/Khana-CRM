@@ -547,24 +547,6 @@ return [
                         'can' => 'reports.sales_report.view',
                     ],
                     [
-                        'label' => 'Stock & Valuation',
-                        'route' => 'admin.reports.show',
-                        'params' => ['report' => 'stock'],
-                        'can' => 'reports.stock_report.view',
-                    ],
-                    [
-                        'label' => 'Low Stock',
-                        'route' => 'admin.reports.show',
-                        'params' => ['report' => 'low-stock'],
-                        'can' => 'reports.expiry_report.view',
-                    ],
-                    [
-                        'label' => 'Expiry',
-                        'route' => 'admin.reports.show',
-                        'params' => ['report' => 'expiry'],
-                        'can' => 'reports.expiry_report.view',
-                    ],
-                    [
                         'label' => 'Outstanding & Dues',
                         'route' => 'admin.reports.show',
                         'params' => ['report' => 'outstanding'],
@@ -581,12 +563,6 @@ return [
                         'route' => 'admin.reports.show',
                         'params' => ['report' => 'tax'],
                         'can' => 'reports.tax_report.view',
-                    ],
-                    [
-                        'label' => 'Stock Transfers',
-                        'route' => 'admin.reports.show',
-                        'params' => ['report' => 'transfers'],
-                        'can' => 'reports.stock_report.view',
                     ],
                     [
                         'label' => 'Day Closing',

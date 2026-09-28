@@ -7,12 +7,9 @@ use App\Models\Invoice;
 use App\Models\Payment;
 use App\Models\Product;
 use App\Models\Shop;
-use App\Models\StockMovement;
 use App\Models\TaxRate;
 use App\Models\Unit;
 use App\Models\User;
-use App\Models\Warehouse;
-use App\Services\StockService;
 use App\Support\CurrentShop;
 use Illuminate\Foundation\Testing\RefreshDatabase;
 use Illuminate\Support\Facades\URL;
@@ -33,10 +30,6 @@ class PosTerminalTest extends TestCase
 
     private Shop $shop;
 
-    private Warehouse $warehouse;
-
-    private StockService $stock;
-
     protected function setUp(): void
     {
         parent::setUp();
@@ -49,8 +42,6 @@ class PosTerminalTest extends TestCase
         CurrentShop::forget();
 
         $this->shop = Shop::firstOrFail();
-        $this->warehouse = Warehouse::allShops()->where('shop_id', $this->shop->id)->firstOrFail();
-        $this->stock = new StockService();
     }
 
     protected function tearDown(): void
@@ -94,12 +85,12 @@ class PosTerminalTest extends TestCase
      * Priced tax-inclusive at 18%, so the shelf price and the counter price
      * are the same number and the assertions stay readable.
      */
-    private function product(array $attributes = [], float $stock = 100): Product
+    private function product(array $attributes = []): Product
     {
         static $counter = 0;
         $counter++;
 
-        $product = Product::create([
+        return Product::create([
             'name' => 'Till Product '.$counter,
             'slug' => Product::uniqueSlug('Till Product '.$counter),
             'sku' => Product::generateSku('TILL'.$counter),
@@ -111,15 +102,6 @@ class PosTerminalTest extends TestCase
             'tax_inclusive' => true,
             ...$attributes,
         ]);
-
-        if ($stock > 0) {
-            $this->stock->receive(
-                $product, $stock, $this->warehouse, null, 400,
-                StockMovement::PURCHASE, null, null, $this->shop->id
-            );
-        }
-
-        return $product;
     }
 
     /**
@@ -134,7 +116,6 @@ class PosTerminalTest extends TestCase
 
         return [
             'channel' => Invoice::POS,
-            'warehouse_id' => $this->warehouse->id,
             'items' => [
                 [
                     'product_id' => $product->id,
