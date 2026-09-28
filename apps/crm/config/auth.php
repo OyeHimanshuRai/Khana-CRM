@@ -123,26 +123,6 @@ return [
             'throttle' => 60,
         ],
 
-        /*
-        | The link in the welcome email an admin sends when creating an
-        | account.
-        |
-        | Same table, far longer window: a forgotten-password link is used
-        | within minutes, but a welcome email may sit unread over a weekend,
-        | and a new colleague who cannot get in has no self-service way to
-        | ask for another one.
-        |
-        | throttle 0 so an admin can resend immediately if the first attempt
-        | bounced - the usual one-per-minute guard exists to stop a public
-        | form being used to spam an address, which is not the case here.
-        */
-        'welcome' => [
-            'provider' => 'users',
-            'table' => env('AUTH_PASSWORD_RESET_TOKEN_TABLE', 'password_reset_tokens'),
-            'expire' => (int) env('AUTH_WELCOME_LINK_EXPIRE', 60 * 24 * 3),
-            'throttle' => 0,
-        ],
-
         'customers' => [
             'provider' => 'customers',
             'table' => env('AUTH_CUSTOMER_PASSWORD_RESET_TOKEN_TABLE', 'customer_password_reset_tokens'),

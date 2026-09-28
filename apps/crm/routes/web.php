@@ -3,7 +3,6 @@
 use App\Http\Controllers\Admin\ActivityLogController;
 use App\Http\Controllers\Admin\AlertController;
 use App\Http\Controllers\Admin\BarcodeLabelController;
-use App\Http\Controllers\Admin\BillingController;
 use App\Http\Controllers\Admin\CashRegisterController;
 use App\Http\Controllers\Admin\ApiTokenController;
 use App\Http\Controllers\Admin\BrandController;
@@ -31,15 +30,12 @@ use App\Http\Controllers\Admin\ReportController;
 use App\Http\Controllers\Admin\SalesReturnController;
 use App\Http\Controllers\Admin\LoginController;
 use App\Http\Controllers\Admin\OnlineOrderController;
-use App\Http\Controllers\Admin\PasswordResetController;
-use App\Http\Controllers\Admin\PasswordSetupController;
 use App\Http\Controllers\Admin\ModifierController;
 use App\Http\Controllers\Admin\PaymentController;
 use App\Http\Controllers\Admin\PaymentReminderController;
 use App\Http\Controllers\Admin\PosController;
 use App\Http\Controllers\Admin\ProductController;
 use App\Http\Controllers\Admin\OnlinePaymentController;
-use App\Http\Controllers\Admin\PlanController;
 use App\Http\Controllers\Admin\PriceListController;
 use App\Http\Controllers\Admin\PrinterController;
 use App\Http\Controllers\Admin\ProfileController;
@@ -50,7 +46,6 @@ use App\Http\Controllers\Admin\ServiceController;
 use App\Http\Controllers\Admin\ShopController;
 use App\Http\Controllers\Admin\ShopSwitchController;
 use App\Http\Controllers\Admin\SliderController;
-use App\Http\Controllers\Admin\SubscriptionController;
 use App\Http\Controllers\Admin\DemoRequestController as AdminDemoRequestController;
 use App\Http\Controllers\Admin\IntegrationController;
 use App\Http\Controllers\Admin\LandingStatController;
@@ -60,21 +55,18 @@ use App\Http\Controllers\Admin\SupportTicketController;
 use App\Http\Controllers\Admin\TestimonialController;
 use App\Http\Controllers\Admin\SystemHealthController;
 use App\Http\Controllers\Admin\TaxRateController;
-use App\Http\Controllers\Admin\TenantController;
 use App\Http\Controllers\Admin\TenantSwitchController;
-use App\Http\Controllers\Admin\UserController;
-use App\Http\Controllers\Admin\UserSecurityController;
 use App\Http\Controllers\PaymentWebhookController;
 use App\Http\Controllers\TableFeedbackController;
 use App\Http\Controllers\DemoRequestController;
 use App\Http\Controllers\LandingController;
 use App\Http\Controllers\SeoController;
-use App\Http\Controllers\SignupController;
 use App\Http\Controllers\TableManifestController;
 use App\Http\Controllers\TableOrderController;
 use App\Http\Controllers\TablePaymentController;
 use App\Http\Controllers\TableVerifyController;
 use App\Http\Controllers\TableScanController;
+use App\Support\Accounts;
 use Illuminate\Support\Facades\Route;
 
 /*
@@ -103,77 +95,33 @@ Route::post('demo-request', [DemoRequestController::class, 'store'])
     ->name('demo-request.store');
 
 /*
-| Opening an account (§21).
-|
-| The other half of the pricing section: the card says what a plan costs and
-| this is where somebody buys it, without waiting for an administrator to
-| build their company, their branch, their login and their subscription by
-| hand. See App\Http\Controllers\SignupController.
-|
-| `guest`, because somebody already signed in has an account - the middleware
-| sends them to their own dashboard rather than letting them open a second one
-| by refreshing an old tab.
-|
-| The POST is rate limited harder than the demo form is, and for a different
-| reason: this one writes four rows and a login, so a script left running
-| overnight is a database full of businesses rather than an inbox full of
-| enquiries. The honeypot inside the controller is the cheaper first line;
-| this is what stops whatever ignores it.
-|
-| The `signup` limiter is named rather than written here as numbers, because
-| what is right in production (five an hour from one address) is wrong on a
-| developer's machine, where the same form is filled in a dozen times in an
-| afternoon. See AppServiceProvider::registerSignupRateLimit.
-*/
-/*
 | What a crawler is told (SS19).
 |
 | Generated rather than files in public/, because a static sitemap is a list
 | somebody has to remember to update - and the first thing it does on a real
 | install is go stale. robots.txt keeps the back office, the guest's table
-| session and the signup form out of the index; the sitemap lists the
+| session and the signup redirect out of the index; the sitemap lists the
 | marketing page, each live storefront and the blog. See SeoController.
 */
 Route::get('robots.txt', [SeoController::class, 'robots'])->name('robots');
 Route::get('sitemap.xml', [SeoController::class, 'sitemap'])->name('sitemap');
 
-Route::middleware('guest')->group(function () {
-    /*
-    | The plan is part of the path, not a query string.
-    |
-    | `/signup/restaurant` is what a person can read out over a phone, what a
-    | search engine treats as one page rather than as the same page tagged
-    | three ways, and what stays intact when somebody pastes it into WhatsApp
-    | and their client drops everything after the "?".
-    |
-    | Optional, because `/signup` on its own is a real request - somebody who
-    | came from the header rather than from a price card - and it opens the
-    | form on the cheapest plan. An unknown slug is not a 404: it falls back
-    | to that same form. See SignupController::create.
-    */
-    Route::get('signup/{plan?}', [SignupController::class, 'create'])
-        ->where('plan', '[a-z0-9]+(?:-[a-z0-9]+)*')
-        ->name('signup');
+/*
+| Opening an account is Khana Accounts' job now (§21).
+|
+| Signing up makes a business, its first outlet, its owner and the products
+| that outlet buys - four records Accounts owns - so this path only forwards.
+| It stays because printed links and bookmarks still point here, and
+| `/signup/restaurant` from an old price card should land somewhere useful
+| rather than on a 404. The plan slug is ignored: Accounts shows its own.
+|
+| With no Accounts address configured there is nowhere to send anybody, so it
+| goes back to the landing page, where the demo form is.
+*/
+Route::get('signup/{plan?}', fn () => redirect()->away(Accounts::url('/signup') ?? route('landing')))
+    ->where('plan', '[a-z0-9]+(?:-[a-z0-9]+)*')
+    ->name('signup');
 
-    /*
-    | Step two: the details, once a plan has been picked.
-    |
-    | Its own address rather than a panel that unhides, so the two steps are
-    | two pages a browser understands: Back goes back a step, a half-finished
-    | signup can be returned to, and none of it needs JavaScript.
-    |
-    | The plan is in the path here too, which is what lets this page state
-    | what is being bought without keeping it in a session somebody's second
-    | tab would overwrite.
-    */
-    Route::get('signup/{plan}/details', [SignupController::class, 'details'])
-        ->where('plan', '[a-z0-9]+(?:-[a-z0-9]+)*')
-        ->name('signup.details');
-
-    Route::post('signup', [SignupController::class, 'store'])
-        ->middleware('throttle:signup')
-        ->name('signup.store');
-});
 /*
 |--------------------------------------------------------------------------
 | Table QR landing (public)
@@ -344,71 +292,16 @@ Route::prefix('admin')->name('admin.')->group(function () {
         Route::post('login', [LoginController::class, 'store'])->name('login.store');
 
         /*
-        | "I have forgotten my password" (SS21).
+        | "I have forgotten my password" - answered by Khana Accounts.
         |
-        | Needed the day restaurants started opening their own accounts: an
-        | owner who chose their own password has no administrator to ask for
-        | a fresh welcome link. The link it sends points at the set-password
-        | screen below - one page that sets a password, two ways to reach it.
-        |
-        | Throttled hard, and on the POST only. Each one sends an email to an
-        | address the sender chooses, which is somebody else's inbox and the
-        | platform's sending reputation. Three an hour is more than anybody
-        | who has genuinely forgotten a password needs.
+        | Passwords live there now, so CRM neither resets nor sets one. The
+        | address stays as a forward for bookmarks and for sign-in pages that
+        | still link to it; with no Accounts address configured it goes back
+        | to the sign-in page.
         */
-        Route::get('password/forgot', [PasswordResetController::class, 'create'])
+        Route::get('password/forgot', fn () => redirect()->away(Accounts::url('/forgot') ?? route('admin.login')))
             ->name('password.request');
-
-        Route::post('password/forgot', [PasswordResetController::class, 'store'])
-            ->middleware('throttle:3,60')
-            ->name('password.email');
-
-        /*
-        | The "set your password" link from the welcome email.
-        |
-        | Throttled: the token is the only secret, so the submit endpoint is
-        | the one place someone could grind at it.
-        */
-        Route::get('password/set/{token}', [PasswordSetupController::class, 'edit'])
-            ->name('password.set');
-        Route::post('password/set', [PasswordSetupController::class, 'update'])
-            ->middleware('throttle:10,1')
-            ->name('password.set.store');
     });
-
-    /*
-    |--------------------------------------------------------------------------
-    | Billing: a restaurant paying for its own account (§11, §21)
-    |--------------------------------------------------------------------------
-    |
-    | Its own group because of the one gate it must NOT have.
-    |
-    | `shop.subscribed` is deliberately absent: an outlet whose term has run
-    | out is precisely the outlet that needs this page, and a checkout you
-    | have to be paid up to reach is a support ticket rather than a payment.
-    | EnsureShopIsSubscribed sends people here for that reason.
-    |
-    | Everything else still applies. `auth` and `admin` because this is the
-    | back office, `tenant.active` because a suspended business is an account
-    | matter that a card payment does not settle, and
-    | settings.subscriptions.view because reading what your company is on is
-    | the owner's right and the cashier's business.
-    |
-    | Nothing here writes a date. The provider's callback does, through
-    | PaymentIntentService - see App\Http\Controllers\Admin\BillingController.
-    */
-    Route::middleware(['auth', 'admin', 'tenant.active', 'permission:settings.subscriptions.view'])
-        ->group(function () {
-            Route::get('billing', [BillingController::class, 'show'])->name('billing.show');
-
-            Route::post('billing/checkout', [BillingController::class, 'checkout'])
-                ->middleware('throttle:20,1')
-                ->name('billing.checkout');
-
-            Route::post('billing/confirm', [BillingController::class, 'confirm'])
-                ->middleware('throttle:30,1')
-                ->name('billing.confirm');
-        });
 
     /*
     | The authenticated admin app.
@@ -420,16 +313,18 @@ Route::prefix('admin')->name('admin.')->group(function () {
     |   tenant.active  is their company still trading? A suspended tenant's
     |                  staff are signed out here rather than allowed to keep
     |                  working while the account is in dispute.
-    |   shop.subscribed has THIS outlet been paid for? Subscriptions are sold
-    |                  per outlet, so a lapsed branch is blocked while the
-    |                  group's others keep trading - and nobody is signed out.
+    |   shop.entitled  has THIS outlet bought CRM? Accounts sells per outlet
+    |                  and says so through the kit's Entitlements, so a lapsed
+    |                  branch is stopped (or read-only, when suspended) while
+    |                  the group's others keep trading - and nobody is signed
+    |                  out.
     |   module         does this branch run the line of business this route
     |                  belongs to? Derived from the route's own `permission:`
     |                  middleware, so it cannot drift from it.
     |
     | The permission itself is checked per route, below.
     */
-    Route::middleware(['auth', 'admin', 'tenant.active', 'shop.subscribed', 'module'])->group(function () {
+    Route::middleware(['auth', 'admin', 'tenant.active', 'shop.entitled', 'module'])->group(function () {
         Route::get('/', fn () => redirect()->route('admin.dashboard'));
         Route::post('logout', [LoginController::class, 'destroy'])->name('logout');
 
@@ -440,15 +335,21 @@ Route::prefix('admin')->name('admin.')->group(function () {
         /*
         | Own-account screen. Ungated on purpose - it only ever reads and
         | writes $request->user(), so every admin may reach their own.
+        |
+        | Only what is CRM's own is edited here: the picture, and which
+        | devices are signed in to CRM. Name, email and password belong to
+        | Khana Accounts and are changed there.
         */
         Route::get('profile', [ProfileController::class, 'edit'])->name('profile.edit');
-        Route::put('profile', [ProfileController::class, 'update'])->name('profile.update');
-        Route::put('profile/password', [ProfileController::class, 'updatePassword'])
-            ->name('profile.password');
         Route::post('profile/avatar', [ProfileController::class, 'updateAvatar'])
             ->name('profile.avatar');
         Route::delete('profile/avatar', [ProfileController::class, 'destroyAvatar'])
             ->name('profile.avatar.destroy');
+        Route::delete('profile/sessions/{session}', [ProfileController::class, 'destroySession'])
+            ->whereNumber('session')
+            ->name('profile.sessions.destroy');
+        Route::delete('profile/sessions', [ProfileController::class, 'destroyOtherSessions'])
+            ->name('profile.sessions.destroy-others');
 
         /*
         | Every route below is gated on a permission from
@@ -891,126 +792,6 @@ Route::prefix('admin')->name('admin.')->group(function () {
             Route::put('table-bills/{session}/write-off', [TableBillController::class, 'writeOff'])
                 ->whereNumber('session')
                 ->name('table-bills.write-off');
-        });
-
-        /*
-        | The company master (SRS 10.1).
-        |
-        | The permission opens the screen; TenantController decides *whose*
-        | companies are on it. A tenant owner holding settings.tenants.view
-        | sees one row - their own - and creating or removing a business is
-        | refused there as a platform action.
-        */
-        Route::middleware('permission:settings.tenants.view')->group(function () {
-            Route::get('tenants', [TenantController::class, 'index'])->name('tenants.index');
-            Route::get('tenants/{tenant}', [TenantController::class, 'show'])
-                ->whereNumber('tenant')
-                ->name('tenants.show');
-        });
-
-        Route::middleware('permission:settings.tenants.create')->group(function () {
-            // Registered before the wildcard so "create" is not read as an id.
-            Route::get('tenants/create', [TenantController::class, 'create'])->name('tenants.create');
-            Route::post('tenants', [TenantController::class, 'store'])->name('tenants.store');
-        });
-
-        Route::middleware('permission:settings.tenants.edit')->group(function () {
-            Route::get('tenants/{tenant}/edit', [TenantController::class, 'edit'])
-                ->whereNumber('tenant')
-                ->name('tenants.edit');
-            Route::put('tenants/{tenant}', [TenantController::class, 'update'])
-                ->whereNumber('tenant')
-                ->name('tenants.update');
-            Route::put('tenants/{tenant}/status', [TenantController::class, 'toggleStatus'])
-                ->whereNumber('tenant')
-                ->name('tenants.status');
-            Route::delete('tenants/{tenant}/logo', [TenantController::class, 'destroyLogo'])
-                ->whereNumber('tenant')
-                ->name('tenants.logo.destroy');
-        });
-
-        Route::delete('tenants/{tenant}', [TenantController::class, 'destroy'])
-            ->whereNumber('tenant')
-            ->middleware('permission:settings.tenants.delete')
-            ->name('tenants.destroy');
-
-        /*
-        | What the platform sells (§21).
-        |
-        | Super Admin's catalogue. Nothing here is shop-scoped or
-        | tenant-scoped, because a price list belongs to the platform rather
-        | than to any business on it.
-        */
-        Route::middleware('permission:settings.plans.view')->group(function () {
-            Route::get('plans', [PlanController::class, 'index'])->name('plans.index');
-            Route::get('plans/{plan}', [PlanController::class, 'show'])
-                ->whereNumber('plan')
-                ->name('plans.show');
-        });
-
-        Route::middleware('permission:settings.plans.create')->group(function () {
-            // Before the wildcard, so "create" is not read as an id.
-            Route::get('plans/create', [PlanController::class, 'create'])->name('plans.create');
-            Route::post('plans', [PlanController::class, 'store'])->name('plans.store');
-        });
-
-        Route::middleware('permission:settings.plans.edit')->group(function () {
-            Route::get('plans/{plan}/edit', [PlanController::class, 'edit'])
-                ->whereNumber('plan')
-                ->name('plans.edit');
-            Route::put('plans/{plan}', [PlanController::class, 'update'])
-                ->whereNumber('plan')
-                ->name('plans.update');
-            Route::put('plans/{plan}/status', [PlanController::class, 'toggleStatus'])
-                ->whereNumber('plan')
-                ->name('plans.status');
-        });
-
-        Route::delete('plans/{plan}', [PlanController::class, 'destroy'])
-            ->whereNumber('plan')
-            ->middleware('permission:settings.plans.delete')
-            ->name('plans.destroy');
-
-        /*
-        | Subscriptions and billing (§4, §21).
-        |
-        | One permission opens the screens; the controller decides whose
-        | businesses are on them. A Tenant Owner holding
-        | settings.subscriptions.view sees their own company and nobody
-        | else's - and every write below is gated on `.edit`, which they do
-        | not hold, because renewing your own subscription is not a feature.
-        |
-        | `subscription` (singular) is the restaurant's own screen, and is
-        | registered before the wildcard so it is not read as a tenant id.
-        */
-        Route::middleware('permission:settings.subscriptions.view')->group(function () {
-            Route::get('subscription', [SubscriptionController::class, 'mine'])->name('subscription.mine');
-
-            Route::get('subscriptions', [SubscriptionController::class, 'index'])->name('subscriptions.index');
-            Route::get('subscriptions/{tenant}', [SubscriptionController::class, 'show'])
-                ->whereNumber('tenant')
-                ->name('subscriptions.show');
-            Route::get('subscriptions/{tenant}/assign', [SubscriptionController::class, 'assign'])
-                ->whereNumber('tenant')
-                ->name('subscriptions.assign');
-            Route::get('subscriptions/{tenant}/payment', [SubscriptionController::class, 'paymentForm'])
-                ->whereNumber('tenant')
-                ->name('subscriptions.payment');
-        });
-
-        Route::middleware('permission:settings.subscriptions.edit')->group(function () {
-            Route::post('subscriptions/{tenant}', [SubscriptionController::class, 'store'])
-                ->whereNumber('tenant')
-                ->name('subscriptions.store');
-            Route::post('subscriptions/{tenant}/payment', [SubscriptionController::class, 'recordPayment'])
-                ->whereNumber('tenant')
-                ->name('subscriptions.payment.store');
-            Route::put('subscriptions/{tenant}/cancel', [SubscriptionController::class, 'cancel'])
-                ->whereNumber('tenant')
-                ->name('subscriptions.cancel');
-            Route::put('subscriptions/{tenant}/resume', [SubscriptionController::class, 'resume'])
-                ->whereNumber('tenant')
-                ->name('subscriptions.resume');
         });
 
         /*
@@ -2042,60 +1823,6 @@ Route::prefix('admin')->name('admin.')->group(function () {
         Route::delete('roles/{role}', [RoleController::class, 'destroy'])
             ->middleware('permission:settings.roles.delete')
             ->name('roles.destroy');
-
-        Route::middleware('permission:settings.users.view')->group(function () {
-            Route::get('users', [UserController::class, 'index'])->name('users.index');
-            Route::get('users/{user}/edit', [UserController::class, 'edit'])->name('users.edit');
-        });
-
-        Route::get('users/export', [UserController::class, 'export'])
-            ->middleware('permission:settings.users.export')
-            ->name('users.export');
-
-        Route::middleware('permission:settings.users.create')->group(function () {
-            Route::get('users/create', [UserController::class, 'create'])->name('users.create');
-            Route::post('users', [UserController::class, 'store'])->name('users.store');
-        });
-
-        Route::middleware('permission:settings.users.edit')->group(function () {
-            Route::put('users/{user}', [UserController::class, 'update'])->name('users.update');
-            Route::post('users/{user}/permissions', [UserController::class, 'syncPermissions'])
-                ->name('users.permissions');
-            // Fresh link when the first email bounced or the old one expired.
-            Route::post('users/{user}/welcome', [UserController::class, 'resendWelcome'])
-                ->name('users.welcome');
-        });
-
-        /*
-        | Security side of a user. Split from the CRUD permissions above:
-        | seeing where someone is signed in, and ending it, is a different
-        | responsibility from editing their name.
-        */
-        Route::middleware('permission:settings.sessions.view')->group(function () {
-            Route::get('users/{user}/security', [UserSecurityController::class, 'show'])
-                ->name('users.security');
-        });
-
-        Route::put('users/{user}/status', [UserSecurityController::class, 'toggleStatus'])
-            ->middleware('permission:settings.sessions.edit')
-            ->name('users.status');
-
-        Route::middleware('permission:settings.sessions.delete')->group(function () {
-            Route::delete('users/{user}/sessions/{session}', [UserSecurityController::class, 'destroySession'])
-                ->name('users.sessions.destroy');
-            Route::delete('users/{user}/sessions', [UserSecurityController::class, 'destroyAllSessions'])
-                ->name('users.sessions.destroy-all');
-            Route::post('users/{user}/blocked-ips', [UserSecurityController::class, 'blockIp'])
-                ->name('users.ips.block');
-            Route::delete('users/{user}/blocked-ips/{block}', [UserSecurityController::class, 'unblockIp'])
-                ->name('users.ips.unblock');
-        });
-
-        Route::middleware('permission:settings.users.delete')->group(function () {
-            // Registered before the wildcard so "bulk" is not read as an id.
-            Route::delete('users/bulk', [UserController::class, 'bulkDestroy'])->name('users.bulk-destroy');
-            Route::delete('users/{user}', [UserController::class, 'destroy'])->name('users.destroy');
-        });
 
         Route::get('activity', [ActivityLogController::class, 'index'])
             ->middleware('permission:settings.activity_logs.view')

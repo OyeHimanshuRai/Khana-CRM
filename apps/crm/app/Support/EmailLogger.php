@@ -80,8 +80,7 @@ class EmailLogger
      * The send threw.
      *
      * Called from the places that catch a mail failure rather than let it
-     * escape - see App\Support\WelcomeMailer and
-     * App\Services\EmailTemplateService. Silent when nothing is in
+     * escape - see App\Services\EmailTemplateService. Silent when nothing is in
      * flight, so a caller never has to check first.
      */
     public function failed(\Throwable $e): void

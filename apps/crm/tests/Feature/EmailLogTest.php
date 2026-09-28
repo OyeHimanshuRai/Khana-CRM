@@ -2,7 +2,9 @@
 
 namespace Tests\Feature;
 
+use App\Mail\EmailTemplateTestMail;
 use App\Models\EmailLog;
+use App\Models\EmailTemplate;
 use App\Models\User;
 use Illuminate\Foundation\Testing\RefreshDatabase;
 use Illuminate\Mail\Events\MessageSending;
@@ -71,7 +73,7 @@ class EmailLogTest extends TestCase
             'mailer' => 'array',
             'status' => EmailLog::SENT,
             'sent_at' => now(),
-            'mailable' => \App\Mail\WelcomeUserMail::class,
+            'mailable' => EmailTemplateTestMail::class,
         ], $attributes))->save();
 
         return $log->refresh();
@@ -101,45 +103,51 @@ class EmailLogTest extends TestCase
         $this->assertNull($log->mailable);
     }
 
-    public function test_a_welcome_email_is_logged_with_its_mailable(): void
+    /**
+     * A template's test send: the one mail in CRM an operator fires by hand,
+     * and the one whose failure the app catches rather than lets escape.
+     */
+    private function sendTemplateTest(string $content = '<p>Hello {{name}}.</p>'): void
     {
-        $this->actingAs($this->admin())->post('/admin/users', [
-            'name' => 'Rahul Kumar',
-            'email' => 'rahul@example.test',
-            'password' => 'rahul-password-99',
-            'password_confirmation' => 'rahul-password-99',
-            'is_admin' => 1,
-            'send_welcome' => 1,
-        ])->assertRedirect();
+        $template = new EmailTemplate([
+            'name' => 'Welcome Offer',
+            'slug' => EmailTemplate::uniqueSlug('Welcome Offer'),
+            'subject' => 'Your table is ready',
+            'content' => $content,
+            'is_active' => true,
+        ]);
+
+        $template->forceFill(['created_by_name' => 'Tester'])->save();
+
+        $this->actingAs($this->admin())
+            ->postJson("/admin/email/templates/{$template->id}/test", ['email' => 'rahul@example.test']);
+    }
+
+    public function test_a_mailable_is_logged_with_its_class(): void
+    {
+        $this->sendTemplateTest();
 
         $log = EmailLog::where('to_email', 'rahul@example.test')->firstOrFail();
 
-        $this->assertSame(\App\Mail\WelcomeUserMail::class, $log->mailable);
+        $this->assertSame(EmailTemplateTestMail::class, $log->mailable);
         $this->assertSame(EmailLog::SENT, $log->status);
-        $this->assertStringContainsString('account is ready', (string) $log->subject);
+        $this->assertStringContainsString('Your table is ready', (string) $log->subject);
     }
 
     public function test_the_log_never_stores_the_message_body(): void
     {
-        $this->actingAs($this->admin())->post('/admin/users', [
-            'name' => 'Rahul Kumar',
-            'email' => 'rahul@example.test',
-            'password' => 'rahul-password-99',
-            'password_confirmation' => 'rahul-password-99',
-            'is_admin' => 1,
-            'send_welcome' => 1,
-        ])->assertRedirect();
+        $this->sendTemplateTest('<p>Use code SECRET-ONE-TIME-7731 at the counter.</p>');
 
         $log = EmailLog::where('to_email', 'rahul@example.test')->firstOrFail();
 
         /*
-         | The welcome email carries a one-time password-set link. If any
-         | column here held the rendered body, anyone with email.logs.view
-         | could lift a working credential straight out of the log.
+         | A message can carry something only its recipient should hold - a
+         | one-time code, a link. If any column here held the rendered body,
+         | anyone with email.logs.view could lift it straight out of the log.
          */
         foreach ($log->getAttributes() as $column => $value) {
             $this->assertStringNotContainsString(
-                'password/set',
+                'SECRET-ONE-TIME-7731',
                 (string) $value,
                 "The `{$column}` column is carrying the message body.",
             );
@@ -159,25 +167,15 @@ class EmailLogTest extends TestCase
             throw new \RuntimeException('Connection refused by the mail server');
         });
 
-        $this->actingAs($this->admin())->post('/admin/users', [
-            'name' => 'Rahul Kumar',
-            'email' => 'rahul@example.test',
-            'password' => 'rahul-password-99',
-            'password_confirmation' => 'rahul-password-99',
-            'is_admin' => 1,
-            'send_welcome' => 1,
-        ])->assertRedirect();
+        $this->sendTemplateTest();
 
         $log = EmailLog::where('to_email', 'rahul@example.test')->firstOrFail();
 
         // Laravel fires no event for a failed send, so this only works
-        // because WelcomeMailer's catch block closes the row by hand.
+        // because EmailTemplateService's catch block closes the row by hand.
         $this->assertSame(EmailLog::FAILED, $log->status);
         $this->assertStringContainsString('Connection refused', (string) $log->error);
         $this->assertNull($log->sent_at);
-
-        // The account still exists: telling someone about it is a separate job.
-        $this->assertDatabaseHas('users', ['email' => 'rahul@example.test']);
     }
 
     /* --------------------------------------------------------------- list */

@@ -5,12 +5,14 @@ namespace App\Http\Controllers\Admin;
 use App\Http\Controllers\Controller;
 use App\Models\ActivityLog;
 use App\Models\User;
+use App\Models\UserSession;
+use App\Support\Accounts;
 use App\Support\ApiResponse;
+use App\Support\IpLocator;
 use Illuminate\Http\JsonResponse;
 use Illuminate\Http\Request;
+use Illuminate\Support\Collection;
 use Illuminate\Support\Facades\Storage;
-use Illuminate\Validation\Rule;
-use Illuminate\Validation\Rules\Password;
 use Illuminate\View\View;
 use Spatie\Permission\Models\Role;
 
@@ -20,10 +22,31 @@ use Spatie\Permission\Models\Role;
  * Deliberately ungated: this is the one place every admin may edit,
  * whatever their permissions, and it only ever touches $request->user().
  * Nothing here accepts a user id, so there is no way to reach another
- * account through it - role and access changes stay in UserController.
+ * account through it.
+ *
+ * ---------------------------------------------------------------------------
+ * Only what is CRM's own
+ * ---------------------------------------------------------------------------
+ *
+ * A person's name, email and password are Khana Accounts' - it is where they
+ * sign in, and App\Auth\AccountsSignIn copies the name and email down at
+ * every sign-in, so an edit here would be quietly undone the next morning.
+ * The screen shows them and links there.
+ *
+ * What stays is what only CRM knows about:
+ *
+ *   picture    the avatar in CRM's own header
+ *   devices    where this person is signed in to CRM, with a way to sign
+ *              one out - a till left logged in at the other branch, a phone
+ *              that was lost. Signing someone *else* out, or switching an
+ *              account off, is the owner's job in Accounts, which tells CRM
+ *              through accounts.sessions.revoked.
  */
 class ProfileController extends Controller
 {
+    /** How many sessions the devices card lists. */
+    private const SESSION_LIMIT = 20;
+
     public function edit(Request $request): View
     {
         $user = $request->user();
@@ -34,11 +57,20 @@ class ProfileController extends Controller
             ->flatMap(fn (Role $role) => $role->permissions->pluck('name'))
             ->unique();
 
+        $sessions = $this->sessions($user);
+
         $data = [
             'user' => $user,
             'roleNames' => $user->roles->pluck('name'),
             'inheritedCount' => $inherited->count(),
             'directCount' => $user->getDirectPermissions()->count(),
+            'sessions' => $sessions,
+            'currentSessionId' => $request->session()->getId(),
+            // Resolved here rather than at sign-in: geolocation is a
+            // third-party call, and nothing about signing in should wait on
+            // one. Cached, so opening this screen again costs nothing.
+            'locations' => IpLocator::many($sessions->pluck('ip_address')),
+            'accountsProfile' => Accounts::url('/profile'),
         ];
 
         // modal.js asks for the cards on their own; a plain visit still gets
@@ -46,59 +78,6 @@ class ProfileController extends Controller
         return $request->header('X-Fragment')
             ? view('admin.profile._form', $data)
             : view('admin.profile.edit', $data);
-    }
-
-    /**
-     * Save name + email. Answers the JSON envelope app.js expects.
-     */
-    public function update(Request $request): JsonResponse
-    {
-        $user = $request->user();
-
-        $data = $request->validate([
-            'name' => ['required', 'string', 'max:120'],
-            'email' => ['required', 'email', 'max:255', Rule::unique('users', 'email')->ignore($user->id)],
-        ]);
-
-        $changed = array_keys(array_diff_assoc($data, $user->only('name', 'email')));
-
-        // A no-op submit should not write an audit row saying nothing changed.
-        if ($changed === []) {
-            return ApiResponse::success('No changes to save.', $this->identity($user));
-        }
-
-        $user->fill($data)->save();
-
-        ActivityLog::record('profile.updated', 'Updated their own profile', $user, [
-            'changed' => $changed,
-        ]);
-
-        return ApiResponse::success('Profile updated.', $this->identity($user));
-    }
-
-    /**
-     * Change the password, proving ownership with the current one first.
-     */
-    public function updatePassword(Request $request): JsonResponse
-    {
-        $user = $request->user();
-
-        $request->validate([
-            // `current_password` checks the value against the signed-in user's
-            // stored hash, so a hijacked session cannot rotate the password.
-            'current_password' => ['required', 'current_password'],
-            'password' => ['required', 'confirmed', 'different:current_password', Password::min(8)],
-        ], [
-            'current_password.current_password' => 'That does not match your current password.',
-            'password.different' => 'The new password must be different from your current one.',
-        ]);
-
-        $user->password = $request->string('password')->toString();
-        $user->save();
-
-        ActivityLog::record('profile.password_changed', 'Changed their own password', $user);
-
-        return ApiResponse::success('Password changed.');
     }
 
     /**
@@ -123,7 +102,7 @@ class ProfileController extends Controller
         $path = $request->file('avatar')->store('avatars', 'public');
 
         // Not mass-assignable on purpose - the only way to set this column is
-        // through this endpoint, never through the user form's validated data.
+        // through this endpoint.
         $user->forceFill(['avatar_path' => $path])->save();
 
         // Deleted only once the new path is committed, so a failed write can
@@ -155,6 +134,89 @@ class ProfileController extends Controller
         ActivityLog::record('profile.avatar_removed', 'Removed their profile picture', $user);
 
         return ApiResponse::success('Picture removed.', $this->identity($user));
+    }
+
+    /* ------------------------------------------------------------ devices */
+
+    /**
+     * Sign one of your own devices out of CRM.
+     *
+     * {session} is bound by id alone, so the owner check is what keeps this
+     * to your own devices - someone else's session is a 404, not a refusal
+     * that confirms it exists.
+     */
+    public function destroySession(Request $request, UserSession $session): JsonResponse
+    {
+        $user = $request->user();
+
+        abort_unless((int) $session->user_id === (int) $user->id, 404);
+
+        if ($session->isCurrent($request->session()->getId())) {
+            return ApiResponse::error('That is the device you are using. Sign out from the menu instead.', [], 422);
+        }
+
+        if (! $session->isActive()) {
+            return ApiResponse::success('That device was already signed out.');
+        }
+
+        $session->terminate('user');
+
+        ActivityLog::record('profile.session_ended', 'Signed one of their devices out', $user, [
+            'device' => $session->describeDevice(),
+            'ip' => $session->ip_address,
+        ]);
+
+        return ApiResponse::success('Device signed out.');
+    }
+
+    /**
+     * Sign every other device out of CRM, keeping this one.
+     */
+    public function destroyOtherSessions(Request $request): JsonResponse
+    {
+        $user = $request->user();
+        $current = $request->session()->getId();
+
+        $others = $user->sessions()
+            ->whereNull('logout_at')
+            ->where('session_id', '!=', $current)
+            ->get();
+
+        foreach ($others as $session) {
+            $session->terminate('user');
+        }
+
+        if ($others->isEmpty()) {
+            return ApiResponse::success('No other device was signed in.');
+        }
+
+        ActivityLog::record('profile.sessions_ended', sprintf(
+            'Signed %d other device%s out',
+            $others->count(),
+            $others->count() === 1 ? '' : 's',
+        ), $user);
+
+        return ApiResponse::success(sprintf(
+            'Signed out of %d other device%s.',
+            $others->count(),
+            $others->count() === 1 ? '' : 's',
+        ));
+    }
+
+    /**
+     * Still-open sessions first, then the most recent closed ones - what
+     * somebody checking "am I still signed in on that till?" wants to see.
+     *
+     * @return Collection<int, UserSession>
+     */
+    private function sessions(User $user): Collection
+    {
+        return $user->sessions()
+            ->reorder()
+            ->orderByRaw('CASE WHEN logout_at IS NULL THEN 0 ELSE 1 END')
+            ->orderByDesc('last_activity_at')
+            ->limit(self::SESSION_LIMIT)
+            ->get();
     }
 
     /**

@@ -2,14 +2,13 @@
 
 namespace App\Http\Middleware;
 
-use App\Models\Subscription;
 use App\Models\User;
 use App\Support\ApiResponse;
 use App\Support\CurrentTenant;
-use App\Support\PlanAccess;
 use Closure;
 use Illuminate\Http\Request;
 use Illuminate\Support\Facades\Auth;
+use Illuminate\Support\Facades\DB;
 use Symfony\Component\HttpFoundation\Response;
 
 class EnsureTenantIsActive
@@ -20,8 +19,7 @@ class EnsureTenantIsActive
      * Suspension is how an unpaid or disputed SaaS account is handled: the
      * business keeps every invoice, payment and stock balance it ever
      * recorded, and simply cannot trade until the account is settled. That
-     * is the whole reason Tenant::suspend() sets a flag rather than deleting
-     * anything.
+     * is the whole reason suspension is a status rather than a deletion.
      *
      * Super Admin is exempt on purpose. The reason to open a suspended
      * account is to look at why it was suspended and put it right, so
@@ -72,39 +70,33 @@ class EnsureTenantIsActive
             );
         }
 
-        if ($tenant->isSuspended()) {
+        /*
+         | Suspended or closed, by Accounts (§21).
+         |
+         | Suspending a business is Accounts' decision now - it is where the
+         | account is paid for - and it reaches CRM as accounts.tenant.upserted
+         | in the kit's reference copy. "Its staff cannot sign in" is what the
+         | contract says suspension means, so staff who were already signed in
+         | are turned out here too, rather than carrying on until their
+         | session happens to expire.
+         |
+         | The local flag is still honoured: it is how a business that was
+         | switched off before the split still reads.
+         |
+         | What a business has *bought* is a per-outlet question and not this
+         | gate's: see EnsureShopIsEntitled, which refuses without signing
+         | anybody out. No reference row yet means Accounts has not spoken,
+         | which is not a suspension.
+         */
+        $status = $tenant->ulid === null
+            ? null
+            : DB::table('khana_tenants')->where('id', $tenant->ulid)->value('status');
+
+        if ($tenant->isSuspended() || in_array($status, ['suspended', 'closed'], true)) {
             return $this->refuse($request, __(
                 'access to :company is currently suspended. Please contact support.',
                 ['company' => $tenant->name],
             ));
-        }
-
-        /*
-         | The subscription, read from the clock (§21).
-         |
-         | Checked here as well as by the nightly sweep, and this is the one
-         | that actually enforces it. The sweep only flips the tenant flag so
-         | a lapsed account *looks* lapsed on the list; if expiry depended on
-         | it, a cron that stopped running in December would be a month of
-         | free service nobody noticed until the January reconciliation.
-         |
-         | Subscription::state() needs nothing to have run. A term that ended
-         | at midnight reads as ended at one minute past, sweep or no sweep.
-         |
-         | Past due is deliberately NOT refused. Inside the grace window the
-         | business keeps trading and gets a banner instead - locking a
-         | restaurant out of its own till mid-service over an invoice is how
-         | a platform loses the customer rather than collects.
-         */
-        $subscription = PlanAccess::subscriptionFor($tenant->id);
-
-        if ($subscription !== null && ! $subscription->isUsable()) {
-            return $this->refuse($request, $subscription->state() === Subscription::CANCELLED
-                ? __('The subscription for :company has been cancelled. Please contact support.', ['company' => $tenant->name])
-                : __('The subscription for :company ended on :date. Please contact support to renew.', [
-                    'company' => $tenant->name,
-                    'date' => $subscription->ends_at?->format('j M Y') ?? '',
-                ]));
         }
 
         return $next($request);

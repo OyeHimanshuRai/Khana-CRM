@@ -7,7 +7,6 @@ use App\Models\Concerns\HasUniqueSlug;
 use Illuminate\Database\Eloquent\Builder;
 use Illuminate\Database\Eloquent\Model;
 use Illuminate\Database\Eloquent\Relations\HasMany;
-use Illuminate\Database\Eloquent\Relations\HasOne;
 use Illuminate\Database\Eloquent\SoftDeletes;
 use Illuminate\Support\Facades\Storage;
 use Illuminate\Support\Str;
@@ -44,7 +43,6 @@ class Tenant extends Model
     {
         return [
             'is_active' => 'boolean',
-            'suspended_at' => 'datetime',
             'sort_order' => 'integer',
         ];
     }
@@ -63,38 +61,6 @@ class Tenant extends Model
         return $this->hasMany(User::class);
     }
 
-    /**
-     * Every subscription this business has ever held, oldest first.
-     *
-     * @return HasMany<Subscription, $this>
-     */
-    public function subscriptions(): HasMany
-    {
-        return $this->hasMany(Subscription::class);
-    }
-
-    /**
-     * The one that counts.
-     *
-     * The latest row wins, because changing plan writes a new one and
-     * renewing does not. Deliberately not filtered by state: an expired
-     * subscription is still this tenant's subscription, and it is the row
-     * that has to be on screen for anybody to see why the account stopped
-     * working.
-     *
-     * @return HasOne<Subscription, $this>
-     */
-    public function subscription(): HasOne
-    {
-        return $this->hasOne(Subscription::class)->latestOfMany();
-    }
-
-    /** @return HasMany<SubscriptionPayment, $this> */
-    public function subscriptionPayments(): HasMany
-    {
-        return $this->hasMany(SubscriptionPayment::class);
-    }
-
     /* ------------------------------------------------------------ scopes */
 
     public function scopeActive(Builder $query): Builder
@@ -105,30 +71,13 @@ class Tenant extends Model
     /* --------------------------------------------------------- behaviour */
 
     /**
-     * Stop a tenant trading without touching a row of its data.
+     * Switched off here.
      *
-     * Suspension is the answer to an unpaid subscription, not deletion: the
-     * business still owns its ledger, its invoices and its stock,
-     * and will want them back the day it pays.
+     * Suspending a business is Khana Accounts' decision now, and reaches CRM
+     * through the kit's reference copy - see EnsureTenantIsActive, which
+     * reads both. This is the local half: a business that was switched off
+     * before the split still reads as off.
      */
-    public function suspend(string $reason): void
-    {
-        $this->forceFill([
-            'is_active' => false,
-            'suspended_at' => now(),
-            'suspend_reason' => $reason,
-        ])->save();
-    }
-
-    public function restore_(): void
-    {
-        $this->forceFill([
-            'is_active' => true,
-            'suspended_at' => null,
-            'suspend_reason' => null,
-        ])->save();
-    }
-
     public function isSuspended(): bool
     {
         return ! $this->is_active;

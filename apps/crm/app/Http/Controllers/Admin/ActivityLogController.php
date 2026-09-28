@@ -66,7 +66,7 @@ class ActivityLogController extends Controller
             'pageSizes' => self::PAGE_SIZES,
         ];
 
-        // See UserController::index() - fragment for the AJAX list controller.
+        // A fragment for the AJAX list controller, the full page otherwise.
         return $request->header('X-Fragment')
             ? view('admin.activity._list', $data)
             : view('admin.activity.index', $data);

@@ -2,14 +2,16 @@
     The product's own landing page.
 
     Not a restaurant's website — this is the page a restaurant owner reads
-    before signing up. It answers four questions in the order they get asked:
-    what is it, what can it do, what else do you do for me, what does it cost.
+    before signing up. It answers three questions in the order they get asked:
+    what is it, what can it do, what else do you do for me.
 
-    The feature grid is the real module catalogue and the prices are the real
-    `plans` rows, so neither can drift from the software. See LandingController.
+    The feature grid is the real module catalogue, so it cannot drift from the
+    software. Prices and the signup form are Khana Accounts'; $signupUrl
+    points there, and is null - with the buttons left out - when this install
+    has not been told where Accounts is. See LandingController.
 
     No JavaScript is required for anything to be readable: the FAQ list is
-    <details> and the pricing is plain markup.
+    <details>.
 --}}
     <!DOCTYPE html>
 <html lang="{{ str_replace('_', '-', app()->getLocale()) }}">
@@ -102,17 +104,18 @@
             <a href="#features">Features</a>
             <a href="#how">How it works</a>
             @if ($outletTypes->isNotEmpty()) <a href="#who">Who it is for</a> @endif
-            @if ($plans->isNotEmpty()) <a href="#pricing">Pricing</a> @endif
             @if ($faqs->isNotEmpty()) <a href="#faq">FAQ</a> @endif
             <a href="#demo">Book a demo</a>
         </nav>
 
         <div class="lp-header-cta">
             <a class="lp-btn lp-btn-ghost" href="{{ route('admin.login') }}">Sign in</a>
-            {{-- The one button that opens an account. It points at the form
-                 rather than at the price list, because somebody who scrolled
-                 to the header to click something has already decided. --}}
-            <a class="lp-btn lp-btn-solid" href="{{ route('signup') }}">Open an account</a>
+            {{-- The one button that opens an account, in Khana Accounts.
+                 Straight to the form, because somebody who scrolled to the
+                 header to click something has already decided. --}}
+            @if ($signupUrl)
+                <a class="lp-btn lp-btn-solid" href="{{ $signupUrl }}">Open an account</a>
+            @endif
         </div>
 
         {{--
@@ -133,11 +136,12 @@
                 <a href="#features">Features</a>
                 <a href="#how">How it works</a>
                 @if ($outletTypes->isNotEmpty()) <a href="#who">Who it is for</a> @endif
-                @if ($plans->isNotEmpty()) <a href="#pricing">Pricing</a> @endif
                 @if ($faqs->isNotEmpty()) <a href="#faq">FAQ</a> @endif
                 <a href="#demo">Book a demo</a>
                 <a href="{{ route('admin.login') }}">Sign in</a>
-                <a class="lp-menu-account" href="{{ route('signup') }}">Open an account <span aria-hidden="true">→</span></a>
+                @if ($signupUrl)
+                    <a class="lp-menu-account" href="{{ $signupUrl }}">Open an account <span aria-hidden="true">→</span></a>
+                @endif
             </nav>
         </details>
     </div>
@@ -157,8 +161,8 @@
         Fixed copy, not content-managed, and that is the point: this is the
         one claim on the page that must be true on the day nobody has logged
         into the admin yet. Everything underneath - banners, screenshots,
-        plans, testimonials - is the restaurant's own content and renders
-        only when it exists.
+        testimonials - is the restaurant's own content and renders only when
+        it exists.
     --}}
     <section class="lp-hero">
         <div class="lp-wrap lp-hero-inner">
@@ -188,11 +192,14 @@
                 A demo is the right answer for a group weighing up five
                 outlets; it is a week of waiting for the owner of one, who
                 could be billing tonight. So the form comes first and the
-                call stays offered beside it.
+                call stays offered beside it - and becomes the one way in on
+                an install that has no Accounts address to send people to.
             --}}
             <div class="lp-hero-cta">
-                <a class="lp-btn lp-btn-solid lp-btn-lg" href="{{ route('signup') }}">Start free trial <span aria-hidden="true">→</span></a>
-                <a class="lp-btn lp-btn-ghost lp-btn-lg" href="#demo">Book a free demo</a>
+                @if ($signupUrl)
+                    <a class="lp-btn lp-btn-solid lp-btn-lg" href="{{ $signupUrl }}">Start free trial <span aria-hidden="true">→</span></a>
+                @endif
+                <a class="lp-btn {{ $signupUrl ? 'lp-btn-ghost' : 'lp-btn-solid' }} lp-btn-lg" href="#demo">Book a free demo</a>
             </div>
 
             <div class="lp-hero-proof"><span class="lp-proof-avatars"><i>R</i><i>A</i><i>V</i></span><span><strong>Built for busy restaurants</strong><br>Setup in days, not weeks</span></div>
@@ -260,7 +267,7 @@
                 <h2>Everything the floor, the kitchen and the office need</h2>
                 <p>
                     Each of these is a module you can switch on per outlet — and it is the
-                    same list your plan grants, not a brochure.
+                    same list the software runs on, not a brochure.
                 </p>
             </header>
 
@@ -381,80 +388,6 @@
                                     </p>
                                 @endif
                             </div>
-                        </article>
-                    @endforeach
-                </div>
-            </div>
-        </section>
-    @endif
-
-    {{-- ------------------------------------------------------ pricing -- --}}
-    @if ($plans->isNotEmpty())
-        <section class="lp-section lp-section-alt" id="pricing">
-            <div class="lp-wrap">
-                <header class="lp-head">
-                    <h2>Plans</h2>
-                    <p>Per outlet, billed monthly or yearly. GST extra. Change or cancel whenever.</p>
-                </header>
-
-                <div class="lp-plans">
-                    @foreach ($plans as $row)
-                        @php $plan = $row['plan']; @endphp
-
-                        <article class="lp-plan @if ($row['featured']) is-featured @endif">
-                            @if ($row['featured'])
-                                <span class="lp-plan-flag">Most popular</span>
-                            @endif
-
-                            <h3>{{ $plan->name }}</h3>
-
-                            @if ($plan->blurb)
-                                <p class="lp-plan-blurb">{{ $plan->blurb }}</p>
-                            @endif
-
-                            <p class="lp-plan-price">
-                                <span class="lp-plan-amount">₹{{ number_format($row['monthly'], 0) }}</span>
-                                <span class="lp-meta">/ month</span>
-                            </p>
-
-                            <p class="lp-meta lp-plan-yearly">
-                                or ₹{{ number_format($row['yearly'], 0) }} a year
-                                @if ($row['months_free'])
-                                    — {{ $row['months_free'] }} {{ Str::plural('month', $row['months_free']) }} free
-                                @endif
-                            </p>
-
-                            @if ($plan->trial_days > 0)
-                                <p class="lp-plan-trial">{{ $plan->trial_days }}-day free trial</p>
-                            @endif
-
-                            {{--
-                                Straight to the form with this plan already
-                                chosen, rather than to the enquiry box below.
-                                The card is where somebody decides; asking
-                                them to type the plan's name into a message
-                                and wait for a call back is where that
-                                decision used to be lost. See
-                                App\Http\Controllers\SignupController.
-                            --}}
-                            <a class="lp-btn {{ $row['featured'] ? 'lp-btn-solid' : 'lp-btn-ghost' }} lp-plan-cta"
-                               href="{{ route('signup', ['plan' => $plan->slug]) }}">
-                                {{ $plan->trial_days > 0 ? 'Start free trial' : 'Get started' }}
-                            </a>
-
-                            {{-- Limits first: they are what people compare. --}}
-                            <ul class="lp-plan-list">
-                                @foreach ($row['limits'] as $line)
-                                    <li>{{ $line }}</li>
-                                @endforeach
-                            </ul>
-
-                            <p class="lp-plan-modhead">Modules included</p>
-                            <ul class="lp-plan-list lp-plan-mods">
-                                @foreach ($row['modules'] as $label)
-                                    <li>{{ $label }}</li>
-                                @endforeach
-                            </ul>
                         </article>
                     @endforeach
                 </div>

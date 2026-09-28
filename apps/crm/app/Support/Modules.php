@@ -166,37 +166,15 @@ final class Modules
     {
         $modules = $shop->modules;
 
-        $chosen = $modules === null ? self::keys() : self::sanitise($modules);
-
         /*
-         | The plan is a ceiling over the shop's own choice (§21).
+         | The branch's own choice, and nothing above it.
          |
-         | Two separate questions, and both have to say yes:
-         |
-         |     plan    has this business bought this feature?
-         |     shop    does this branch want it?
-         |
-         | The overlap is what the branch gets. Collapsing them would mean
-         | either an upgrade silently switches on modules nobody asked for,
-         | or a branch that unticked something quietly loses it from the
-         | invoice.
-         |
-         | Null from PlanAccess means no ceiling - no subscription, an
-         | unrestricted plan, or a Super Admin - and the shop's own answer
-         | stands untouched. That is what keeps an install that predates
-         | subscriptions working exactly as it did.
-         |
-         | Asked of the SHOP, not of its tenant. Subscriptions are sold per
-         | outlet, so two branches of one business can sit on different
-         | plans - and reading the tenant would hand this branch the one
-         | next door's ceiling. PlanAccess still falls back to a tenant-wide
-         | blanket row when this outlet has no subscription of its own.
+         | A plan used to cap this list. What an outlet has bought is Khana
+         | Accounts' answer now, and it is whole-product - CRM or not, see
+         | EnsureShopIsEntitled - so there is no per-module ceiling left to
+         | apply. Which lines of business a branch runs stays a setting here.
          */
-        $cap = PlanAccess::modulesForShop($shop->id);
-
-        return $cap === null
-            ? $chosen
-            : array_values(array_intersect($chosen, $cap));
+        return $modules === null ? self::keys() : self::sanitise($modules);
     }
 
     /**
@@ -210,10 +188,6 @@ final class Modules
     {
         self::$enabled = null;
         self::$owners = null;
-
-        // The plan is half the answer now, so it has to be forgotten with
-        // the other half - a shop switch can cross a tenant boundary.
-        PlanAccess::forget();
 
         /*
          | And the price lists, which are per branch and per moment. A memo

@@ -66,7 +66,6 @@ class AppServiceProvider extends ServiceProvider
     {
         $this->registerSuperAdmin();
         $this->registerApiRateLimit();
-        $this->registerSignupRateLimit();
         $this->registerBladeDirectives();
         $this->registerMailLogging();
         $this->registerViewComposers();
@@ -112,35 +111,6 @@ class AppServiceProvider extends ServiceProvider
             return Limit::perMinute(60)->by(
                 $token?->id ? 'token:'.$token->id : 'ip:'.$request->ip()
             );
-        });
-    }
-
-    /**
-     * How often one address may open an account (§21).
-     *
-     * A named limiter rather than `throttle:5,60` on the route, because the
-     * honest answer is not the same in both places.
-     *
-     * In production five an hour from one address is far more than any real
-     * restaurant needs and far less than a script wants: each post writes a
-     * company, a branch, a login and a subscription, so a loop left running
-     * overnight is a database full of businesses.
-     *
-     * Locally it is the wrong number entirely. The same form gets filled in a
-     * dozen times in an afternoon while somebody is building or demonstrating
-     * it, and the sixth attempt meeting Laravel's "Too Many Requests" page
-     * reads as a broken feature rather than as a limit doing its job - which
-     * is exactly how this was first reported.
-     *
-     * Keyed on the IP either way. Keying on the email address would let one
-     * script open accounts all night simply by changing it.
-     */
-    private function registerSignupRateLimit(): void
-    {
-        RateLimiter::for('signup', function (Request $request) {
-            return app()->environment('local', 'testing')
-                ? Limit::perMinute(30)->by($request->ip())
-                : Limit::perHour(5)->by($request->ip());
         });
     }
 

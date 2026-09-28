@@ -73,22 +73,6 @@ Schedule::command('email:prune-logs --days=90')
     ->withoutOverlapping();
 
 /*
-| Subscriptions (SRS 21).
-|
-| Once a day, early, and it is the least urgent job on this page: expiry is
-| enforced on every request by EnsureTenantIsActive, so a sweep that does not
-| run leaves stale-looking screens rather than free service. See
-| App\Console\Commands\SweepSubscriptions.
-|
-| Before the alert sweep, so a tenant suspended this morning is suspended
-| before anything else spends time raising notifications for it.
-*/
-Schedule::command('subscriptions:sweep')
-    ->dailyAt('07:30')
-    ->withoutOverlapping()
-    ->runInBackground();
-
-/*
 | Campaigns (SRS 15, 21).
 |
 | Every ten minutes, in daytime hours only. A batch per run rather than a

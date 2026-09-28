@@ -27,16 +27,6 @@ class User extends Authenticatable
     public const SUPER_ADMIN = 'Super Admin';
 
     /**
-     * Role that runs one business and nothing else.
-     *
-     * Named here because it is no longer only a seeder's string: a self-serve
-     * signup hands it to whoever created the account, and a typo in that one
-     * place would produce an owner locked out of their own back office. See
-     * App\Services\SignupService and RolePermissionSeeder.
-     */
-    public const TENANT_OWNER = 'Tenant Owner';
-
-    /**
      * The attributes that are mass assignable.
      *
      * @var list<string>

@@ -35,8 +35,15 @@
      * `params` covers the routes that need one - the report screens are all
      * the same route with a different segment - so the menu can point at
      * them without a controller action each.
+     *
+     * `accounts` is a path in Khana Accounts rather than a route here, for
+     * the screens that moved there.
      */
     $href = function (array $item) {
+        if (isset($item['accounts'])) {
+            return App\Support\Accounts::url($item['accounts']);
+        }
+
         if (empty($item['route']) || ! Route::has($item['route'])) {
             return null;
         }
@@ -60,19 +67,13 @@
      | a closed door.
      */
     /*
-     | `unless_can` hides an entry from somebody who holds a *stronger*
-     | right, so two audiences can be offered two screens under one subject
-     | without either seeing both.
-     |
-     | The case it exists for is Subscription: a restaurant owner gets their
-     | own account, a Super Admin gets the platform's list, and neither
-     | wants a sidebar with both. It narrows and never widens - an entry
-     | still has to pass its own `can` first - so it cannot be used to grant
-     | anybody anything.
+     | An Accounts entry on an install that has not been told where Accounts
+     | is has nowhere to go. Hidden rather than drawn as "coming soon",
+     | because it is not coming - it is somewhere else.
      */
     $visible = fn (array $item) => (empty($item['can']) || App\Support\Modules::allows($item['can']))
         && (empty($item['can']) || auth()->user()?->can($item['can']))
-        && (empty($item['unless_can']) || ! auth()->user()?->can($item['unless_can']));
+        && (! isset($item['accounts']) || App\Support\Accounts::url($item['accounts']) !== null);
 
     /*
      | Filter the configured menu down to what this user may see. A parent

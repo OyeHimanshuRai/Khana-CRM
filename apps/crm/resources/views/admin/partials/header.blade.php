@@ -99,12 +99,6 @@
                     <x-icon name="user" :size="16" /> Profile
                 </a>
 
-                @allows('settings.users.view')
-                    <a class="dropdown-item" href="{{ route('admin.users.index') }}">
-                        <x-icon name="users" :size="16" /> Users
-                    </a>
-                @endallows
-
                 @allows('settings.roles.view')
                     <a class="dropdown-item" href="{{ route('admin.roles.index') }}">
                         <x-icon name="settings" :size="16" /> Roles & Permissions

@@ -10,8 +10,6 @@ use Illuminate\Database\Eloquent\Builder;
 use Illuminate\Database\Eloquent\Model;
 use Illuminate\Database\Eloquent\Relations\BelongsTo;
 use Illuminate\Database\Eloquent\Relations\BelongsToMany;
-use Illuminate\Database\Eloquent\Relations\HasMany;
-use Illuminate\Database\Eloquent\Relations\HasOne;
 use Illuminate\Database\Eloquent\SoftDeletes;
 use Illuminate\Support\Facades\DB;
 use Illuminate\Support\Facades\Storage;
@@ -147,33 +145,6 @@ class Shop extends Model
     public function tenant(): BelongsTo
     {
         return $this->belongsTo(Tenant::class);
-    }
-
-    /**
-     * Every subscription this outlet has held, and the one that counts.
-     *
-     * Latest wins, exactly as it does per tenant: changing plan writes a new
-     * row and renewing moves the dates on the existing one, so the newest
-     * row is the current agreement. Deliberately not filtered by state - an
-     * expired subscription is still this outlet's subscription, and it is
-     * the row somebody has to be shown to understand why the branch stopped
-     * working.
-     *
-     * Blanket rows (shop_id null) are NOT reached from here. They belong to
-     * the tenant and are resolved as a fallback in PlanAccess, which is the
-     * one place that knows the order to look in.
-     *
-     * @return HasMany<Subscription, $this>
-     */
-    public function subscriptions(): HasMany
-    {
-        return $this->hasMany(Subscription::class);
-    }
-
-    /** @return HasOne<Subscription, $this> */
-    public function subscription(): HasOne
-    {
-        return $this->hasOne(Subscription::class)->latestOfMany();
     }
 
     public function users(): BelongsToMany

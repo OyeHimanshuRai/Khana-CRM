@@ -10,7 +10,6 @@ use App\Support\ApiResponse;
 use App\Support\CurrentShop;
 use App\Support\CurrentTenant;
 use App\Support\Modules;
-use App\Support\PlanAccess;
 use Illuminate\Database\Eloquent\Builder;
 use Illuminate\Http\JsonResponse;
 use Illuminate\Http\Request;
@@ -85,8 +84,7 @@ class ShopController extends Controller
      * outlet on the platform, with its address, its GSTIN and its staff count.
      *
      * One row per business for a customer, every row for a Super Admin, whose
-     * `accessibleIds()` is every tenant. Same rule TenantController::readable
-     * follows one tier up, and for the same reason.
+     * `accessibleIds()` is every tenant.
      */
     private function readable(): Builder
     {
@@ -177,17 +175,10 @@ class ShopController extends Controller
         $data = $this->validated($request);
 
         /*
-         | The plan's branch allowance (§21).
-         |
-         | Checked here rather than in a rule, because the limit belongs to
-         | the business being added to, not to the field being filled in -
-         | and the answer has to name the plan for it to be any use.
-         |
-         | Resolved the same way Shop::creating resolves it, so the count is
-         | taken against the tenant the row would actually land in. Reading
-         | CurrentTenant alone would let a Super Admin creating a branch for
-         | somebody else be measured against their own company, which is no
-         | company at all.
+         | The business the branch lands in, resolved the same way
+         | Shop::creating resolves it. Reading CurrentTenant alone would file
+         | a branch a Super Admin creates for somebody else under their own
+         | company, which is no company at all.
          */
         $tenantId = $data['tenant_id'] ?? CurrentTenant::id() ?? CurrentTenant::soleId();
 
@@ -208,10 +199,6 @@ class ShopController extends Controller
                 'Choose which company this branch belongs to. You are working across all companies, '
                 .'so there is no single one to file it under.'
             );
-        }
-
-        if (! PlanAccess::canAddShop($tenantId)) {
-            return ApiResponse::error(PlanAccess::refusalFor($tenantId, 'shop'));
         }
 
         $shop = new Shop($this->attributes($data));

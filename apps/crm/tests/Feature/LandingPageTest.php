@@ -3,7 +3,6 @@
 namespace Tests\Feature;
 
 use App\Models\Faq;
-use App\Models\Plan;
 use App\Models\Service;
 use App\Models\Setting;
 use App\Models\Slider;
@@ -20,9 +19,8 @@ use Tests\TestCase;
  *
  *   - the feature grid is the real module catalogue, so it cannot advertise
  *     something that is not built;
- *   - the prices are the real `plans` rows, so there is no second copy of a
- *     price to drift;
- *   - an archived plan stops being sold the moment it is archived.
+ *   - it sells nothing itself: prices and the signup form are Khana
+ *     Accounts', and the buttons go there or are not drawn.
  *
  * And that it renders for an install where nothing has been filled in, because
  * that is when somebody first opens it to see whether the deploy worked.
@@ -41,29 +39,10 @@ class LandingPageTest extends TestCase
         URL::forceRootUrl('http://localhost');
     }
 
-    /** @param array<string, mixed> $attributes */
-    private function plan(array $attributes = []): Plan
-    {
-        return Plan::create([
-            'name' => 'Starter',
-            'code' => 'STARTER',
-            'slug' => 'starter',
-            'monthly_price' => 799,
-            'yearly_price' => 7990,
-            'currency' => 'INR',
-            'trial_days' => 14,
-            'max_shops' => 1,
-            'max_users' => 5,
-            'is_active' => true,
-            'sort_order' => 1,
-            ...$attributes,
-        ]);
-    }
-
     /* ----------------------------------------------------- the empty case */
 
     /**
-     * Nothing configured at all: no plans, no services, no FAQs, no settings.
+     * Nothing configured at all: no services, no FAQs, no settings.
      *
      * The page must still say what the product is, because that is the part
      * that does not depend on data.
@@ -139,111 +118,46 @@ class LandingPageTest extends TestCase
             ->assertSee('One system for every outlet you run.');
     }
 
-    /* ------------------------------------------------------------ pricing */
+    /* -------------------------------------------------- opening an account */
 
-    public function test_plans_are_priced_from_the_plans_table(): void
+    /**
+     * Prices and the signup form are Khana Accounts'; the buttons go there.
+     */
+    public function test_open_an_account_goes_to_khana_accounts(): void
     {
-        $this->plan([
-            'name' => 'Restaurant',
-            'code' => 'REST',
-            'slug' => 'restaurant',
-            'monthly_price' => 1999,
-            'yearly_price' => 19990,
-            'blurb' => 'For a single busy dining room.',
-        ]);
+        config(['khana.urls.accounts' => 'https://accounts.example.test']);
 
         $this->get('/')
             ->assertOk()
-            ->assertSee('Plans')
-            ->assertSee('Restaurant')
-            ->assertSee('For a single busy dining room.')
-            ->assertSee('₹1,999')
-            ->assertSee('₹19,990')
-            // Ten months' money for twelve months' service.
-            ->assertSee('2 months free')
-            ->assertSee('14-day free trial');
-    }
-
-    /** An archived plan is one existing subscribers keep and nobody new can buy. */
-    public function test_an_inactive_plan_is_not_advertised(): void
-    {
-        $this->plan(['name' => 'Legacy Deal', 'code' => 'LEG', 'slug' => 'legacy', 'is_active' => false]);
-
-        $this->get('/')
-            ->assertOk()
-            ->assertDontSee('Legacy Deal');
+            ->assertSee('Open an account')
+            ->assertSee('href="https://accounts.example.test/signup"', false);
     }
 
     /**
-     * The limits on a card are the plan's own, rendered by the model.
-     *
-     * Same method the tenant's subscription screen uses, so the promise on the
-     * landing page and the enforcement inside the app cannot disagree.
+     * With nowhere to send anybody, the buttons are left out rather than
+     * drawn as links to nothing - and the demo form becomes the way in.
      */
-    public function test_a_plans_limits_are_listed(): void
+    public function test_without_an_accounts_address_the_signup_buttons_are_left_out(): void
     {
-        $this->plan(['max_shops' => 3, 'max_users' => 25]);
+        config(['khana.urls.accounts' => null]);
 
         $this->get('/')
             ->assertOk()
-            ->assertSee('25 staff accounts');
+            ->assertDontSee('Open an account')
+            ->assertDontSee('Start free trial')
+            ->assertSee('Book a free demo');
     }
 
-    /**
-     * A price is for one outlet, and the card never says otherwise.
-     *
-     * The page has always read "Per outlet, billed monthly or yearly" while
-     * the card underneath it listed "3 branches" - so a visitor was told the
-     * same figure covered one restaurant and three. Subscriptions are sold
-     * per outlet now, and `max_shops` survives only as a rule about blanket
-     * rows taken out before that; it is not a thing this plan grants, so it
-     * is not on the price list. See Plan::limitLines().
-     */
-    public function test_a_plan_is_priced_for_one_outlet_and_advertises_no_branch_count(): void
+    /** An old price card's link still lands somewhere useful. */
+    public function test_the_old_signup_address_forwards(): void
     {
-        $this->plan(['max_shops' => 3, 'max_users' => 25]);
+        config(['khana.urls.accounts' => 'https://accounts.example.test/']);
 
-        $this->get('/')
-            ->assertOk()
-            ->assertSee('One outlet')
-            ->assertDontSee('3 branches');
-    }
+        $this->get('/signup/restaurant')->assertRedirect('https://accounts.example.test/signup');
 
-    /** Unlimited is a null column, and must read as words rather than a blank. */
-    public function test_null_limits_read_as_unlimited(): void
-    {
-        $this->plan(['max_shops' => null, 'max_users' => null]);
+        config(['khana.urls.accounts' => null]);
 
-        $this->get('/')
-            ->assertOk()
-            ->assertSee('One outlet')
-            ->assertDontSee('Unlimited branches')
-            ->assertSee('Unlimited staff accounts');
-    }
-
-    /**
-     * The middle plan is flagged, and only when there is a middle to flag.
-     */
-    public function test_one_plan_is_never_flagged_most_popular(): void
-    {
-        $this->plan();
-
-        $this->get('/')
-            ->assertOk()
-            ->assertDontSee('Most popular');
-    }
-
-    public function test_the_middle_plan_is_flagged(): void
-    {
-        $this->plan(['name' => 'Starter', 'code' => 'A', 'slug' => 'a', 'sort_order' => 1]);
-        $this->plan(['name' => 'Restaurant', 'code' => 'B', 'slug' => 'b', 'sort_order' => 2]);
-        $this->plan(['name' => 'Chain', 'code' => 'C', 'slug' => 'c', 'sort_order' => 3]);
-
-        $response = $this->get('/')->assertOk();
-
-        $response->assertSee('Most popular');
-        // Exactly one, or the flag means nothing.
-        $this->assertSame(1, substr_count($response->getContent(), 'Most popular'));
+        $this->get('/signup')->assertRedirect(route('landing'));
     }
 
     /* ---------------------------------------------------- other sections */

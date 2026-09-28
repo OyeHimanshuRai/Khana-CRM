@@ -5,12 +5,12 @@ namespace App\Http\Controllers;
 use App\Models\Faq;
 use App\Models\Integration;
 use App\Models\OutletType;
-use App\Models\Plan;
 use App\Models\Showcase;
 use App\Models\Slider;
 use App\Models\Testimonial;
 use App\Models\Service;
 use App\Models\Setting;
+use App\Support\Accounts;
 use App\Support\Modules;
 use Illuminate\Support\Collection;
 use Illuminate\Support\Facades\Storage;
@@ -25,13 +25,16 @@ use Illuminate\View\View;
  *
  * This is **not** a restaurant's website. It is the marketing page for the
  * platform itself - the thing a restaurant owner reads before deciding to sign
- * up. It answers four questions, in this order, because that is the order they
- * are actually asked in:
+ * up. It answers three questions, in this order, because that is the order
+ * they are actually asked in:
  *
  *   1. What kind of product is this?     the hero
  *   2. What can it do?                   the modules
  *   3. What else do you do for me?       services
- *   4. What does it cost?                plans
+ *
+ * What it costs, and opening an account, are Khana Accounts' - it holds the
+ * plans and the signup. This page links there when it knows the address and
+ * leaves the buttons out when it does not.
  *
  * A guest's *restaurant* menu is a different thing entirely and lives behind
  * the table QR - see the `t/` routes.
@@ -41,21 +44,17 @@ use Illuminate\View\View;
  * ---------------------------------------------------------------------------
  *
  * `Modules::catalogue()` is not a marketing copy deck. It is the same list the
- * sidebar filters against, that a shop switches lines of business on with, and
- * that a Plan grants. So a feature advertised here is a feature that exists,
- * and one that is switched off platform-wide stops being advertised on the
- * same deploy. A hand-written list on a marketing page is a promise nobody
- * updates when the code changes.
- *
- * The same goes for pricing: the cards come from `plans`, the table Super Admin
- * edits under Settings > Plans. There is no second copy of a price.
+ * sidebar filters against and that a shop switches lines of business on with.
+ * So a feature advertised here is a feature that exists, and one that is
+ * switched off platform-wide stops being advertised on the same deploy. A
+ * hand-written list on a marketing page is a promise nobody updates when the
+ * code changes.
  */
 class LandingController extends Controller
 {
     public function __invoke(): View
     {
         $site = $this->site();
-        $plans = $this->plans();
         $faqs = Faq::query()->active()->orderBy('sort_order')->limit(8)->get();
 
         return view('landing.index', [
@@ -63,16 +62,19 @@ class LandingController extends Controller
             'strip' => $this->strip(),
             'modules' => $this->modules(),
             'services' => Service::query()->active()->orderBy('sort_order')->limit(6)->get(),
-            'plans' => $plans,
             'faqs' => $faqs,
             'steps' => $this->steps(),
 
+            // Null when this install has not been told where Accounts is;
+            // the view then leaves the "open an account" buttons out.
+            'signupUrl' => Accounts::url('/signup'),
+
             /*
              | What a search engine reads instead of guessing from the markup.
-             | Built from the rows above, so it cannot describe a price or a
-             | question the page does not show. See structuredData().
+             | Built from the rows above, so it cannot describe a question the
+             | page does not show. See structuredData().
              */
-            'jsonLd' => $this->structuredData($site, $plans, $faqs),
+            'jsonLd' => $this->structuredData($site, $faqs),
 
             /*
              | The sections added with the admin modules behind them. They
@@ -123,14 +125,15 @@ class LandingController extends Controller
      * ---------------------------------------------------------------------
      *
      * Every value here is one a visitor can see somewhere on the page: the
-     * prices are the `plans` table, the questions are the `faqs` table, the
-     * phone number is Company Settings. That is not tidiness - Google treats
-     * structured data that contradicts the visible page as spam, and a hand
-     * written block is a copy nobody updates when a price changes.
+     * questions are the `faqs` table, the phone number is Company Settings.
+     * That is not tidiness - Google treats structured data that contradicts
+     * the visible page as spam, and a hand written block is a copy nobody
+     * updates when the page changes.
      *
-     * Three things are described, because three different results can come
-     * of them: the business itself, the product and what it costs, and the
-     * questions - which are the ones that actually show up under a listing.
+     * Two things are described: the business itself, and the questions -
+     * which are the ones that actually show up under a listing. The product
+     * and its prices went with the plans to Khana Accounts; an offer with no
+     * price on the page would be exactly the contradiction above.
      *
      * A section with no rows is left out rather than emitted empty: an
      * `FAQPage` with no questions in it is an invalid graph, and an invalid
@@ -139,7 +142,7 @@ class LandingController extends Controller
      * @param  array<string, mixed>  $site
      * @return array<string, mixed>
      */
-    private function structuredData(array $site, Collection $plans, Collection $faqs): array
+    private function structuredData(array $site, Collection $faqs): array
     {
         $graph = [];
 
@@ -160,32 +163,6 @@ class LandingController extends Controller
         ]);
 
         $graph[] = $organisation;
-
-        if ($plans->isNotEmpty()) {
-            $graph[] = [
-                '@type' => 'SoftwareApplication',
-                '@id' => route('landing').'#product',
-                'name' => $site['name'],
-                'applicationCategory' => 'BusinessApplication',
-                // What it runs on, said plainly: this is a browser product,
-                // and claiming an OS it was never installed on is the sort of
-                // detail that gets a whole block discounted.
-                'operatingSystem' => 'Web browser',
-                'description' => $site['meta_description']
-                    ?: 'Restaurant POS, table orders, kitchen display, stock and GST billing.',
-                'publisher' => ['@id' => route('landing').'#organisation'],
-                'offers' => $plans->map(fn (array $row) => [
-                    '@type' => 'Offer',
-                    'name' => $row['plan']->name,
-                    'price' => (string) $row['monthly'],
-                    'priceCurrency' => $row['plan']->currency,
-                    'url' => route('signup', ['plan' => $row['plan']->slug]),
-                    // Per outlet, per month - which is the whole basis of the
-                    // price and the first thing a comparison gets wrong.
-                    'description' => 'Per outlet, per month. GST extra.',
-                ])->values()->all(),
-            ];
-        }
 
         if ($faqs->isNotEmpty()) {
             $graph[] = [
@@ -296,7 +273,7 @@ class LandingController extends Controller
     /**
      * What the product does, taken from the module catalogue.
      *
-     * The same list the sidebar, the shop form and every Plan are built from -
+     * The same list the sidebar and the shop form are built from -
      * see the class docblock for why it is not a hand-written copy deck.
      *
      * @return Collection<int, array<string, string>>
@@ -352,61 +329,6 @@ class LandingController extends Controller
                     .'out. Stock and reports move from the same sale.',
             ],
         ];
-    }
-
-    /* ------------------------------------------------------------ pricing */
-
-    /**
-     * The plans on sale.
-     *
-     * Straight from the `plans` table, which is what Super Admin edits under
-     * Settings > Plans, so a price change on that screen is a price change
-     * here. Only active plans - an archived plan is one that is no longer sold
-     * but that existing subscribers are still on.
-     *
-     * The "most popular" flag is the middle plan by sort order rather than a
-     * column, because there is no column for it and inventing one to decorate
-     * a landing page would be a schema change for a border colour. With two
-     * plans it marks the second; with one it marks nothing.
-     *
-     * @return Collection<int, array<string, mixed>>
-     */
-    private function plans(): Collection
-    {
-        $plans = Plan::query()->active()->orderBy('sort_order')->orderBy('monthly_price')->get();
-
-        $highlight = $plans->count() >= 2 ? (int) floor(($plans->count() - 1) / 2) : -1;
-
-        return $plans->values()->map(fn (Plan $plan, int $i) => [
-            'plan' => $plan,
-            'featured' => $i === $highlight,
-            'monthly' => $plan->priceFor(Plan::MONTHLY),
-            'yearly' => $plan->priceFor(Plan::YEARLY),
-            /*
-             | What a year actually saves, in months rather than a percentage -
-             | "two months free" is a thing somebody can picture, and 16.7% is
-             | not. Null when the yearly price is simply twelve monthlies.
-             */
-            'months_free' => $this->monthsFree($plan),
-            'limits' => $plan->limitLines(),
-            'modules' => collect($plan->moduleKeys())
-                ->map(fn (string $k) => Modules::catalogue()[$k]['label'] ?? $k)
-                ->all(),
-        ]);
-    }
-
-    private function monthsFree(Plan $plan): ?int
-    {
-        $monthly = (float) $plan->monthly_price;
-
-        if ($monthly <= 0) {
-            return null;
-        }
-
-        $saved = ($monthly * 12) - $plan->priceFor(Plan::YEARLY);
-        $months = (int) round($saved / $monthly);
-
-        return $months > 0 ? $months : null;
     }
 
     /* ------------------------------------------------------------ helpers */

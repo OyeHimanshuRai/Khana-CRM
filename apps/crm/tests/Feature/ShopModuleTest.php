@@ -154,7 +154,7 @@ class ShopModuleTest extends TestCase
         $this->actingAs($this->owner());
         $this->enable([]);
 
-        $this->assertTrue(Modules::allows('settings.users.view'));
+        $this->assertTrue(Modules::allows('settings.roles.view'));
         $this->assertTrue(Modules::allows('dashboard.overview.view'));
         $this->assertFalse(Modules::allows('pos.labels.view'));
     }

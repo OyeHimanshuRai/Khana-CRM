@@ -22,11 +22,10 @@ class DatabaseSeeder extends Seeder
             // its identity from - and before the shops, which need a tenant
             // to belong to.
             TenantSeeder::class,
-            // The price list. Deliberately after the tenant and deliberately
-            // not connected to it: seeding what is for sale must not sell
-            // anything to anybody. See PlanSeeder.
-            PlanSeeder::class,
             ShopSeeder::class,
+            // What Accounts would have sold the shops above, so the seeded
+            // install can be signed in to. Not in production - see it.
+            CrmEntitlementSeeder::class,
             CatalogSeeder::class,
         ]);
     }

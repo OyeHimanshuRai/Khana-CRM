@@ -186,11 +186,12 @@ class LoginRequest extends FormRequest
                 // produces a running record, not one row per attempt.
                 dedupeKey: sprintf('lockout:%d:%s:%s', $user->getKey(), $this->ip(), now()->format('Y-m-d-H')),
                 body: sprintf('%s was locked out from %s.', $user->email, $this->ip()),
-                link: '/admin/users/'.$user->getKey().'/security',
+                // No link: the per-person security screen went to Accounts,
+                // and a password lockout only happens on an install that
+                // signs in without it. Whoever reads the activity log is who
+                // should hear about it.
                 reference: $user,
-                // The permission that opens the screen the link points at, so
-                // the alert is never a 403 dressed up as a notification.
-                can: 'settings.sessions.view',
+                can: 'settings.activity_logs.view',
                 level: 'danger',
                 expiresAt: now()->addDays(7),
             );
