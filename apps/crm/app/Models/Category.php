@@ -3,6 +3,7 @@
 namespace App\Models;
 
 use App\Models\Concerns\BelongsToTenant;
+use App\Models\Concerns\HasPublicId;
 use Illuminate\Database\Eloquent\Builder;
 use Illuminate\Database\Eloquent\Model;
 use Illuminate\Database\Eloquent\Relations\BelongsTo;
@@ -22,7 +23,7 @@ class Category extends Model
      | branch is the price, the stock and whether a dish is listed, and all
      | three already live elsewhere. See the migration that added the column.
      */
-    use BelongsToTenant;
+    use BelongsToTenant, HasPublicId;
 
     protected $fillable = [
         'name', 'slug', 'description', 'is_active', 'sort_order',

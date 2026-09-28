@@ -2,6 +2,7 @@
 
 namespace App\Models;
 
+use App\Models\Concerns\HasPublicId;
 use Illuminate\Database\Eloquent\Builder;
 use Illuminate\Database\Eloquent\Model;
 use Illuminate\Database\Eloquent\Relations\BelongsTo;
@@ -15,6 +16,8 @@ use Illuminate\Database\Eloquent\Relations\BelongsTo;
  */
 class ModifierOption extends Model
 {
+    use HasPublicId;
+
     protected $fillable = [
         'modifier_id', 'name', 'price',
         'is_default', 'is_available', 'sort_order',

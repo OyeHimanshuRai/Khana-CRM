@@ -2,6 +2,7 @@
 
 namespace App\Models;
 
+use App\Models\Concerns\HasPublicId;
 use Illuminate\Database\Eloquent\Model;
 use Illuminate\Database\Eloquent\Relations\BelongsTo;
 
@@ -13,8 +14,10 @@ use Illuminate\Database\Eloquent\Relations\BelongsTo;
  */
 class InvoiceItem extends Model
 {
+    use HasPublicId;
+
     protected $fillable = [
-        'invoice_id', 'product_id',
+        'invoice_id', 'product_id', 'product_variant_id', 'order_item_id',
         'product_name', 'sku', 'hsn_code', 'unit_code',
         'quantity', 'mrp', 'unit_price',
         'discount_percent', 'discount_amount', 'taxable_value',
@@ -52,6 +55,24 @@ class InvoiceItem extends Model
     public function product(): BelongsTo
     {
         return $this->belongsTo(Product::class);
+    }
+
+    /** The size sold, while that row still exists. */
+    public function variant(): BelongsTo
+    {
+        return $this->belongsTo(ProductVariant::class, 'product_variant_id');
+    }
+
+    /**
+     * The order line this bill line settles, for a table or an API order.
+     *
+     * Only a line the kitchen saw counts as a kitchen line for ERP - see
+     * App\Events\Outbound\SalePayload - but the link is kept either way, so
+     * the bill can always say which order it came off.
+     */
+    public function orderItem(): BelongsTo
+    {
+        return $this->belongsTo(OrderItem::class);
     }
 
     /* --------------------------------------------------------- behaviour */
