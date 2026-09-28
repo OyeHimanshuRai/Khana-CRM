@@ -2,6 +2,7 @@
 
 namespace App\Models;
 
+use App\Models\Concerns\HasPublicId;
 use App\Models\Concerns\HasUniqueSlug;
 use App\Support\CurrentTenant;
 use App\Support\Modules;
@@ -25,7 +26,7 @@ use Illuminate\Support\Str;
  */
 class Shop extends Model
 {
-    use HasUniqueSlug, SoftDeletes;
+    use HasPublicId, HasUniqueSlug, SoftDeletes;
 
     protected $fillable = [
         'tenant_id',

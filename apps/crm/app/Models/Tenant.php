@@ -2,6 +2,7 @@
 
 namespace App\Models;
 
+use App\Models\Concerns\HasPublicId;
 use App\Models\Concerns\HasUniqueSlug;
 use Illuminate\Database\Eloquent\Builder;
 use Illuminate\Database\Eloquent\Model;
@@ -25,6 +26,7 @@ use Illuminate\Support\Str;
  */
 class Tenant extends Model
 {
+    use HasPublicId;
     use HasUniqueSlug;
     use SoftDeletes;
 

@@ -6,6 +6,7 @@ use App\Models\User;
 use App\Support\PermissionRegistry;
 use Illuminate\Database\Seeder;
 use Illuminate\Support\Facades\DB;
+use Illuminate\Support\Str;
 use Spatie\Permission\Models\Permission;
 use Spatie\Permission\Models\Role;
 use Spatie\Permission\PermissionRegistrar;
@@ -17,6 +18,22 @@ class RolePermissionSeeder extends Seeder
 
     /** Read-only rights. */
     private const READ_ONLY = '/\.(view|export|print|download)$/';
+
+    /**
+     * The key Accounts gives each CRM preset (App\Support\Roles there).
+     *
+     * Accounts records which role a person holds and hands the key over at
+     * sign-in; the rights stay here. Any role not listed - one a business
+     * made itself, or one Accounts does not offer - is keyed by its name.
+     */
+    public const ACCOUNTS_KEYS = [
+        'Tenant Owner' => 'owner',
+        'Manager' => 'manager',
+        'Cashier' => 'cashier',
+        'Captain / Waiter' => 'captain',
+        'Kitchen Staff' => 'kitchen',
+        'Auditor' => 'auditor',
+    ];
 
     /*
      | Rights that belong to the platform rather than to a customer.
@@ -359,6 +376,8 @@ class RolePermissionSeeder extends Seeder
                 $role = Role::firstOrCreate(
                     ['name' => $roleName, 'guard_name' => $guard]
                 );
+
+                $role->forceFill(['key' => self::ACCOUNTS_KEYS[$roleName] ?? Str::slug($roleName, '_')])->save();
 
                 if ($definition['grant'] === null) {
                     continue;

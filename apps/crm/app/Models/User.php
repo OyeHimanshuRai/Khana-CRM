@@ -3,6 +3,7 @@
 namespace App\Models;
 
 // use Illuminate\Contracts\Auth\MustVerifyEmail;
+use App\Models\Concerns\HasPublicId;
 use App\Support\CurrentTenant;
 use Database\Factories\UserFactory;
 use Illuminate\Database\Eloquent\Factories\HasFactory;
@@ -20,7 +21,7 @@ use Spatie\Permission\Traits\HasRoles;
 class User extends Authenticatable
 {
     /** @use HasFactory<UserFactory> */
-    use HasApiTokens, HasFactory, HasRoles, Notifiable;
+    use HasApiTokens, HasFactory, HasPublicId, HasRoles, Notifiable;
 
     /** Role that bypasses every permission check. */
     public const SUPER_ADMIN = 'Super Admin';

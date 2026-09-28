@@ -11,6 +11,7 @@ use Illuminate\Http\JsonResponse;
 use Illuminate\Http\RedirectResponse;
 use Illuminate\Http\Request;
 use Illuminate\Support\Facades\DB;
+use Illuminate\Support\Str;
 use Illuminate\Validation\Rule;
 use Illuminate\View\View;
 use Spatie\Permission\Models\Role;
@@ -58,6 +59,7 @@ class RoleController extends Controller
         $role = DB::transaction(function () use ($data) {
             $role = Role::create([
                 'name' => $data['name'],
+                'key' => $this->newKey($data['name']),
                 'guard_name' => config('auth.defaults.guard', 'web'),
             ]);
 
@@ -174,8 +176,11 @@ class RoleController extends Controller
     public function clone(Request $request, Role $role): RedirectResponse|JsonResponse
     {
         $copy = DB::transaction(function () use ($role) {
+            $name = $this->uniqueName($role->name);
+
             $copy = Role::create([
-                'name' => $this->uniqueName($role->name),
+                'name' => $name,
+                'key' => $this->newKey($name),
                 'guard_name' => $role->guard_name,
             ]);
 
@@ -278,6 +283,27 @@ class RoleController extends Controller
 
         while (Role::where('name', $candidate)->exists()) {
             $candidate = "{$base} (Copy {$suffix})";
+            $suffix++;
+        }
+
+        return $candidate;
+    }
+
+    /**
+     * The key Accounts will know a new role by.
+     *
+     * Taken from the name once and never changed after - a rename here must
+     * not strand the people Accounts has already given the role to.
+     */
+    private function newKey(string $name): string
+    {
+        $base = Str::limit(Str::slug($name, '_'), 36, '') ?: 'role';
+        $base = ctype_alpha($base[0]) ? $base : 'r_'.$base;
+        $candidate = $base;
+        $suffix = 2;
+
+        while (Role::where('key', $candidate)->exists()) {
+            $candidate = "{$base}_{$suffix}";
             $suffix++;
         }
 
