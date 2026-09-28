@@ -3,6 +3,7 @@
 namespace App\Models;
 
 use App\Models\Concerns\BelongsToShop;
+use App\Models\Concerns\HasPublicId;
 use Illuminate\Database\Eloquent\Model;
 use Illuminate\Database\Eloquent\Relations\BelongsTo;
 
@@ -16,10 +17,10 @@ use Illuminate\Database\Eloquent\Relations\BelongsTo;
  */
 class CashPaidOut extends Model
 {
-    use BelongsToShop;
+    use BelongsToShop, HasPublicId;
 
     protected $fillable = [
-        'shop_id', 'amount', 'reason', 'paid_at', 'paid_by', 'paid_by_name',
+        'shop_id', 'amount', 'category', 'reason', 'paid_at', 'paid_by', 'paid_by_name',
     ];
 
     protected function casts(): array

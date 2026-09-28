@@ -1,5 +1,9 @@
 <?php
 
+use App\Http\Controllers\Api\Machine\OutletMenuController;
+use App\Http\Controllers\Api\Machine\RoleController;
+use App\Http\Controllers\Api\Machine\SaleController;
+use App\Http\Controllers\Api\Machine\SalesDigestController;
 use App\Http\Controllers\Api\MenuController;
 use App\Http\Controllers\Api\OrderController;
 use App\Http\Controllers\Api\TableController;
@@ -105,3 +109,44 @@ Route::middleware(['auth:sanctum', 'throttle:api'])->group(function () {
             ->name('api.orders.status');
     });
 });
+
+/*
+|--------------------------------------------------------------------------
+| What the other Khana services may read (contracts/api/crm.yaml)
+|--------------------------------------------------------------------------
+|
+| A different caller from everything above: not a person's Sanctum token
+| but another service's machine token, signed by Accounts and checked here
+| with Accounts' public key (the kit's `machine:` middleware). No session, no
+| throttle - a server calls these, and only for a screen, a first sync or
+| the nightly check. Everything live travels as events instead.
+|
+|   outlets/{id}/menu           ERP's first sync of an outlet's menu
+|   outlets/{id}/sales-digest   ERP's nightly check of one business day
+|   sales/{id}                  one sale the nightly check found missing
+|   roles                       Accounts' team screen
+|
+| Which outlets a caller may read is App\Http\Controllers\Api\Machine\
+| ServedOutlets: those that own ERP, and only the one a token is bound to.
+*/
+
+$ulid = '[0-7][0-9A-HJKMNP-TV-Z]{25}';
+
+Route::middleware('machine:menu:read')
+    ->get('outlets/{id}/menu', OutletMenuController::class)
+    ->where('id', $ulid)
+    ->name('api.machine.outlet.menu');
+
+Route::middleware('machine:sales:read')->group(function () use ($ulid) {
+    Route::get('outlets/{id}/sales-digest', SalesDigestController::class)
+        ->where('id', $ulid)
+        ->name('api.machine.outlet.sales-digest');
+
+    Route::get('sales/{id}', SaleController::class)
+        ->where('id', $ulid)
+        ->name('api.machine.sale');
+});
+
+Route::middleware('machine:roles:read')
+    ->get('roles', RoleController::class)
+    ->name('api.machine.roles');

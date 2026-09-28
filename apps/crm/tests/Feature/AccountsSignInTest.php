@@ -181,6 +181,25 @@ class AccountsSignInTest extends TestCase
         $this->assertFalse(User::query()->where('ulid', $me['user_id'])->exists(), 'A refused sign-in must leave nothing half-created behind.');
     }
 
+    /**
+     * A business's role key that names a platform role is not a way in.
+     * Only Accounts' platform flag makes somebody a platform administrator.
+     */
+    public function test_a_platform_role_key_inside_a_business_is_refused(): void
+    {
+        foreach (['super_admin', 'admin'] as $key) {
+            $me = $this->me();
+            $me['products']['crm']['role_key'] = $key;
+
+            $this->signIn($me)
+                ->assertRedirect(route('admin.login'))
+                ->assertSessionHas('error', fn (string $message) => str_contains($message, 'belongs to the platform'));
+
+            $this->assertGuest();
+            $this->assertFalse(User::query()->where('ulid', $me['user_id'])->exists());
+        }
+    }
+
     public function test_a_person_without_crm_access_is_refused(): void
     {
         $me = $this->me(['products' => ['erp' => ['role_key' => 'storekeeper', 'outlet_ids' => []]]]);

@@ -2,6 +2,7 @@
 
 namespace App\Models;
 
+use App\Models\Concerns\HasPublicId;
 use Illuminate\Database\Eloquent\Builder;
 use Illuminate\Database\Eloquent\Model;
 use Illuminate\Database\Eloquent\Relations\BelongsTo;
@@ -12,6 +13,8 @@ use Illuminate\Database\Eloquent\Relations\HasMany;
  */
 class OrderItem extends Model
 {
+    use HasPublicId;
+
     protected $fillable = [
         'order_id', 'product_id', 'product_variant_id',
         'product_name', 'variant_name', 'sku', 'note',

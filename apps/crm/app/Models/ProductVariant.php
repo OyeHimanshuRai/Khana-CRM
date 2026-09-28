@@ -29,6 +29,9 @@ class ProductVariant extends Model
         return [
             'price' => 'decimal:4',
             'mrp' => 'decimal:4',
+            // Written only by ERP's erp.cost.changed, never by the form - see
+            // App\Events\Inbound\ApplyCost.
+            'purchase_price' => 'decimal:4',
             'is_default' => 'boolean',
             'is_available' => 'boolean',
             'sort_order' => 'integer',

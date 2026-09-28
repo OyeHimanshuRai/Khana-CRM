@@ -215,7 +215,9 @@ class CategoryController extends Controller
             }
         }
 
-        $category->save();
+        // A renamed section re-announces its dishes (crm.menu.item_upserted
+        // carries the category's name), in the same transaction as the rename.
+        app(\App\Events\Outbound\MenuChanges::class)->transaction(fn () => $category->save());
 
         ActivityLog::record('category.updated', "Updated category \"{$category->name}\"", $category);
 
@@ -227,7 +229,8 @@ class CategoryController extends Controller
         $name = $category->name;
         $image = $category->image_path;
 
-        $category->delete();
+        // Its dishes lose their section; they are re-announced with none.
+        app(\App\Events\Outbound\MenuChanges::class)->transaction(fn () => $category->delete());
 
         if (filled($image)) {
             Storage::disk('public')->delete($image);

@@ -280,6 +280,14 @@ class TableBillService
 
         return [
             'product_id' => $line->product_id,
+            /*
+             | Which size, and which kitchen line this settles. The bill has
+             | always printed the size in the line's name; crm.sale.recorded
+             | needs the ids, so ERP knows this dish was already consumed
+             | when the kitchen bumped it and does not consume it twice.
+             */
+            'product_variant_id' => $line->product_variant_id,
+            'order_item_id' => $line->id,
             'quantity' => $quantity,
             'unit_price' => (float) $line->unit_price,
             /*

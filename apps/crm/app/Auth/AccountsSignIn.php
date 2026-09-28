@@ -10,6 +10,7 @@ use App\Models\User;
 use App\Models\UserSession;
 use App\Support\CurrentShop;
 use App\Support\CurrentTenant;
+use Database\Seeders\RolePermissionSeeder;
 use Illuminate\Database\Eloquent\Model;
 use Illuminate\Http\Request;
 use Illuminate\Support\Facades\Auth;
@@ -276,6 +277,15 @@ final class AccountsSignIn implements LocalSignIn
                 'Your role in Accounts ("%s") has no rights set up in CRM. Ask the owner to check your role.',
                 $key ?? 'none',
             ));
+        }
+
+        /*
+         | The platform's own roles cross every business boundary. Only
+         | Accounts' platform flag - checked above - may grant them; a role key
+         | inside a business that happens to name one is refused, not honoured.
+         */
+        if ($role->name === User::SUPER_ADMIN || in_array($role->name, RolePermissionSeeder::PLATFORM_ROLES, true)) {
+            throw new SignInFailed('That role belongs to the platform, not to a business. Ask the owner to give you a business role in Accounts.');
         }
 
         return $role;

@@ -2,6 +2,8 @@
 
 namespace App\Services;
 
+use App\Events\Outbound\CrmEvents;
+use App\Events\Outbound\PaidOutPayload;
 use App\Models\ActivityLog;
 use App\Models\CashPaidOut;
 use App\Models\CashRegister;
@@ -221,5 +223,73 @@ class CashRegisterService
             ->sum('amount');
 
         return round((float) $register->opening_float + $in - $out - $paidOut, 2);
+    }
+
+    /* --------------------------------------------------------- paid-outs */
+
+    /**
+     * Hand cash out of the drawer for something that is not a Payment - an
+     * auto fare, milk from the shop across the road, a vendor paid in cash.
+     *
+     * The row and crm.cash.paid_out are written in one transaction: ERP books
+     * the expense under `category` (a code such as "petty_cash" or
+     * "supplier_payment"), and a paid-out that rolled back never reached it.
+     * Recorded, never edited - see CashPaidOut - so a mistake is corrected by
+     * a new row, and ERP hears of that one too.
+     */
+    public function payOut(
+        Shop $shop,
+        float $amount,
+        string $reason,
+        string $category = PaidOutPayload::DEFAULT_CATEGORY,
+        ?CarbonInterface $paidAt = null,
+    ): CashPaidOut {
+        $amount = round($amount, 2);
+        $reason = trim($reason);
+
+        if ($amount < 0.01) {
+            throw new RuntimeException('A paid-out needs an amount.');
+        }
+
+        if ($reason === '') {
+            throw new RuntimeException('Say what the cash was for - the day close will ask.');
+        }
+
+        if (preg_match('/^[a-z][a-z0-9_]{0,39}$/', $category) !== 1) {
+            throw new RuntimeException('A paid-out category is a short code such as petty_cash.');
+        }
+
+        return DB::transaction(function () use ($shop, $amount, $reason, $category, $paidAt) {
+            $user = Auth::user();
+
+            $paidOut = CashPaidOut::allShops()->create([
+                'shop_id' => $shop->id,
+                'amount' => $amount,
+                'category' => $category,
+                'reason' => mb_substr($reason, 0, 190),
+                'paid_at' => $paidAt ?? now(),
+                'paid_by' => $user?->id,
+                'paid_by_name' => $user?->name ?? 'System',
+            ]);
+
+            ActivityLog::record(
+                'cash.paid_out',
+                sprintf('Paid ₹%s out of the drawer: %s', number_format($amount, 2), $reason),
+                $paidOut,
+            );
+
+            $this->events()->cashPaidOut($paidOut);
+
+            return $paidOut;
+        });
+    }
+
+    /*
+     | Resolved when needed rather than injected, so the tests that build this
+     | service with `new` keep working.
+     */
+    private function events(): CrmEvents
+    {
+        return app(CrmEvents::class);
     }
 }
