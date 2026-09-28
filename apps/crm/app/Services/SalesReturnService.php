@@ -2,6 +2,7 @@
 
 namespace App\Services;
 
+use App\Events\Outbound\CrmEvents;
 use App\Models\ActivityLog;
 use App\Models\CustomerLedger;
 use App\Models\Invoice;
@@ -30,9 +31,18 @@ use RuntimeException;
  */
 class SalesReturnService
 {
+    private readonly CrmEvents $events;
+
+    /*
+     | The events recorder is optional only so the older tests that build
+     | this service by hand keep working; the container always passes it.
+     */
     public function __construct(
         private readonly LedgerService $ledger,
-    ) {}
+        ?CrmEvents $events = null,
+    ) {
+        $this->events = $events ?? app(CrmEvents::class);
+    }
 
     /**
      * Accept a return.
@@ -84,6 +94,10 @@ class SalesReturnService
                 $return,
                 ['written_off' => $return->writtenOffValue()],
             );
+
+            // crm.sale.returned: ERP puts back only the packaged goods that
+            // came back resalable - see App\Events\Outbound\SaleReturnPayload.
+            $this->events->saleReturned($return);
 
             return $return->refresh();
         });

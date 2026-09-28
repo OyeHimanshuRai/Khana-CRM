@@ -2,6 +2,7 @@
 
 namespace App\Http\Controllers\Admin;
 
+use App\Events\Outbound\MenuChanges;
 use App\Http\Controllers\Controller;
 use App\Models\ActivityLog;
 use App\Models\Brand;
@@ -41,6 +42,7 @@ class ProductController extends Controller
     public function __construct(
         private ScannerService $scanner,
         private readonly MenuImportService $menu,
+        private readonly MenuChanges $menuChanges,
     ) {}
 
     private const PAGE_SIZES = [10, 15, 25, 50, 100];
@@ -190,7 +192,9 @@ class ProductController extends Controller
     {
         $data = $this->validated($request);
 
-        $product = DB::transaction(function () use ($request, $data) {
+        // One crm.menu.item_upserted per outlet, sent once the dish, its
+        // sizes and this outlet's price are all written - see MenuChanges.
+        $product = $this->menuChanges->transaction(function () use ($request, $data) {
             $product = new Product($this->attributes($data));
 
             $product->slug = Product::uniqueSlug(
@@ -227,7 +231,7 @@ class ProductController extends Controller
     {
         $data = $this->validated($request, $product);
 
-        DB::transaction(function () use ($request, $product, $data) {
+        $this->menuChanges->transaction(function () use ($request, $product, $data) {
             $product->fill($this->attributes($data));
 
             if (filled($data['slug'] ?? null)) {
@@ -267,7 +271,9 @@ class ProductController extends Controller
     public function destroy(Product $product): JsonResponse
     {
         $name = $product->name;
-        $product->delete();
+
+        // Archiving and crm.menu.item_archived, together or not at all.
+        $this->menuChanges->transaction(fn () => $product->delete());
 
         ActivityLog::record('product.deleted', "Removed product \"{$name}\"");
 
@@ -278,7 +284,7 @@ class ProductController extends Controller
     {
         $active = ! $product->is_active;
 
-        $product->forceFill(['is_active' => $active])->save();
+        $this->menuChanges->transaction(fn () => $product->forceFill(['is_active' => $active])->save());
 
         ActivityLog::record(
             $active ? 'product.activated' : 'product.deactivated',
@@ -608,6 +614,10 @@ class ProductController extends Controller
         $values['is_active'] = (bool) ($data['override']['is_active'] ?? true);
 
         $inheritsEverything = collect($fields)->every(fn (string $f) => $values[$f] === null);
+
+        // A pivot write fires no model event, so this outlet's own price and
+        // listing are announced here - to this outlet only.
+        $this->menuChanges->changed($product, $shop->id);
 
         if ($inheritsEverything && $values['is_active']) {
             $product->shops()->detach($shop->id);

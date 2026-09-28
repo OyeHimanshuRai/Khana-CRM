@@ -125,7 +125,9 @@ class MenuImportService
             return $this->tally($plans, []);
         }
 
-        return DB::transaction(function () use ($plans) {
+        // Each dish the file touches is announced once, at the end of the
+        // import's own transaction - see App\Events\Outbound\MenuChanges.
+        return app(\App\Events\Outbound\MenuChanges::class)->transaction(function () use ($plans) {
             $madeCategories = [];
 
             foreach ($plans as $plan) {

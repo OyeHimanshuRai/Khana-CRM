@@ -2,6 +2,7 @@
 
 namespace App\Http\Controllers\Admin;
 
+use App\Events\Outbound\MenuChanges;
 use App\Http\Controllers\Controller;
 use App\Models\ActivityLog;
 use App\Models\Modifier;
@@ -114,7 +115,9 @@ class ModifierController extends Controller
     {
         $data = $this->validated($request);
 
-        $modifier = DB::transaction(function () use ($data) {
+        // Every dish the question touches is announced once, at the end -
+        // see App\Events\Outbound\MenuChanges.
+        $modifier = $this->menuChanges()->transaction(function () use ($data) {
             $modifier = new Modifier($this->attributes($data));
             $modifier->save();
 
@@ -133,7 +136,7 @@ class ModifierController extends Controller
     {
         $data = $this->validated($request, $modifier);
 
-        DB::transaction(function () use ($modifier, $data) {
+        $this->menuChanges()->transaction(function () use ($modifier, $data) {
             $attributes = $this->attributes($data);
             // Fixed: the prices on its options belong to this branch.
             unset($attributes['shop_id']);
@@ -181,7 +184,7 @@ class ModifierController extends Controller
     {
         $active = ! $modifier->is_active;
 
-        $modifier->forceFill(['is_active' => $active])->save();
+        $this->menuChanges()->transaction(fn () => $modifier->forceFill(['is_active' => $active])->save());
 
         ActivityLog::record(
             $active ? 'modifier.activated' : 'modifier.deactivated',
@@ -196,6 +199,11 @@ class ModifierController extends Controller
     }
 
     /* ----------------------------------------------------------- helpers */
+
+    private function menuChanges(): MenuChanges
+    {
+        return app(MenuChanges::class);
+    }
 
     /**
      * Options, written as one set.
@@ -247,7 +255,14 @@ class ModifierController extends Controller
             ->mapWithKeys(fn (int $id) => [$id => ['sort_order' => (int) $modifier->sort_order]])
             ->all();
 
-        $modifier->products()->sync($pivot);
+        $changes = $modifier->products()->sync($pivot);
+
+        // Dishes that gained or lost the question now read differently at
+        // this outlet. A pivot write fires no model event, so it is said here.
+        $this->menuChanges()->changed(
+            array_merge($changes['attached'], $changes['detached']),
+            (int) $modifier->shop_id,
+        );
     }
 
     /**

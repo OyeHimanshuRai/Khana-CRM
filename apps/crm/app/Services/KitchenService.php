@@ -2,6 +2,7 @@
 
 namespace App\Services;
 
+use App\Events\Outbound\CrmEvents;
 use App\Events\ShopBoardChanged;
 use App\Models\ActivityLog;
 use App\Models\KitchenStation;
@@ -55,6 +56,7 @@ class KitchenService
 {
     public function __construct(
         private readonly TableOrderService $orders,
+        private readonly CrmEvents $events,
     ) {}
 
     /* ---------------------------------------------------------- the feed */
@@ -179,6 +181,12 @@ class KitchenService
                 throw new RuntimeException('That line is not on a kitchen ticket.');
             }
 
+            // ERP has already been told this line was cancelled; a bump after
+            // that would have it consume a dish nobody is making.
+            if ($line->order()->first()?->isCancelled()) {
+                throw new RuntimeException('That ticket was cancelled.');
+            }
+
             $this->applyToLine($line, $to ?? $line->nextKitchenStatus());
 
             $this->rollUp($line->order()->first());
@@ -204,6 +212,10 @@ class KitchenService
      */
     public function bumpTicket(Order $order, ?KitchenStation $station = null, ?string $to = null): Order
     {
+        if ($order->isCancelled()) {
+            throw new RuntimeException('That ticket was cancelled.');
+        }
+
         $fresh = DB::transaction(function () use ($order, $station, $to) {
             $lines = $order->items()
                 ->outstanding()
@@ -282,6 +294,11 @@ class KitchenService
      * mistake. It is not a bump, though, and pretending it is would make the
      * preparation-time report meaningless - so it clears the stamps it
      * invalidates and always writes a line to the log.
+     *
+     * Nothing is sent to ERP. The contract has no event for a line going
+     * backwards, and the ingredients a recalled dish used are used; when it
+     * is bumped again, line_advanced says so again and ERP, which consumes
+     * a line once, recognises the line_id.
      */
     public function recall(Order $order, string $to, ?KitchenStation $station = null, ?string $reason = null): Order
     {
@@ -408,6 +425,14 @@ class KitchenService
         }
 
         $line->forceFill($changes)->save();
+
+        /*
+         | crm.kitchen.line_advanced, inside the bump's transaction. This is
+         | where ERP takes the dish's ingredients off the shelf, at whichever
+         | rung the outlet chose there - so every rung is announced, and a
+         | line that skips straight to Ready says Ready.
+         */
+        $this->events->kitchenLineAdvanced($line);
 
         return true;
     }

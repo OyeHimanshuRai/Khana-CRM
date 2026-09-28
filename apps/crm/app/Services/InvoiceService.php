@@ -2,12 +2,16 @@
 
 namespace App\Services;
 
+use App\Events\Outbound\CrmEvents;
 use App\Models\ActivityLog;
 use App\Models\Customer;
 use App\Models\CustomerLedger;
 use App\Models\Invoice;
+use App\Models\Order;
+use App\Models\OrderItem;
 use App\Models\Payment;
 use App\Models\Product;
+use App\Models\ProductVariant;
 use App\Models\Shop;
 use Illuminate\Support\Collection;
 use Illuminate\Support\Facades\Auth;
@@ -38,6 +42,7 @@ class InvoiceService
         private readonly LedgerService $ledger,
         private readonly AlertService $alerts,
         private readonly LoyaltyService $loyalty,
+        private readonly CrmEvents $events,
     ) {}
 
     /**
@@ -150,7 +155,16 @@ class InvoiceService
              */
             $this->alerts->invoiceRaised($invoice);
 
-            return $invoice->refresh()->load('items');
+            $invoice->refresh()->load('items');
+
+            /*
+             | crm.sale.recorded, in this same transaction: ERP books the
+             | sale's food cost and consumes whatever the kitchen did not
+             | already cook. A bill that rolls back never announced itself.
+             */
+            $this->events->saleRecorded($invoice);
+
+            return $invoice;
         });
 
         /*
@@ -213,6 +227,36 @@ class InvoiceService
         }
 
         return $lines;
+    }
+
+    /**
+     * The size and the order line a row claims to be, when they check out.
+     *
+     * A table bill and an online order pass both, so the sale can tell ERP
+     * which size was sold and which kitchen lines it settles. Each is kept
+     * only if it really belongs - the size to this dish, the order line to
+     * this dish at this outlet - and quietly dropped otherwise: a stray id
+     * must not let a bill claim food another table's kitchen line cooked,
+     * which would stop ERP consuming it at all.
+     *
+     * @param  array<string, mixed>  $row
+     * @return array{0: ProductVariant|null, 1: int|null}
+     */
+    private function links(Product $product, Shop $shop, array $row): array
+    {
+        $variant = filled($row['product_variant_id'] ?? null)
+            ? ProductVariant::query()->where('product_id', $product->id)->find((int) $row['product_variant_id'])
+            : null;
+
+        $orderItemId = filled($row['order_item_id'] ?? null)
+            ? OrderItem::query()
+                ->whereKey((int) $row['order_item_id'])
+                ->where('product_id', $product->id)
+                ->whereIn('order_id', Order::allShops()->where('shop_id', $shop->id)->select('id'))
+                ->value('id')
+            : null;
+
+        return [$variant, $orderItemId === null ? null : (int) $orderItemId];
     }
 
     /**
@@ -281,8 +325,12 @@ class InvoiceService
             ? $taxRate->split($taxable, $interState)
             : ['cgst' => 0.0, 'sgst' => 0.0, 'igst' => 0.0, 'cess' => 0.0];
 
+        [$variant, $orderItemId] = $this->links($product, $shop, $row);
+
         return [
             'product' => $product,
+            'variant' => $variant,
+            'order_item_id' => $orderItemId,
             'quantity' => $quantity,
             'mrp' => $product->mrpFor($shop->id),
             'unit_price' => $unitExclusive,
@@ -297,7 +345,7 @@ class InvoiceService
             'sgst' => $split['sgst'],
             'igst' => $split['igst'],
             'cess' => $split['cess'],
-            'unit_cost' => $this->costOf($product, $shop),
+            'unit_cost' => $this->costOf($product, $shop, $variant),
             'note' => $row['note'] ?? null,
             /*
              | What the bill calls this line, when the caller knows better
@@ -320,9 +368,16 @@ class InvoiceService
      * the architecture doc's CRM-alone row. There is no weighted-average
      * stock cost to read here; a shop that wants a live recipe cost instead
      * gets one from ERP.
+     *
+     * A size costs what ERP last said that size costs (erp.cost.changed,
+     * kept on the variant), and the dish's own figure until it has.
      */
-    private function costOf(Product $product, Shop $shop): float
+    private function costOf(Product $product, Shop $shop, ?ProductVariant $variant = null): float
     {
+        if ($variant?->purchase_price !== null) {
+            return (float) $variant->purchase_price;
+        }
+
         return (float) $product->purchasePriceFor($shop->id);
     }
 
@@ -395,6 +450,8 @@ class InvoiceService
 
             $invoice->items()->create([
                 'product_id' => $product->id,
+                'product_variant_id' => $line['variant']?->id,
+                'order_item_id' => $line['order_item_id'],
                 'product_name' => $line['name'] ?? $product->name,
                 'sku' => $product->sku,
                 'hsn_code' => $product->hsn_code,
@@ -668,6 +725,10 @@ class InvoiceService
                 $invoice,
                 ['grand_total' => (float) $invoice->grand_total],
             );
+
+            // ERP reverses what the sale itself consumed; what the kitchen
+            // cooked stays consumed - the food was made either way.
+            $this->events->saleCancelled($invoice, $reason);
 
             return $invoice->refresh();
         });

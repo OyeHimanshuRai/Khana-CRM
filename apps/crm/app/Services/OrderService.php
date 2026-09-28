@@ -2,6 +2,7 @@
 
 namespace App\Services;
 
+use App\Events\Outbound\CrmEvents;
 use App\Mail\OrderPlacedMail;
 use App\Models\ActivityLog;
 use App\Models\Address;
@@ -34,6 +35,7 @@ class OrderService
         private readonly CartService $cart,
         private readonly CouponService $coupons,
         private readonly InvoiceService $invoices,
+        private readonly CrmEvents $events,
     ) {}
 
     /**
@@ -345,6 +347,10 @@ class OrderService
 
             $invoiceItems = $order->items->map(fn ($item) => [
                 'product_id' => $item->product_id,
+                // The size, and the order line - a kitchen line for an API
+                // order, which ERP has already consumed. See TableBillService.
+                'product_variant_id' => $item->product_variant_id,
+                'order_item_id' => $item->id,
                 'quantity' => (float) $item->quantity,
                 'unit_price' => (float) $item->unit_price,
                 'price_includes_tax' => true,
@@ -423,6 +429,16 @@ class OrderService
                 'cancelled_at' => now(),
                 'cancel_reason' => $reason,
             ])->save();
+
+            /*
+             | Every line the kitchen had, at whatever rung it reached. ERP
+             | reverses a line that was never started and books one that was
+             | as wastage - it decides which from stage_reached. A web order's
+             | lines never reached a kitchen, so there is nothing to say.
+             */
+            foreach ($order->items()->whereNotNull('kitchen_status')->orderBy('id')->get() as $line) {
+                $this->events->kitchenLineCancelled($line, $reason, $order);
+            }
 
             ActivityLog::record('order.cancelled', "Cancelled order {$order->order_number}: {$reason}", $order);
 
