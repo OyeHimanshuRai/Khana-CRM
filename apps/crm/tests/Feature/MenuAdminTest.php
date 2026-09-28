@@ -116,8 +116,6 @@ class MenuAdminTest extends TestCase
             'purchase_price' => 158,
             // Required: the counter cannot bill a line with no unit.
             'unit_id' => Unit::query()->where('code', 'PCS')->value('id'),
-            'min_stock' => 0,
-            'reorder_level' => 0,
             'is_active' => 1,
         ], $overrides);
     }

@@ -456,10 +456,8 @@ class ProductController extends Controller
          | rather than four hundred duplicated.
          |
          | The old jewellery-era column set (MRP, on-hand, published) went
-         | with it. A count of stock cannot be imported anyway - stock moves
-         | through receipts and adjustments, which is the only way it stays
-         | reconcilable - and a column somebody edits that is silently ignored
-         | is worse than no column.
+         | with it: a column somebody edits that is silently ignored is worse
+         | than no column.
          */
         $columns = MenuImportService::COLUMNS;
 
@@ -598,7 +596,7 @@ class ProductController extends Controller
             return;
         }
 
-        $fields = ['purchase_price', 'mrp', 'selling_price', 'discount_percent', 'min_stock', 'reorder_level'];
+        $fields = ['purchase_price', 'mrp', 'selling_price', 'discount_percent'];
 
         $values = [];
 
@@ -697,12 +695,6 @@ class ProductController extends Controller
             'discount_percent' => ['nullable', 'numeric', 'between:0,100'],
             'tax_inclusive' => ['boolean'],
 
-            'min_stock' => ['nullable', 'numeric', 'between:0,99999999'],
-            'reorder_level' => ['nullable', 'numeric', 'between:0,99999999'],
-            'track_batches' => ['boolean'],
-            'is_made_to_order' => ['boolean'],
-            'is_ingredient' => ['boolean'],
-
             /* ----------------------------------------------- menu (§8) */
 
             'food_type' => ['nullable', 'string', Rule::in(array_keys(Product::FOOD_TYPES))],
@@ -771,8 +763,6 @@ class ProductController extends Controller
             'override.mrp' => ['nullable', 'numeric', 'between:0,99999999999'],
             'override.selling_price' => ['nullable', 'numeric', 'between:0,99999999999'],
             'override.discount_percent' => ['nullable', 'numeric', 'between:0,100'],
-            'override.min_stock' => ['nullable', 'numeric', 'between:0,99999999'],
-            'override.reorder_level' => ['nullable', 'numeric', 'between:0,99999999'],
             'override.is_active' => ['boolean'],
         ], [
             'sku.regex' => 'Use letters, numbers, hyphens, underscores or slashes.',
@@ -815,12 +805,6 @@ class ProductController extends Controller
             'selling_price' => (float) $data['selling_price'],
             'discount_percent' => (float) ($data['discount_percent'] ?? 0),
             'tax_inclusive' => (bool) ($data['tax_inclusive'] ?? true),
-
-            'min_stock' => (float) ($data['min_stock'] ?? 0),
-            'reorder_level' => (float) ($data['reorder_level'] ?? 0),
-            'track_batches' => (bool) ($data['track_batches'] ?? false),
-            'is_made_to_order' => (bool) ($data['is_made_to_order'] ?? false),
-            'is_ingredient' => (bool) ($data['is_ingredient'] ?? false),
 
             // Absent and empty both mean "not food". The `?? null` is what
             // makes an API caller that omits the field behave the same as a

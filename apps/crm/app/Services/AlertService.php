@@ -25,10 +25,10 @@ use Illuminate\Support\Facades\DB;
  *   or resuming after a crash halfway through, updates rather than duplicates.
  *   A "have I done this already" query would race with itself; an index cannot.
  *
- *   **Addressed by right, not by person.** SRS 15's own table says "Low stock
- *   -> Branch Admin / Warehouse" - a role, not an individual. Addressing it to
- *   whoever happened to be on shift would hide it from whoever came in next, so
- *   an unaddressed alert carries the permission that gates it instead.
+ *   **Addressed by right, not by person.** SRS 15's own table addresses each
+ *   notification to a role, not an individual. Addressing it to whoever
+ *   happened to be on shift would hide it from whoever came in next, so an
+ *   unaddressed alert carries the permission that gates it instead.
  *
  * This raises in-app alerts only. Email is ReminderService's and the campaign
  * engine's, and the two are deliberately separate: a mail outage must not lose
@@ -100,8 +100,8 @@ class AlertService
      */
     public function sweep(Shop $shop): array
     {
+        // No low-stock sweep: CRM counts no stock. ERP watches the shelf.
         return [
-            'low_stock' => $this->lowStock($shop),
             'day_close_pending' => $this->dayClosePending($shop),
             'table_stuck' => $this->stuckSittings($shop),
         ];
@@ -288,55 +288,6 @@ class AlertService
             level: 'success',
             expiresAt: now()->addDay(),
         );
-    }
-
-    /**
-     * Products at or below their reorder level (SRS 15).
-     *
-     * Deduped on the day rather than on the product's quantity, so a shop that
-     * sells three more of something already flagged does not get a second
-     * alert about it.
-     */
-    public function lowStock(Shop $shop): int
-    {
-        $rows = DB::table('product_stocks')
-            ->join('products', 'products.id', '=', 'product_stocks.product_id')
-            ->where('product_stocks.shop_id', $shop->id)
-            ->whereNull('products.deleted_at')
-            // Never a dish: a kitchen cannot run low on Butter Naan, and an
-            // alert about one teaches staff to ignore the whole channel.
-            ->where('products.is_made_to_order', false)
-            ->where('products.reorder_level', '>', 0)
-            ->groupBy('products.id', 'products.name', 'products.sku', 'products.reorder_level')
-            ->havingRaw('SUM(product_stocks.quantity) <= products.reorder_level')
-            ->select([
-                'products.id',
-                'products.name',
-                'products.sku',
-                'products.reorder_level',
-                DB::raw('SUM(product_stocks.quantity) as on_hand'),
-            ])
-            ->get();
-
-        foreach ($rows as $row) {
-            $this->raise(
-                shop: $shop,
-                type: Alert::LOW_STOCK,
-                title: sprintf('%s is low', $row->name),
-                dedupeKey: sprintf('low-stock:%d:%s', $row->id, today()->toDateString()),
-                body: sprintf(
-                    '%s on hand against a reorder level of %s.',
-                    rtrim(rtrim(number_format((float) $row->on_hand, 3, '.', ''), '0'), '.'),
-                    rtrim(rtrim(number_format((float) $row->reorder_level, 3, '.', ''), '0'), '.'),
-                ),
-                link: '/admin/stock?q='.urlencode((string) $row->sku),
-                can: 'inventory.stock.view',
-                level: 'warning',
-                expiresAt: today()->addDays(7)->endOfDay(),
-            );
-        }
-
-        return $rows->count();
     }
 
     /* ---------------------------------------------------------- the bell */

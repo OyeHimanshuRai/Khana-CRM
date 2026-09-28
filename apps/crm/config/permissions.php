@@ -229,8 +229,10 @@ return [
             ],
         ],
 
+        // Keyed `inventory` for the permission names already granted; what
+        // is left under it is the menu.
         'inventory' => [
-            'label' => 'Inventory',
+            'label' => 'Menu',
             'icon' => 'package',
             'submodules' => [
                 'products' => [
@@ -242,44 +244,6 @@ return [
                     'actions' => ['view', 'create', 'edit', 'delete', 'import', 'export', 'print'],
                 ],
                 /*
-                 | Add-ons and modifiers (§8). Their own right rather than a
-                 | corner of products, because a question is defined once and
-                 | attached to thirty dishes - editing what cheese burst costs
-                 | changes every pizza on the card, and that is a decision a
-                 | shop may want to keep away from whoever renames dishes.
-                 */
-                /*
-                 | Recipes / BOM (§10).
-                 |
-                 | Its own right and not a corner of products, because the two
-                 | are different jobs done by different people: pricing a dish
-                 | is the owner's, and saying it takes 180g of paneer is the
-                 | head chef's. A recipe also decides what leaves the store
-                 | every evening, which is a costlier mistake than a typo in a
-                 | description.
-                 |
-                 | No `create` or `delete`: a recipe is not a row, it is the
-                 | contents of a dish, and saving it replaces what was there.
-                 */
-                'recipes' => [
-                    'label' => 'Recipes / BOM',
-                    'actions' => ['view', 'edit', 'export'],
-                ],
-                /*
-                 | Wastage (§10).
-                 |
-                 | `create` is deliberately wide - a cook holding an empty tray
-                 | has to be able to record it, and waste that needs a
-                 | manager's attention is waste that never gets written down.
-                 |
-                 | `delete` is the narrow one: it puts stock back, and a right
-                 | to un-record a loss is a right to hide one.
-                 */
-                'wastage' => [
-                    'label' => 'Wastage',
-                    'actions' => ['view', 'create', 'delete', 'export'],
-                ],
-                /*
                 | Prices that apply only sometimes (§8, §16).
                 |
                 | Under the menu rather than under settings, because it is a
@@ -289,7 +253,13 @@ return [
                     'label' => 'Price Lists & Happy Hours',
                     'actions' => ['view', 'create', 'edit', 'delete'],
                 ],
-
+                /*
+                 | Add-ons and modifiers (§8). Their own right rather than a
+                 | corner of products, because a question is defined once and
+                 | attached to thirty dishes - editing what cheese burst costs
+                 | changes every pizza on the card, and that is a decision a
+                 | shop may want to keep away from whoever renames dishes.
+                 */
                 'modifiers' => [
                     'label' => 'Add-ons & Modifiers',
                     'actions' => ['view', 'create', 'edit', 'delete'],
@@ -302,32 +272,12 @@ return [
                     'label' => 'Brands',
                     'actions' => ['view', 'create', 'edit', 'delete'],
                 ],
-                'units' => [
-                    'label' => 'Units of Measure',
-                    'actions' => ['view', 'create', 'edit', 'delete'],
-                ],
-                'stock' => [
-                    'label' => 'Stock on Hand',
-                    'actions' => ['view', 'export', 'print'],
-                ],
-                'adjustments' => [
-                    'label' => 'Stock Adjustments',
-                    // Every adjustment carries a reason and an actor; approve
-                    // is separate so a shop can require a second pair of eyes.
-                    'actions' => ['view', 'create', 'edit', 'delete', 'approve', 'reject', 'export'],
-                ],
-                'batches' => [
-                    'label' => 'Batches & Expiry',
-                    'actions' => ['view', 'create', 'edit', 'delete', 'export'],
-                ],
-                'transfers' => [
-                    'label' => 'Stock Transfers',
-                    'actions' => ['view', 'create', 'edit', 'delete', 'approve', 'reject', 'export', 'print'],
-                ],
-                'warehouses' => [
-                    'label' => 'Warehouses',
-                    'actions' => ['view', 'create', 'edit', 'delete', 'export'],
-                ],
+                /*
+                 | No recipes, wastage, units, stock, adjustments, batches,
+                 | transfers or warehouses here: what goes into a dish and what
+                 | is left on the shelf are ERP's, and so are the rights to
+                 | edit them.
+                 */
             ],
         ],
 

@@ -31,6 +31,9 @@ class LandingPageTest extends TestCase
 {
     use RefreshDatabase;
 
+    // An install where nothing has been filled in - not the seeded baseline.
+    protected bool $startsEmpty = true;
+
     protected function setUp(): void
     {
         parent::setUp();
@@ -69,7 +72,7 @@ class LandingPageTest extends TestCase
     {
         $this->get('/')
             ->assertOk()
-            ->assertSee('Run the whole restaurant from one screen')
+            ->assertSee('Run your entire restaurant from', false)
             ->assertSee('How a table runs')
             // Sections with no rows must not leave their headings behind.
             ->assertDontSee('Plans')
@@ -120,7 +123,10 @@ class LandingPageTest extends TestCase
         $response = $this->get('/')->assertOk();
 
         $this->assertStringContainsString('<title>Tiara Softwares</title>', $response->getContent());
-        $this->assertStringContainsString('<h1>Run the whole restaurant from one screen</h1>', $response->getContent());
+        $this->assertStringContainsString(
+            '<h1>Run your entire restaurant from <em>one powerful system</em></h1>',
+            $response->getContent(),
+        );
     }
 
     /** The subheading is overridable, because that field really is a description. */

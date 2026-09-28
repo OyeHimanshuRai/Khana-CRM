@@ -3,7 +3,6 @@
 use App\Http\Controllers\Admin\ActivityLogController;
 use App\Http\Controllers\Admin\AlertController;
 use App\Http\Controllers\Admin\BarcodeLabelController;
-use App\Http\Controllers\Admin\BatchController;
 use App\Http\Controllers\Admin\BillingController;
 use App\Http\Controllers\Admin\CashRegisterController;
 use App\Http\Controllers\Admin\ApiTokenController;
@@ -22,8 +21,6 @@ use App\Http\Controllers\Admin\FloorController;
 use App\Http\Controllers\Admin\LoyaltyController;
 use App\Http\Controllers\Admin\KitchenController;
 use App\Http\Controllers\Admin\LiveOrderController;
-use App\Http\Controllers\Admin\RecipeController;
-use App\Http\Controllers\Admin\WastageController;
 use App\Http\Controllers\Admin\TableBillController;
 use App\Http\Controllers\Admin\KitchenStationController;
 use App\Http\Controllers\Admin\RestaurantTableController;
@@ -53,9 +50,6 @@ use App\Http\Controllers\Admin\ServiceController;
 use App\Http\Controllers\Admin\ShopController;
 use App\Http\Controllers\Admin\ShopSwitchController;
 use App\Http\Controllers\Admin\SliderController;
-use App\Http\Controllers\Admin\StockAdjustmentController;
-use App\Http\Controllers\Admin\StockController;
-use App\Http\Controllers\Admin\StockTransferController;
 use App\Http\Controllers\Admin\SubscriptionController;
 use App\Http\Controllers\Admin\DemoRequestController as AdminDemoRequestController;
 use App\Http\Controllers\Admin\IntegrationController;
@@ -68,10 +62,8 @@ use App\Http\Controllers\Admin\SystemHealthController;
 use App\Http\Controllers\Admin\TaxRateController;
 use App\Http\Controllers\Admin\TenantController;
 use App\Http\Controllers\Admin\TenantSwitchController;
-use App\Http\Controllers\Admin\UnitController;
 use App\Http\Controllers\Admin\UserController;
 use App\Http\Controllers\Admin\UserSecurityController;
-use App\Http\Controllers\Admin\WarehouseController;
 use App\Http\Controllers\PaymentWebhookController;
 use App\Http\Controllers\TableFeedbackController;
 use App\Http\Controllers\DemoRequestController;
@@ -781,50 +773,6 @@ Route::prefix('admin')->name('admin.')->group(function () {
 
         /*
         |======================================================================
-        | Recipes: what a dish is made of (§10)
-        |======================================================================
-        |
-        | Gated by the `inventory` module through the permission prefix - a
-        | branch that keeps no stock has nothing to deduct from.
-        |
-        | `{product}` is the dish. Its ingredients are products too, so the
-        | route reads a little oddly until you remember that an ingredient is
-        | a product with `is_ingredient` set - see the migration.
-        */
-        Route::middleware('permission:inventory.recipes.view')->group(function () {
-            Route::get('recipes', [RecipeController::class, 'index'])->name('recipes.index');
-            Route::get('recipes/{product}', [RecipeController::class, 'show'])
-                ->whereNumber('product')
-                ->name('recipes.show');
-        });
-
-        Route::get('recipes/export/csv', [RecipeController::class, 'export'])
-            ->middleware('permission:inventory.recipes.export')
-            ->name('recipes.export');
-
-        Route::middleware('permission:inventory.recipes.edit')->group(function () {
-            Route::get('recipes/{product}/edit', [RecipeController::class, 'edit'])
-                ->whereNumber('product')
-                ->name('recipes.edit');
-            Route::put('recipes/{product}', [RecipeController::class, 'update'])
-                ->whereNumber('product')
-                ->name('recipes.update');
-        });
-
-        /*
-        |======================================================================
-        | Wastage: what the kitchen threw away (§10)
-        |======================================================================
-        |
-        | A log, not a document - one row and one stock movement, immediately.
-        | See the migration for why it is not a stock adjustment.
-        */
-        Route::middleware('permission:inventory.wastage.view')->group(function () {
-            Route::get('wastage', [WastageController::class, 'index'])->name('wastage.index');
-        });
-
-        /*
-        |======================================================================
         | Live orders (§4, §5)
         |======================================================================
         |
@@ -840,24 +788,6 @@ Route::prefix('admin')->name('admin.')->group(function () {
         Route::get('live-orders', [LiveOrderController::class, 'index'])
             ->middleware('permission:sales.orders.view')
             ->name('live-orders.index');
-
-        Route::get('wastage/export/csv', [WastageController::class, 'export'])
-            ->middleware('permission:inventory.wastage.export')
-            ->name('wastage.export');
-
-        Route::middleware('permission:inventory.wastage.create')->group(function () {
-            Route::get('wastage/create', [WastageController::class, 'create'])->name('wastage.create');
-            Route::post('wastage', [WastageController::class, 'store'])->name('wastage.store');
-        });
-
-        /*
-        | Reversing puts stock back, so it is its own right: being able to
-        | un-record a loss is being able to hide one.
-        */
-        Route::delete('wastage/{wastage}', [WastageController::class, 'destroy'])
-            ->whereNumber('wastage')
-            ->middleware('permission:inventory.wastage.delete')
-            ->name('wastage.destroy');
 
         /*
         |======================================================================
@@ -1470,25 +1400,6 @@ Route::prefix('admin')->name('admin.')->group(function () {
             ->middleware('permission:inventory.brands.delete')
             ->name('brands.destroy');
 
-        Route::middleware('permission:inventory.units.view')->group(function () {
-            Route::get('units', [UnitController::class, 'index'])->name('units.index');
-            Route::get('units/{unit}', [UnitController::class, 'show'])
-                ->whereNumber('unit')
-                ->name('units.show');
-        });
-
-        Route::middleware('permission:inventory.units.create')->group(function () {
-            Route::get('units/create', [UnitController::class, 'create'])->name('units.create');
-            Route::post('units', [UnitController::class, 'store'])->name('units.store');
-        });
-
-        Route::middleware('permission:inventory.units.edit')->group(function () {
-            Route::get('units/{unit}/edit', [UnitController::class, 'edit'])->name('units.edit');
-            Route::put('units/{unit}', [UnitController::class, 'update'])->name('units.update');
-            Route::put('units/{unit}/status', [UnitController::class, 'toggleStatus'])
-                ->name('units.status');
-        });
-
         /*
         | Add-ons and modifiers (§8).
         |
@@ -1524,11 +1435,7 @@ Route::prefix('admin')->name('admin.')->group(function () {
             ->middleware('permission:inventory.modifiers.delete')
             ->name('modifiers.destroy');
 
-        Route::delete('units/{unit}', [UnitController::class, 'destroy'])
-            ->middleware('permission:inventory.units.delete')
-            ->name('units.destroy');
-
-        // Filed under Finance rather than Inventory: a GST slab is an
+        // Filed under Finance rather than the menu: a GST slab is an
         // accounting decision, and the people who set it are not the people
         // who name the products.
         Route::middleware('permission:finance.taxes.view')->group(function () {
@@ -1553,35 +1460,6 @@ Route::prefix('admin')->name('admin.')->group(function () {
         Route::delete('taxes/{tax}', [TaxRateController::class, 'destroy'])
             ->middleware('permission:finance.taxes.delete')
             ->name('taxes.destroy');
-
-        /* Warehouses. Shop-scoped: a location belongs to one branch. */
-        Route::middleware('permission:inventory.warehouses.view')->group(function () {
-            Route::get('warehouses', [WarehouseController::class, 'index'])->name('warehouses.index');
-            Route::get('warehouses/{warehouse}', [WarehouseController::class, 'show'])
-                ->whereNumber('warehouse')
-                ->name('warehouses.show');
-        });
-
-        Route::middleware('permission:inventory.warehouses.create')->group(function () {
-            Route::get('warehouses/create', [WarehouseController::class, 'create'])
-                ->name('warehouses.create');
-            Route::post('warehouses', [WarehouseController::class, 'store'])->name('warehouses.store');
-        });
-
-        Route::middleware('permission:inventory.warehouses.edit')->group(function () {
-            Route::get('warehouses/{warehouse}/edit', [WarehouseController::class, 'edit'])
-                ->name('warehouses.edit');
-            Route::put('warehouses/{warehouse}', [WarehouseController::class, 'update'])
-                ->name('warehouses.update');
-            Route::put('warehouses/{warehouse}/status', [WarehouseController::class, 'toggleStatus'])
-                ->name('warehouses.status');
-            Route::put('warehouses/{warehouse}/default', [WarehouseController::class, 'makeDefault'])
-                ->name('warehouses.default');
-        });
-
-        Route::delete('warehouses/{warehouse}', [WarehouseController::class, 'destroy'])
-            ->middleware('permission:inventory.warehouses.delete')
-            ->name('warehouses.destroy');
 
         /*
         | The counter.
@@ -1930,138 +1808,6 @@ Route::prefix('admin')->name('admin.')->group(function () {
             Route::delete('{coupon}', [CouponController::class, 'destroy'])
                 ->whereNumber('coupon')
                 ->middleware('permission:sales.coupons.delete')
-                ->name('destroy');
-        });
-
-        /*
-        | Stock on hand. Read-only: every quantity change belongs to a
-        | document, and going through one is what leaves the explanation.
-        */
-        Route::get('stock/export', [StockController::class, 'export'])
-            ->middleware('permission:inventory.stock.export')
-            ->name('stock.export');
-
-        Route::middleware('permission:inventory.stock.view')->group(function () {
-            Route::get('stock', [StockController::class, 'index'])->name('stock.index');
-            Route::get('stock/{product}/movements', [StockController::class, 'movements'])
-                ->whereNumber('product')
-                ->name('stock.movements');
-        });
-
-        /* Batches and expiry. */
-        Route::get('batches/export', [BatchController::class, 'export'])
-            ->middleware('permission:inventory.batches.export')
-            ->name('batches.export');
-
-        Route::middleware('permission:inventory.batches.view')->group(function () {
-            Route::get('batches', [BatchController::class, 'index'])->name('batches.index');
-            Route::get('batches/{batch}', [BatchController::class, 'show'])
-                ->whereNumber('batch')
-                ->name('batches.show');
-        });
-
-        Route::middleware('permission:inventory.batches.create')->group(function () {
-            Route::get('batches/create', [BatchController::class, 'create'])->name('batches.create');
-            Route::post('batches', [BatchController::class, 'store'])->name('batches.store');
-        });
-
-        Route::middleware('permission:inventory.batches.edit')->group(function () {
-            Route::get('batches/{batch}/edit', [BatchController::class, 'edit'])->name('batches.edit');
-            Route::put('batches/{batch}', [BatchController::class, 'update'])->name('batches.update');
-            Route::put('batches/{batch}/status', [BatchController::class, 'toggleStatus'])
-                ->name('batches.status');
-        });
-
-        Route::delete('batches/{batch}', [BatchController::class, 'destroy'])
-            ->middleware('permission:inventory.batches.delete')
-            ->name('batches.destroy');
-
-        /*
-        | Stock adjustments. Full-page documents rather than modals: line
-        | items need room, and a reference is something people quote.
-        |
-        | Approve and reject are gated on `approve`, not `edit`. Applying an
-        | adjustment is the irreversible act and deserves its own right.
-        */
-        Route::prefix('stock-adjustments')->name('stock-adjustments.')->group(function () {
-            Route::middleware('permission:inventory.adjustments.view')->group(function () {
-                Route::get('/', [StockAdjustmentController::class, 'index'])->name('index');
-                // Warehouse-scoped product lookup for the count sheet.
-                Route::get('lookup', [StockAdjustmentController::class, 'lookup'])->name('lookup');
-                Route::get('{adjustment}', [StockAdjustmentController::class, 'show'])
-                    ->whereNumber('adjustment')
-                    ->name('show');
-            });
-
-            Route::middleware('permission:inventory.adjustments.create')->group(function () {
-                // Registered before the wildcard so "create" is not read as an id.
-                Route::get('create', [StockAdjustmentController::class, 'create'])->name('create');
-                Route::post('/', [StockAdjustmentController::class, 'store'])->name('store');
-            });
-
-            Route::middleware('permission:inventory.adjustments.edit')->group(function () {
-                Route::get('{adjustment}/edit', [StockAdjustmentController::class, 'edit'])->name('edit');
-                Route::put('{adjustment}', [StockAdjustmentController::class, 'update'])->name('update');
-                Route::put('{adjustment}/cancel', [StockAdjustmentController::class, 'cancel'])->name('cancel');
-            });
-
-            Route::put('{adjustment}/approve', [StockAdjustmentController::class, 'approve'])
-                ->middleware('permission:inventory.adjustments.approve')
-                ->name('approve');
-
-            Route::put('{adjustment}/reject', [StockAdjustmentController::class, 'reject'])
-                ->middleware('permission:inventory.adjustments.reject')
-                ->name('reject');
-
-            Route::delete('{adjustment}', [StockAdjustmentController::class, 'destroy'])
-                ->middleware('permission:inventory.adjustments.delete')
-                ->name('destroy');
-        });
-
-        /*
-        | Stock transfers. Same document shape as adjustments, with a longer
-        | lifecycle: approve, dispatch, receive.
-        |
-        | `receive` is gated on `edit` rather than `approve` because it is
-        | the receiving shop's clerk who books a consignment in, and the
-        | controller separately refuses anyone without access to the
-        | destination shop.
-        */
-        Route::prefix('stock-transfers')->name('stock-transfers.')->group(function () {
-            Route::middleware('permission:inventory.transfers.view')->group(function () {
-                Route::get('/', [StockTransferController::class, 'index'])->name('index');
-                Route::get('lookup', [StockTransferController::class, 'lookup'])->name('lookup');
-                Route::get('{transfer}', [StockTransferController::class, 'show'])
-                    ->whereNumber('transfer')
-                    ->name('show');
-            });
-
-            Route::middleware('permission:inventory.transfers.create')->group(function () {
-                // Registered before the wildcard so "create" is not read as an id.
-                Route::get('create', [StockTransferController::class, 'create'])->name('create');
-                Route::post('/', [StockTransferController::class, 'store'])->name('store');
-            });
-
-            Route::middleware('permission:inventory.transfers.edit')->group(function () {
-                Route::get('{transfer}/edit', [StockTransferController::class, 'edit'])->name('edit');
-                Route::put('{transfer}', [StockTransferController::class, 'update'])->name('update');
-                Route::put('{transfer}/dispatch', [StockTransferController::class, 'dispatchGoods'])
-                    ->name('dispatch');
-                Route::put('{transfer}/receive', [StockTransferController::class, 'receive'])
-                    ->name('receive');
-                Route::put('{transfer}/cancel', [StockTransferController::class, 'cancel'])->name('cancel');
-            });
-
-            Route::put('{transfer}/approve', [StockTransferController::class, 'approve'])
-                ->middleware('permission:inventory.transfers.approve')
-                ->name('approve');
-
-            Route::put('{transfer}/reject', [StockTransferController::class, 'reject'])
-                ->middleware('permission:inventory.transfers.reject')
-                ->name('reject');
-
-            Route::delete('{transfer}', [StockTransferController::class, 'destroy'])
-                ->middleware('permission:inventory.transfers.delete')
                 ->name('destroy');
         });
 

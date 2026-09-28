@@ -378,8 +378,8 @@ return [
     | toggle actually changes. Everything defaults on except the two sounds,
     | which a shop floor may not want blaring by default.
     |
-    | Both input methods bill through the same cart, the same invoice and the
-    | same stock movement; nothing here forks that. They differ only in what
+    | Both input methods bill through the same cart and the same invoice;
+    | nothing here forks that. They differ only in what
     | turns a physical barcode into a string - a keyboard-wedge scanner, or
     | the phone's camera.
     */

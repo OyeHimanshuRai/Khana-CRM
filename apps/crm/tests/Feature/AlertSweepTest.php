@@ -188,7 +188,7 @@ class AlertSweepTest extends TestCase
 
         $service->raise(
             shop: $this->shop(),
-            type: Alert::LOW_STOCK,
+            type: Alert::DAY_CLOSE_PENDING,
             title: 'Gone stale',
             dedupeKey: 'probe:expired',
             expiresAt: now()->subDay(),
@@ -196,7 +196,7 @@ class AlertSweepTest extends TestCase
 
         $service->raise(
             shop: $this->shop(),
-            type: Alert::LOW_STOCK,
+            type: Alert::DAY_CLOSE_PENDING,
             title: 'Still relevant',
             dedupeKey: 'probe:live',
         );

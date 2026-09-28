@@ -97,7 +97,6 @@ class ApiTest extends TestCase
             'sku' => Product::generateSku($name),
             'selling_price' => $price,
             'is_active' => true,
-            'is_made_to_order' => true,
         ]);
     }
 

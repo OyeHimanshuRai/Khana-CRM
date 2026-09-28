@@ -10,7 +10,6 @@ use App\Models\Product;
 use App\Models\ProductVariant;
 use App\Models\TaxRate;
 use App\Models\Unit;
-use App\Models\Warehouse;
 use App\Support\CurrentShop;
 use Database\Seeders\Concerns\SeedsDemoData;
 use Illuminate\Database\Seeder;
@@ -43,7 +42,6 @@ class DemoMenuSeeder extends Seeder
         $this->seedRandom(1);
 
         $this->shopProfile();
-        $this->kitchenStores();
         $this->brands();
         $this->categories();
         $this->dishes();
@@ -85,44 +83,6 @@ class DemoMenuSeeder extends Seeder
         if ($fill !== []) {
             $shop->forceFill($fill)->save();
         }
-    }
-
-    /** Where a kitchen actually keeps things. */
-    private function kitchenStores(): void
-    {
-        $shopId = CurrentShop::id();
-
-        $extra = [
-            ['Dry Store', 'DRY', 'Grains, spices and packaging'],
-            ['Cold Room', 'COLD', 'Dairy, meat and produce'],
-        ];
-
-        $created = 0;
-
-        foreach ($extra as $index => [$name, $code, $where]) {
-            $exists = Warehouse::allShops()
-                ->where('shop_id', $shopId)
-                ->where('code', $code)
-                ->exists();
-
-            if ($exists) {
-                continue;
-            }
-
-            Warehouse::withoutEvents(fn () => Warehouse::query()->create([
-                'shop_id' => $shopId,
-                'name' => $name,
-                'code' => $code,
-                'address' => $where,
-                'is_default' => false,
-                'is_active' => true,
-                'sort_order' => $index + 1,
-            ]));
-
-            $created++;
-        }
-
-        $this->say(sprintf('%d kitchen store(s).', $created));
     }
 
     /**
@@ -329,16 +289,6 @@ class DemoMenuSeeder extends Seeder
                 // Breakfast really does stop at eleven.
                 'available_from' => $breakfast ? '07:00' : null,
                 'available_to' => $breakfast ? '11:30' : null,
-
-                'min_stock' => $bottled ? 24 : 0,
-                'reorder_level' => $bottled ? 48 : 0,
-                // Only the bottled line has a shelf life worth tracking; a
-                // plate of food is cooked to order.
-                'track_batches' => $bottled,
-                // And the same distinction decides whether selling it moves
-                // stock at all. There is no count of Butter Naan; there is a
-                // very real count of bottled water. See the migration.
-                'is_made_to_order' => ! $bottled,
 
                 'short_description' => $name.', made to order.',
                 'is_active' => true,

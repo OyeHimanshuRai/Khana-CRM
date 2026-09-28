@@ -97,8 +97,8 @@ return [
     ],
 
     'inventory' => [
-        'label' => 'Inventory',
-        'blurb' => 'Menu items, stock, batches, transfers and storage locations.',
+        'label' => 'Menu',
+        'blurb' => 'Menu items, sizes, add-ons, categories and price lists.',
         'icon' => 'package',
         'default' => true,
         'permissions' => ['inventory'],

@@ -23,10 +23,9 @@ use RuntimeException;
  * identically for the counter. A second document type would be a second place
  * for the tax to be wrong.
  *
- * Stock is the one thing it does *not* do here, and that is deliberate: a dish
- * is marked made-to-order and moves none. A restaurant has no count of Butter
- * Naan, and "not enough stock" is never the right answer to somebody trying to
- * pay for food they have already eaten. See the migration, and §10's recipes.
+ * No stock moves, here or anywhere in CRM: "not enough stock" is never the
+ * right answer to somebody trying to pay for food they have already eaten, and
+ * what the kitchen used is ERP's to work out from the kitchen's own events.
  *
  * So this class does the part that is actually about tables: deciding which
  * of a sitting's lines go on which bill, and what happens to the table

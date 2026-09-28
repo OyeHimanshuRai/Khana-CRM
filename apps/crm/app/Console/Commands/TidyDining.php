@@ -2,16 +2,12 @@
 
 namespace App\Console\Commands;
 
-use App\Models\Product;
-use App\Models\ProductStock;
 use App\Models\RestaurantTable;
 use App\Models\Shop;
 use App\Models\TableSession;
-use App\Services\StockService;
 use App\Services\TableSessionService;
 use Illuminate\Console\Command;
 use Illuminate\Support\Facades\DB;
-use Throwable;
 
 /**
  * Housekeeping for a dining floor that has been running a while.
@@ -21,9 +17,9 @@ use Throwable;
  * ---------------------------------------------------------------------------
  *
  * Everything here is a judgement about somebody else's restaurant: whether a
- * table that has been open for two days had a party at it, whether a count
- * against a dish was ever meant to be there. A nightly job that decided those
- * on its own would close a long dinner and delete a figure somebody was using.
+ * table that has been open for two days had a party at it, whether a table
+ * marked busy really is. A nightly job that decided those on its own would
+ * close a long dinner and clear a flag somebody had just set.
  *
  * So it reports by default and only changes what it is explicitly told to,
  * one flag per kind of change. Run it, read it, then run it again with the
@@ -38,12 +34,6 @@ use Throwable;
  *              sitting a busy evening forgot keeps its table occupied, keeps
  *              its kitchen tickets, and blocks the next booking for ever.
  *
- *   dishes     A shelf quantity against a made-to-order dish. A restaurant has
- *              no count of Butter Naan and no sale moves one, so any figure
- *              there can only ever be wrong - see Product::tracksStock(). The
- *              usual source is demo or imported data that bought finished
- *              dishes from a supplier.
- *
  *   tables     A table flagged occupied or billing with no sitting under it.
  *              The flag is set by hand and drifts; where it says a table is
  *              busy and no bill exists, the flag is the one that is wrong.
@@ -53,12 +43,11 @@ class TidyDining extends Command
     protected $signature = 'dine:tidy
                             {--shop= : Limit to one shop id}
                             {--sittings= : Close sittings idle longer than this many hours}
-                            {--dishes : Zero the stock held against made-to-order dishes}
                             {--tables : Clear occupied/billing flags on tables with no sitting}';
 
-    protected $description = 'Report - and on request, clear - stuck sittings, phantom dish stock and stale table flags';
+    protected $description = 'Report - and on request, clear - stuck sittings and stale table flags';
 
-    public function handle(TableSessionService $sessions, StockService $stock): int
+    public function handle(TableSessionService $sessions): int
     {
         $shops = $this->option('shop')
             ? Shop::query()->whereKey((int) $this->option('shop'))->get()
@@ -77,7 +66,6 @@ class TidyDining extends Command
             $this->info($shop->name);
 
             $found = $this->sittings($shop, $sessions) || $found;
-            $found = $this->dishes($shop, $stock) || $found;
             $found = $this->tables($shop) || $found;
         }
 
@@ -85,8 +73,8 @@ class TidyDining extends Command
 
         if (! $found) {
             $this->info('Nothing to tidy.');
-        } elseif (! $this->option('sittings') && ! $this->option('dishes') && ! $this->option('tables')) {
-            $this->comment('Nothing was changed. Re-run with --sittings=24, --dishes or --tables to act on the above.');
+        } elseif (! $this->option('sittings') && ! $this->option('tables')) {
+            $this->comment('Nothing was changed. Re-run with --sittings=24 or --tables to act on the above.');
         }
 
         return self::SUCCESS;
@@ -142,76 +130,6 @@ class TidyDining extends Command
         }
 
         $this->info(sprintf('  Closed %d sitting(s). No bill was raised or written off.', $stale->count()));
-
-        return true;
-    }
-
-    /* ------------------------------------------------------------ dishes */
-
-    private function dishes(Shop $shop, StockService $stock): bool
-    {
-        $slots = ProductStock::query()
-            ->withoutGlobalScopes()
-            ->where('shop_id', $shop->id)
-            ->where('quantity', '<>', 0)
-            ->whereIn('product_id', Product::query()->where('is_made_to_order', true)->select('id'))
-            ->with(['product:id,name,is_made_to_order', 'warehouse', 'batch'])
-            ->get();
-
-        if ($slots->isEmpty()) {
-            return false;
-        }
-
-        $this->line(sprintf(
-            '  %d stock row(s) held against made-to-order dishes:',
-            $slots->count(),
-        ));
-
-        foreach ($slots->take(10) as $slot) {
-            $this->line(sprintf('    %-30s %10s', $slot->product?->name ?? '?', $slot->quantity));
-        }
-
-        if ($slots->count() > 10) {
-            $this->line(sprintf('    ... and %d more', $slots->count() - 10));
-        }
-
-        if (! $this->option('dishes')) {
-            return true;
-        }
-
-        /*
-         | Counted to zero, not deleted.
-         |
-         | adjustTo writes a real movement with a reason on it, so the stock
-         | ledger still explains where the figure went. Deleting the rows
-         | would leave a product whose movement history adds up to something
-         | its current quantity does not, which is the one thing an audit
-         | trail exists to prevent.
-         */
-        $cleared = 0;
-
-        foreach ($slots as $slot) {
-            if ($slot->product === null) {
-                continue;
-            }
-
-            try {
-                $stock->adjustTo(
-                    product: $slot->product,
-                    countedQuantity: 0.0,
-                    reason: 'Made to order: a dish has no shelf to count (dine:tidy)',
-                    warehouse: $slot->warehouse,
-                    batch: $slot->batch,
-                    shopId: $shop->id,
-                );
-
-                $cleared++;
-            } catch (Throwable $e) {
-                $this->warn(sprintf('    %s could not be cleared: %s', $slot->product->name, $e->getMessage()));
-            }
-        }
-
-        $this->info(sprintf('  Cleared %d dish stock row(s).', $cleared));
 
         return true;
     }

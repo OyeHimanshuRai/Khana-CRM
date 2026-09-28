@@ -30,7 +30,7 @@
                     <div class="field" style="max-width:420px;margin-bottom:0">
                         <label for="name">Role name</label>
                         <input id="name" type="text" name="name" value="{{ old('name') }}" required
-                               placeholder="e.g. Warehouse Supervisor"
+                               placeholder="e.g. Floor Supervisor"
                                aria-invalid="{{ $errors->has('name') ? 'true' : 'false' }}">
                         @error('name')
                             <span class="field-error" role="alert">{{ $message }}</span>

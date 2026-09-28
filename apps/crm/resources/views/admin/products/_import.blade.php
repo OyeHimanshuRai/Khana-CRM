@@ -52,8 +52,6 @@
                 <li>Matched on <strong>SKU</strong>, or on the name when there is no SKU.</li>
                 <li>A blank cell leaves that field alone — it does not clear it.</li>
                 <li>Categories that do not exist are created, and named back to you.</li>
-                <li>Stock is never imported. It moves through receipts and adjustments,
-                    which is the only way it stays reconcilable.</li>
             </ul>
         </div>
     </div>

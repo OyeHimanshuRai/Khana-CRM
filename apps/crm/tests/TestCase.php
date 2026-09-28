@@ -6,15 +6,65 @@ use App\Support\CurrentShop;
 use App\Support\CurrentTenant;
 use App\Support\Modules;
 use App\Support\PlanAccess;
+use Database\Seeders\DatabaseSeeder;
+use Illuminate\Foundation\Testing\RefreshDatabase;
 use Illuminate\Foundation\Testing\TestCase as BaseTestCase;
+use Illuminate\Support\Facades\DB;
+use Illuminate\Support\Facades\Schema;
 
 abstract class TestCase extends BaseTestCase
 {
+    /**
+     * Seed the baseline once per process, when RefreshDatabase migrates.
+     *
+     * Almost every feature test starts from DatabaseSeeder - roles and their
+     * permissions, the first company, its plan, its shop, its catalogue - and
+     * used to run it in setUp(), inside the test's transaction, so it was
+     * rolled back and rebuilt for every single test. That was most of the
+     * five seconds each one took. Seeded here instead, the rows are already
+     * there when each test's transaction opens and are exactly what the
+     * rollback returns to - the same starting point, built once.
+     *
+     * Read by RefreshDatabase through property_exists(), which is why it is
+     * a property and not a shouldSeed() override: the trait's own method
+     * would win over one inherited from here.
+     */
+    protected $seed = true;
+
+    /**
+     * For the few tests that are about a brand-new install - the landing
+     * page with nothing configured, say.
+     *
+     * The baseline above is shared by the whole process, so a class cannot
+     * simply not seed. It empties every table instead, inside the test's own
+     * transaction, and the rollback brings the baseline back for whoever runs
+     * next. Foreign keys are deferred rather than switched off, because
+     * SQLite ignores `foreign_keys = OFF` inside a transaction.
+     */
+    protected bool $startsEmpty = false;
+
     protected function setUp(): void
     {
         parent::setUp();
 
         $this->forgetContext();
+
+        if ($this->startsEmpty) {
+            $this->emptyDatabase();
+        }
+    }
+
+    private function emptyDatabase(): void
+    {
+        $connection = DB::connection();
+
+        $connection->statement('PRAGMA defer_foreign_keys = ON');
+
+        foreach (Schema::getTables() as $table) {
+            if ($table['name'] !== 'migrations') {
+                $connection->table($table['name'])->delete();
+            }
+        }
     }
 
     protected function tearDown(): void
@@ -22,6 +72,21 @@ abstract class TestCase extends BaseTestCase
         $this->forgetContext();
 
         parent::tearDown();
+    }
+
+    /**
+     * `$this->seed()` with no argument, in a RefreshDatabase test, is
+     * already done - see `$seed` above. Any other seeder still runs.
+     */
+    public function seed($class = DatabaseSeeder::class)
+    {
+        $refreshes = in_array(RefreshDatabase::class, class_uses_recursive(static::class), true);
+
+        if ($refreshes && $class === DatabaseSeeder::class) {
+            return $this;
+        }
+
+        return parent::seed($class);
     }
 
     /**

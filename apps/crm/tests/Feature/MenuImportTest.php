@@ -102,7 +102,6 @@ class MenuImportTest extends TestCase
             'tax_rate_id' => TaxRate::query()->orderBy('id')->value('id'),
             'selling_price' => 280,
             'is_active' => true,
-            'is_made_to_order' => true,
         ], $overrides));
 
         $product->save();

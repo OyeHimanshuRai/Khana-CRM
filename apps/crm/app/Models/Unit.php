@@ -8,10 +8,15 @@ use Illuminate\Database\Eloquent\Model;
 use Illuminate\Database\Eloquent\Relations\HasMany;
 
 /**
- * A unit of measure.
+ * The unit a menu item is sold in - a plate, a piece, a kilo.
  *
- * The interesting column is allow_decimal: it is what lets the POS refuse
- * "2.5 sprayers" while accepting "2.5 kg of urea".
+ * The interesting column is allow_decimal: it is what lets the till refuse
+ * "2.5 plates" while accepting "1.5 kg of biryani".
+ *
+ * Only the selling unit. What an ingredient is counted in on the shelf is
+ * ERP's, with its own list. Every business gets the starter set from
+ * CatalogStarter and there is no screen to edit it here: a menu picks from
+ * a handful of units and rarely needs another.
  */
 class Unit extends Model
 {

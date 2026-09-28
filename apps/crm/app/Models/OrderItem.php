@@ -17,7 +17,7 @@ class OrderItem extends Model
         'product_name', 'variant_name', 'sku', 'note',
         'quantity', 'settled_quantity', 'unit_price', 'line_total',
         'kitchen_station_id', 'kitchen_status',
-        'kitchen_started_at', 'kitchen_ready_at', 'recipe_consumed_at',
+        'kitchen_started_at', 'kitchen_ready_at',
     ];
 
     protected function casts(): array
@@ -29,7 +29,6 @@ class OrderItem extends Model
             'line_total' => 'decimal:2',
             'kitchen_started_at' => 'datetime',
             'kitchen_ready_at' => 'datetime',
-            'recipe_consumed_at' => 'datetime',
         ];
     }
 

@@ -42,20 +42,19 @@ use RuntimeException;
  * what §9 means by reopening being for authorised staff.
  *
  * ---------------------------------------------------------------------------
- * Bumping is what consumes stock
+ * No stock moves here
  * ---------------------------------------------------------------------------
  *
- * A dish moves no stock when it is *sold* - there is no count of Butter Naan -
- * so the flour and butter come off here, when the line reaches whichever rung
- * the outlet configured (§10). The kitchen is the right place for it: a dish
- * that was cooked and then comped, or sent back, or eaten by the staff, has
- * used its ingredients either way.
+ * A bump is still the moment a dish's ingredients are used - a dish that was
+ * cooked and then comped, or sent back, has used them either way - but taking
+ * them off the shelf is ERP's job, not this class's. ERP learns of each bump
+ * from crm.kitchen.line_advanced and applies the recipe at whichever rung the
+ * outlet chose there.
  */
 class KitchenService
 {
     public function __construct(
         private readonly TableOrderService $orders,
-        private readonly RecipeService $recipes,
     ) {}
 
     /* ---------------------------------------------------------- the feed */
@@ -410,33 +409,7 @@ class KitchenService
 
         $line->forceFill($changes)->save();
 
-        $this->consumeIfDue($line, $target);
-
         return true;
-    }
-
-    /**
-     * Take the line's ingredients off the shelf, if it has now got far enough.
-     *
-     * Failures here are logged and swallowed on purpose. The food is cooked
-     * and the cook is holding a pan: refusing to move the ticket because the
-     * ingredient store could not be written would leave a kitchen unable to
-     * work, and the stock figure is the less urgent of the two truths. The
-     * line keeps a null `recipe_consumed_at`, so the next bump tries again.
-     */
-    private function consumeIfDue(OrderItem $line, string $rung): void
-    {
-        $shop = $line->order?->shop;
-
-        if ($shop === null || ! $this->recipes->shouldConsumeAt($shop, $rung)) {
-            return;
-        }
-
-        try {
-            $this->recipes->consume($line);
-        } catch (\Throwable $e) {
-            report($e);
-        }
     }
 
     /**

@@ -36,7 +36,6 @@ class Shop extends Model
         'invoice_prefix', 'pos_prefix',
         'currency', 'timezone',
         'upi_id', 'upi_name',
-        'allow_negative_stock', 'block_expired_sale', 'recipe_deduction',
         'modules',
         'requires_otp',
         'is_active', 'sort_order',
@@ -52,8 +51,6 @@ class Shop extends Model
     protected function casts(): array
     {
         return [
-            'allow_negative_stock' => 'boolean',
-            'block_expired_sale' => 'boolean',
             // Null and [] are different answers here - see the migration.
             'modules' => 'array',
             'requires_otp' => 'boolean',

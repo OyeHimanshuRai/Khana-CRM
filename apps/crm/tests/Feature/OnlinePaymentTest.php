@@ -150,7 +150,6 @@ class OnlinePaymentTest extends TestCase
             'sku' => Product::generateSku('Butter Naan'),
             'selling_price' => $price,
             'is_active' => true,
-            'is_made_to_order' => true,
         ]);
         $dish->save();
 

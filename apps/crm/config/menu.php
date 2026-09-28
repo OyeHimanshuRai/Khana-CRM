@@ -183,7 +183,7 @@ return [
         'heading' => 'Operations',
         'items' => [
             [
-                'label' => 'Menu & Stock',
+                'label' => 'Menu',
                 'icon' => 'package',
                 'children' => [
                     [
@@ -215,54 +215,6 @@ return [
                         'route' => 'admin.modifiers.index',
                         'active' => 'admin.modifiers.*',
                         'can' => 'inventory.modifiers.view',
-                    ],
-                    [
-                        'label' => 'Recipes / BOM',
-                        'route' => 'admin.recipes.index',
-                        'active' => 'admin.recipes.*',
-                        'can' => 'inventory.recipes.view',
-                    ],
-                    [
-                        'label' => 'Wastage',
-                        'route' => 'admin.wastage.index',
-                        'active' => 'admin.wastage.*',
-                        'can' => 'inventory.wastage.view',
-                    ],
-                    [
-                        'label' => 'Units',
-                        'route' => 'admin.units.index',
-                        'active' => 'admin.units.*',
-                        'can' => 'inventory.units.view',
-                    ],
-                    [
-                        'label' => 'Stock on Hand',
-                        'route' => 'admin.stock.index',
-                        'active' => 'admin.stock.*',
-                        'can' => 'inventory.stock.view',
-                    ],
-                    [
-                        'label' => 'Batches & Expiry',
-                        'route' => 'admin.batches.index',
-                        'active' => 'admin.batches.*',
-                        'can' => 'inventory.batches.view',
-                    ],
-                    [
-                        'label' => 'Stock Adjustments',
-                        'route' => 'admin.stock-adjustments.index',
-                        'active' => 'admin.stock-adjustments.*',
-                        'can' => 'inventory.adjustments.view',
-                    ],
-                    [
-                        'label' => 'Stock Transfers',
-                        'route' => 'admin.stock-transfers.index',
-                        'active' => 'admin.stock-transfers.*',
-                        'can' => 'inventory.transfers.view',
-                    ],
-                    [
-                        'label' => 'Warehouses',
-                        'route' => 'admin.warehouses.index',
-                        'active' => 'admin.warehouses.*',
-                        'can' => 'inventory.warehouses.view',
                     ],
                 ],
             ],

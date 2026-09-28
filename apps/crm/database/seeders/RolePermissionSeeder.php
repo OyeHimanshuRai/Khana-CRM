@@ -138,7 +138,7 @@ class RolePermissionSeeder extends Seeder
                     'pos.terminal.view', 'pos.terminal.create', 'pos.terminal.print',
                     'pos.registers.view', 'pos.registers.create',
                     'pos.labels.view', 'pos.labels.print',
-                    'inventory.products.view', 'inventory.stock.view',
+                    'inventory.products.view',
                     'crm.customers.view', 'crm.customers.create', 'crm.customers.edit',
                     'crm.ledger.view',
                     'sales.invoices.view', 'sales.invoices.create', 'sales.invoices.print',
@@ -200,26 +200,16 @@ class RolePermissionSeeder extends Seeder
             ],
 
             'Sales Executive' => [
-                'description' => 'Customer management, quotations, orders and follow-up. No stock or finance edits.',
+                'description' => 'Customer management, quotations, orders and follow-up. No finance edits.',
                 'grant' => fn (string $p) => str_starts_with($p, 'crm.')
                     || str_starts_with($p, 'sales.orders.')
                     || in_array($p, [
                         'dashboard.overview.view',
-                        'inventory.products.view', 'inventory.stock.view',
+                        'inventory.products.view',
                         'sales.invoices.view', 'sales.invoices.create', 'sales.invoices.print',
                         'sales.coupons.view',
                         'reports.sales_report.view', 'reports.customer_report.view',
                         'reports.dues_report.view',
-                    ], true),
-            ],
-
-            'Warehouse' => [
-                'description' => 'Batches and expiry, stock movement, transfers and dispatch.',
-                'grant' => fn (string $p) => str_starts_with($p, 'inventory.')
-                    || in_array($p, [
-                        'dashboard.overview.view',
-                        'sales.orders.view', 'sales.orders.edit',
-                        'sales.returns.view', 'sales.returns.create',
                     ], true),
             ],
 

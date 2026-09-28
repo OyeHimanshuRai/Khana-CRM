@@ -135,7 +135,7 @@
                 <input id="prod-purchase" type="number" name="purchase_price" class="form-control"
                        value="{{ $product->exists ? (float) $product->purchase_price : 0 }}"
                        min="0" step="0.01" aria-invalid="false">
-                <div class="form-hint">A default. Actual cost comes from what each receipt paid.</div>
+                <div class="form-hint">What one costs you to make or buy — the margin on reports is worked from it.</div>
             </div>
 
             <div class="field">
@@ -210,77 +210,6 @@
         </div>
     </div>
 
-    <div class="form-section">
-        <div class="form-section-title">Stock control</div>
-
-        <div class="settings-grid">
-            <div class="field">
-                <label for="prod-reorder">Reorder level</label>
-                <input id="prod-reorder" type="number" name="reorder_level" class="form-control"
-                       value="{{ $product->exists ? (float) $product->reorder_level : 0 }}"
-                       min="0" step="0.001" aria-invalid="false">
-                <div class="form-hint">At or below this, the product is flagged as low. 0 turns the alert off.</div>
-            </div>
-
-            <div class="field">
-                <label for="prod-min">Minimum stock</label>
-                <input id="prod-min" type="number" name="min_stock" class="form-control"
-                       value="{{ $product->exists ? (float) $product->min_stock : 0 }}"
-                       min="0" step="0.001" aria-invalid="false">
-            </div>
-
-            {{--
-                What kind of thing this is. Both flags decide whether the two
-                fields above them mean anything at all, so they come first.
-            --}}
-            <div class="field field-full">
-                <label class="check">
-                    <input type="hidden" name="is_ingredient" value="0">
-                    <input type="checkbox" name="is_ingredient" value="1"
-                           @checked($product->is_ingredient)>
-                    An ingredient — bought and stocked, never sold
-                </label>
-                <div class="form-hint">
-                    Flour, butter, chicken. Kept off the menu, the storefront and the
-                    till, and available to put in a recipe. Everything else about it —
-                    purchasing, stock, cost, low-stock alerts — works exactly as it
-                    does for anything you sell.
-                </div>
-            </div>
-            {{--
-                First in this section on purpose: it decides whether the two
-                fields above it mean anything at all. A dish has no minimum
-                stock, because there is no count of it to be below.
-            --}}
-            <div class="field field-full">
-                <label class="check">
-                    <input type="hidden" name="is_made_to_order" value="0">
-                    <input type="checkbox" name="is_made_to_order" value="1"
-                           @checked($product->exists ? $product->is_made_to_order : true)>
-                    Made to order — cooked, not taken off a shelf
-                </label>
-                <div class="form-hint">
-                    On for anything the kitchen makes. Selling it moves no stock,
-                    and a bill is never refused because a count says zero — a
-                    restaurant has no stock of Butter Naan. Turn it off for
-                    things sold as they are: bottled water, a packet of crisps.
-                </div>
-            </div>
-
-            <div class="field field-full">
-                <label class="check">
-                    <input type="hidden" name="track_batches" value="0">
-                    <input type="checkbox" name="track_batches" value="1" @checked($product->track_batches)>
-                    Track this product batch by batch
-                </label>
-                <div class="form-hint">
-                    Turn on for anything with an expiry date. Receipts then capture a batch number and
-                    dates, and the counter sells oldest-expiry first.
-                </div>
-            </div>
-        </div>
-    </div>
-
     @if ($overrideShop)
         <div class="form-section">
             <div class="form-section-title">Price at {{ $overrideShop->name }}</div>
@@ -318,20 +247,6 @@
                            value="{{ $override?->discount_percent }}" min="0" max="100" step="0.01"
                            aria-invalid="false"
                            placeholder="{{ (float) $product->discount_percent }}">
-                </div>
-
-                <div class="field">
-                    <label for="ov-reorder">Reorder level</label>
-                    <input id="ov-reorder" type="number" name="override[reorder_level]" class="form-control"
-                           value="{{ $override?->reorder_level }}" min="0" step="0.001" aria-invalid="false"
-                           placeholder="{{ (float) $product->reorder_level }}">
-                </div>
-
-                <div class="field">
-                    <label for="ov-min">Minimum stock</label>
-                    <input id="ov-min" type="number" name="override[min_stock]" class="form-control"
-                           value="{{ $override?->min_stock }}" min="0" step="0.001" aria-invalid="false"
-                           placeholder="{{ (float) $product->min_stock }}">
                 </div>
 
                 <div class="field field-full">

@@ -61,7 +61,7 @@ class MenuImportService
         'SKU', 'Name', 'Category', 'Sub-category', 'Brand', 'Unit', 'HSN', 'Tax',
         'Food Type', 'Spice', 'Serves', 'Prep Minutes',
         'Purchase Price', 'Selling Price', 'Dine-in Price', 'Takeaway Price', 'Delivery Price',
-        'Tax Inclusive', 'Kitchen Station', 'Made To Order', 'Ingredient', 'Batch Tracked',
+        'Tax Inclusive', 'Kitchen Station',
         'Available From', 'Available To', 'Active', 'Sold Out', 'Sort Order',
     ];
 
@@ -337,9 +337,6 @@ class MenuImportService
 
         foreach ([
             'tax inclusive' => 'tax_inclusive',
-            'made to order' => 'is_made_to_order',
-            'ingredient' => 'is_ingredient',
-            'batch tracked' => 'track_batches',
             'active' => 'is_active',
             'sold out' => 'is_sold_out',
         ] as $column => $field) {
@@ -624,9 +621,6 @@ class MenuImportService
             $num($product->delivery_price),
             $yes($product->tax_inclusive),
             $product->kitchenStation?->code,
-            $yes($product->is_made_to_order),
-            $yes($product->is_ingredient),
-            $yes($product->track_batches),
             $product->available_from,
             $product->available_to,
             $yes($product->is_active),

@@ -98,7 +98,6 @@ class Product extends Model
         'food_type', 'spice_level', 'food_tags', 'serves', 'prep_minutes',
         'is_sold_out', 'sold_out_until',
         'available_from', 'available_to', 'available_days',
-        'min_stock', 'reorder_level', 'track_batches', 'is_made_to_order', 'is_ingredient',
         'short_description', 'description',
         'is_active', 'is_published', 'is_featured',
         'meta_title', 'meta_description', 'meta_keywords',
@@ -114,8 +113,6 @@ class Product extends Model
             'mrp' => 'decimal:4',
             'selling_price' => 'decimal:4',
             'discount_percent' => 'decimal:3',
-            'min_stock' => 'decimal:3',
-            'reorder_level' => 'decimal:3',
 
             'dine_in_price' => 'decimal:4',
             'takeaway_price' => 'decimal:4',
@@ -129,9 +126,6 @@ class Product extends Model
             'available_days' => 'array',
 
             'tax_inclusive' => 'boolean',
-            'track_batches' => 'boolean',
-            'is_made_to_order' => 'boolean',
-            'is_ingredient' => 'boolean',
             'is_active' => 'boolean',
             'is_published' => 'boolean',
             'is_featured' => 'boolean',
@@ -157,18 +151,6 @@ class Product extends Model
     public function kitchenStation(): BelongsTo
     {
         return $this->belongsTo(KitchenStation::class, 'kitchen_station_id');
-    }
-
-    /** What this dish is made of (§10). */
-    public function recipeItems(): HasMany
-    {
-        return $this->hasMany(RecipeItem::class)->orderBy('sort_order')->orderBy('id');
-    }
-
-    /** The recipes this product appears in as a component. */
-    public function usedInRecipes(): HasMany
-    {
-        return $this->hasMany(RecipeItem::class, 'ingredient_id');
     }
 
     public function brand(): BelongsTo
@@ -207,13 +189,12 @@ class Product extends Model
             ->orderBy('modifier_product.sort_order');
     }
 
-    /** Per-shop price and reorder overrides. */
+    /** Per-shop price overrides. */
     public function shops(): BelongsToMany
     {
         return $this->belongsToMany(Shop::class)
             ->withPivot([
-                'purchase_price', 'mrp', 'selling_price', 'discount_percent',
-                'min_stock', 'reorder_level', 'is_active',
+                'purchase_price', 'mrp', 'selling_price', 'discount_percent', 'is_active',
             ])
             ->withTimestamps();
     }
@@ -223,13 +204,13 @@ class Product extends Model
     /**
      * Things a guest could be sold.
      *
-     * Ingredients are active, stocked and purchased like any other product -
-     * they are simply not on the menu. Every screen that sells reads this
-     * rather than `active()` alone, so flour cannot end up on a card.
+     * Every row here is on the menu - ingredients are ERP's stock items, not
+     * products - so this is `active()` by another name. Kept because every
+     * screen that sells asks the question in these words.
      */
     public function scopeSellable(Builder $query): Builder
     {
-        return $query->where('is_active', true)->where('is_ingredient', false);
+        return $query->where('is_active', true);
     }
 
     public function scopeActive(Builder $query): Builder
@@ -239,12 +220,7 @@ class Product extends Model
 
     public function scopePublished(Builder $query): Builder
     {
-        return $query->where('is_active', true)
-            ->where('is_published', true)
-            // An ingredient is never a storefront row, whatever else is
-            // ticked on it. Belt and braces: is_published defaults off, but
-            // one careless bulk edit should not put flour in a shop window.
-            ->where('is_ingredient', false);
+        return $query->where('is_active', true)->where('is_published', true);
     }
 
     /**
@@ -331,7 +307,7 @@ class Product extends Model
      * This shop's override row, if it has one.
      *
      * One screen prices the same row four or five times over - selling
-     * price, MRP, reorder level, the counter's gross-up - and each of those
+     * price, MRP, cost, the counter's gross-up - and each of those
      * used to be its own pivot query. A product grid is hundreds of rows, so
      * the answer is kept once it has been fetched. Callers that eager-load
      * `shops` skip the fetch entirely.
@@ -401,17 +377,6 @@ class Product extends Model
     {
         return $this->pricedField('mrp', $shopId);
     }
-
-    public function reorderLevelFor(?int $shopId = null): float
-    {
-        return $this->pricedField('reorder_level', $shopId);
-    }
-
-    public function minStockFor(?int $shopId = null): float
-    {
-        return $this->pricedField('min_stock', $shopId);
-    }
-
 
     /* -------------------------------------------------------------- menu */
 
@@ -545,8 +510,8 @@ class Product extends Model
         }
 
         $clock = $now->format('H:i:s');
-        $from = substr((string) $from, 0, 8);
-        $to = substr((string) $to, 0, 8);
+        $from = self::clockTime((string) $from);
+        $to = self::clockTime((string) $to);
 
         return $from <= $to
             ? ($clock >= $from && $clock <= $to)
@@ -579,10 +544,25 @@ class Product extends Model
         }
 
         $short = fn (string $time) => \Illuminate\Support\Carbon::createFromFormat(
-            'H:i:s', substr($time, 0, 8)
+            'H:i:s', self::clockTime($time)
         )->format('g:i a');
 
         return 'Served '.$short((string) $this->available_from).' – '.$short((string) $this->available_to);
+    }
+
+    /**
+     * A serving-window time as HH:MM:SS, however the database handed it back.
+     *
+     * MySQL's TIME column always answers "07:00:00"; SQLite stores the string
+     * it was given, so a form's "07:00" comes back as "07:00". Comparing or
+     * parsing the two as they are would put breakfast in the wrong hour, or
+     * throw.
+     */
+    private static function clockTime(string $time): string
+    {
+        $time = substr(trim($time), 0, 8);
+
+        return strlen($time) === 5 ? $time.':00' : $time;
     }
 
     public function hasVariants(): bool
@@ -633,12 +613,6 @@ class Product extends Model
      * is grossed up here; PosController tells the invoice service that these
      * prices include tax, which closes the loop.
      *
-     * @param  array{on_hand: float, available: float}|null  $stock
-     *   Already-counted stock for this product, when the caller has read it
-     *   in one grouped query. The counter's menu grid renders every dish at
-     *   once, and asking the stock table three times per tile would be a
-     *   few hundred queries for one screen. Left null - the search box, a
-     *   resumed hold - each row counts its own, exactly as before.
      * @return array<string, mixed>
      */
     public function toLookupArray(?int $shopId): array
@@ -651,15 +625,9 @@ class Product extends Model
             'unit' => $this->unit?->code,
             'allow_decimal' => (bool) $this->unit?->allow_decimal,
             'selling_price' => $this->counterPriceFor($shopId),
-            // Purchase documents prefill their cost column from this. Without
-            // it the line editor falls back to the selling price and every
-            // receipt arrives valued at retail.
-            'average_cost' => $this->purchasePriceFor($shopId),
             'mrp' => $this->mrpFor($shopId),
             'tax_rate_id' => $this->tax_rate_id,
             'tax_inclusive' => $this->tax_inclusive,
-            'track_batches' => $this->track_batches,
-            'is_made_to_order' => $this->is_made_to_order,
             'image' => $this->imageUrl(),
         ];
     }

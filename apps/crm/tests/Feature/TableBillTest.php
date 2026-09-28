@@ -82,7 +82,6 @@ class TableBillTest extends TestCase
             'is_active' => true,
             // The default for anything a restaurant cooks. The tests that care
             // about the other kind say so.
-            'is_made_to_order' => true,
         ], $overrides));
 
         $product->save();

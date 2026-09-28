@@ -62,7 +62,6 @@ class LiveOrderTest extends TestCase
             'sku' => Product::generateSku($name),
             'selling_price' => 60,
             'is_active' => true,
-            'is_made_to_order' => true,
         ]);
 
         $product->save();

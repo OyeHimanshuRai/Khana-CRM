@@ -9,16 +9,13 @@ use App\Models\Payment;
 use App\Models\PaymentReminder;
 use App\Models\Product;
 use App\Models\Shop;
-use App\Models\StockMovement;
 use App\Models\TaxRate;
 use App\Models\Unit;
-use App\Models\Warehouse;
 use App\Services\AlertService;
 use App\Services\InvoiceService;
 use App\Services\LedgerService;
 use App\Services\PaymentService;
 use App\Services\ReminderService;
-use App\Services\StockService;
 use App\Support\CurrentShop;
 use Carbon\Carbon;
 use Illuminate\Foundation\Testing\RefreshDatabase;
@@ -44,10 +41,6 @@ class ReminderServiceTest extends TestCase
     use RefreshDatabase;
 
     private Shop $shop;
-
-    private Warehouse $warehouse;
-
-    private StockService $stock;
 
     private InvoiceService $invoices;
 
@@ -78,9 +71,7 @@ class ReminderServiceTest extends TestCase
         Carbon::setTestNow(Carbon::now()->setTime(12, 0));
 
         $this->shop = Shop::firstOrFail();
-        $this->warehouse = Warehouse::allShops()->where('shop_id', $this->shop->id)->firstOrFail();
 
-        $this->stock = new StockService();
         $ledger = new LedgerService();
         /*
          | Built through the container rather than by hand.
@@ -91,7 +82,6 @@ class ReminderServiceTest extends TestCase
          | tests DO care about is holding on to the same collaborators, so
          | those are bound explicitly and the rest is resolved.
          */
-        $this->app->instance(StockService::class, $this->stock);
         $this->app->instance(LedgerService::class, $ledger);
         $this->invoices = $this->app->make(InvoiceService::class);
         $this->payments = new PaymentService($ledger, new AlertService());
@@ -113,7 +103,7 @@ class ReminderServiceTest extends TestCase
         static $counter = 0;
         $counter++;
 
-        $product = Product::create([
+        return Product::create([
             'name' => 'Reminder Product '.$counter,
             'slug' => Product::uniqueSlug('Reminder Product '.$counter),
             'sku' => Product::generateSku('REM'.$counter),
@@ -123,11 +113,6 @@ class ReminderServiceTest extends TestCase
             'selling_price' => 100,
             'tax_inclusive' => true,
         ]);
-
-        $this->stock->receive($product, 500, $this->warehouse, null, 50,
-            StockMovement::PURCHASE, null, null, $this->shop->id);
-
-        return $product;
     }
 
     private function customer(array $attributes = []): Customer
@@ -159,7 +144,6 @@ class ReminderServiceTest extends TestCase
 
         $invoice = $this->invoices->create([
             'shop' => $this->shop,
-            'warehouse' => $this->warehouse,
             'customer' => $customer,
             'channel' => Invoice::MANUAL,
             'items' => [['product_id' => $product->id, 'quantity' => $amount / 100]],
@@ -274,7 +258,6 @@ class ReminderServiceTest extends TestCase
 
         $this->invoices->create([
             'shop' => $this->shop,
-            'warehouse' => $this->warehouse,
             'customer' => $customer,
             'channel' => Invoice::MANUAL,
             'items' => [['product_id' => $product->id, 'quantity' => 10]],
@@ -460,14 +443,6 @@ class ReminderServiceTest extends TestCase
             'slug' => Shop::uniqueSlug('Second Branch'),
             'is_active' => true,
         ]);
-
-        Warehouse::withoutEvents(fn () => Warehouse::query()->create([
-            'shop_id' => $other->id,
-            'name' => 'Main Store',
-            'code' => 'MAIN',
-            'is_default' => true,
-            'is_active' => true,
-        ]));
 
         $mine = $this->customer();
         $this->unpaidInvoice($mine, -10);

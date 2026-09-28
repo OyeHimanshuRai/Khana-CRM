@@ -35,14 +35,6 @@
             @if ($shop->id === $currentShopId)
                 <span class="badge badge-brand">You are working here</span>
             @endif
-
-            @if ($shop->allow_negative_stock)
-                <span class="badge badge-warning">Negative stock allowed</span>
-            @endif
-
-            @unless ($shop->block_expired_sale)
-                <span class="badge badge-warning">Expired sale not blocked</span>
-            @endunless
         </div>
 
         <dl class="sec-facts">

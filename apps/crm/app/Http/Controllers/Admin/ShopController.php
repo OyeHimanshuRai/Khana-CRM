@@ -494,10 +494,6 @@ class ShopController extends Controller
             'upi_name' => ['nullable', 'string', 'max:120'],
             'timezone' => ['nullable', 'string', 'max:64', Rule::in(timezone_identifiers_list())],
 
-            'allow_negative_stock' => ['boolean'],
-            'recipe_deduction' => ['nullable', 'string', Rule::in(array_keys(\App\Services\RecipeService::MOMENTS))],
-            'block_expired_sale' => ['boolean'],
-
             /*
              | Which lines of business this branch runs. Validated against the
              | catalogue rather than accepted as free text: an unknown key
@@ -586,9 +582,6 @@ class ShopController extends Controller
             'upi_id' => $data['upi_id'] ?? null,
             'upi_name' => $data['upi_name'] ?? null,
             'timezone' => $data['timezone'] ?? 'Asia/Kolkata',
-            'allow_negative_stock' => (bool) ($data['allow_negative_stock'] ?? false),
-            'recipe_deduction' => $data['recipe_deduction'] ?? \App\Services\RecipeService::ON_READY,
-            'block_expired_sale' => (bool) ($data['block_expired_sale'] ?? true),
             /*
              | Only written when the form actually asked.
              |
@@ -602,9 +595,8 @@ class ShopController extends Controller
             ...(($data['modules_configured'] ?? false)
                 ? ['modules' => Modules::sanitise((array) ($data['modules'] ?? []))]
                 : []),
-            // The optional OTP step on the guest journey (§3.8). Same
-            // shape as block_expired_sale above: the form always renders the
-            // box, so an absent key means unticked.
+            // The optional OTP step on the guest journey (§3.8). The form
+            // always renders the box, so an absent key means unticked.
             'requires_otp' => (bool) ($data['requires_otp'] ?? false),
             'is_active' => (bool) ($data['is_active'] ?? true),
             'sort_order' => (int) ($data['sort_order'] ?? 0),

@@ -221,52 +221,6 @@
                 </select>
             </div>
 
-            {{--
-                When the kitchen is deemed to have used its ingredients (§10).
-                Per outlet, because the answer really does differ: a central
-                kitchen counts at the pass, a small cafe does not count at all.
-            --}}
-            <div class="field field-full">
-                <label for="sh-recipe">Ingredients come off stock</label>
-                <select id="sh-recipe" name="recipe_deduction" class="form-control" aria-invalid="false">
-                    @foreach (App\Services\RecipeService::MOMENTS as $key => $label)
-                        <option value="{{ $key }}"
-                            @selected(($shop->recipe_deduction ?: 'ready') === $key)>
-                            {{ $label }}
-                        </option>
-                    @endforeach
-                </select>
-                <div class="form-hint">
-                    A dish moves no stock when it is sold — a restaurant has no count of
-                    Butter Naan. Its recipe's ingredients come off here instead. "When the
-                    dish is ready" is the safest: a ticket that never gets there was never
-                    cooked.
-                </div>
-            </div>
-
-            <div class="field field-full">
-                <label class="check">
-                    <input type="hidden" name="allow_negative_stock" value="0">
-                    <input type="checkbox" name="allow_negative_stock" value="1"
-                           @checked($shop->allow_negative_stock)>
-                    Allow stock to go negative
-                </label>
-                <div class="form-hint">
-                    Off by default. Leave it off unless the counter genuinely bills ahead of receiving.
-                </div>
-            </div>
-
-            <div class="field field-full">
-                <label class="check">
-                    <input type="hidden" name="block_expired_sale" value="0">
-                    <input type="checkbox" name="block_expired_sale" value="1"
-                           @checked($isNew ? true : $shop->block_expired_sale)>
-                    Block the sale of expired batches
-                </label>
-                <div class="form-hint">
-                    Agri inputs past their expiry date should not leave the counter.
-                </div>
-            </div>
         </div>
     </div>
 
@@ -276,8 +230,8 @@
         <div class="settings-grid">
             <div class="field field-full">
                 <div class="form-hint" style="margin-bottom:10px">
-                    What this branch actually does. A counter that only takes orders has no
-                    use for purchase orders, and a central kitchen has no till — so what is
+                    What this branch actually does. A takeaway counter has no use for
+                    tables, and a central kitchen has no till — so what is
                     switched off here disappears from this shop's dashboard, its sidebar and its
                     URLs, for everybody.
                     <strong>This is not a permission.</strong> It says whether the branch does this

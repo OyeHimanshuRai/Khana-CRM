@@ -32,9 +32,10 @@ class Alert extends Model
 {
     use BelongsToShop;
 
-    /* One key per row of SRS 15's notification table. */
-    public const LOW_STOCK = 'low_stock';
-
+    /*
+     | One key per row of SRS 15's notification table that is CRM's to
+     | raise. Low stock is not: CRM counts none, so that row is ERP's.
+     */
     public const PAYMENT_RECEIVED = 'payment_received';
 
     public const INVOICE_GENERATED = 'invoice_generated';
@@ -48,7 +49,6 @@ class Alert extends Model
 
     /** @var array<string, array{label: string, icon: string}> */
     public const TYPES = [
-        self::LOW_STOCK => ['label' => 'Low stock', 'icon' => 'package'],
         self::PAYMENT_RECEIVED => ['label' => 'Payment received', 'icon' => 'wallet'],
         self::INVOICE_GENERATED => ['label' => 'Invoice raised', 'icon' => 'file'],
         self::DAY_CLOSE_PENDING => ['label' => 'Day close pending', 'icon' => 'wallet'],

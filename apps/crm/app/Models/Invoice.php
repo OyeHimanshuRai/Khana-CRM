@@ -129,11 +129,6 @@ class Invoice extends Model
         return $this->morphMany(CustomerLedger::class, 'reference');
     }
 
-    public function movements(): MorphMany
-    {
-        return $this->morphMany(StockMovement::class, 'reference');
-    }
-
     public function creator(): BelongsTo
     {
         return $this->belongsTo(User::class, 'created_by');

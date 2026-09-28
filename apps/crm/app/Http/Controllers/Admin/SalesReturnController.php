@@ -106,7 +106,7 @@ class SalesReturnController extends Controller
         }
 
         $invoice = $request->integer('invoice')
-            ? Invoice::with(['items.product.unit', 'items.batch', 'customer'])->find($request->integer('invoice'))
+            ? Invoice::with(['items.product.unit', 'customer'])->find($request->integer('invoice'))
             : null;
 
         if ($invoice && $invoice->isCancelled()) {

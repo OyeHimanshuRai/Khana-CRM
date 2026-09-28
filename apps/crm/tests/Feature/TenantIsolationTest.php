@@ -9,7 +9,6 @@ use App\Models\Tenant;
 use App\Models\TaxRate;
 use App\Models\Unit;
 use App\Models\User;
-use App\Models\Warehouse;
 use App\Services\CatalogStarter;
 use App\Support\CurrentShop;
 use App\Support\CurrentTenant;
@@ -72,14 +71,6 @@ class TenantIsolationTest extends TestCase
             'slug' => Shop::uniqueSlug('Rival Main'),
             'is_active' => true,
         ]);
-
-        Warehouse::withoutEvents(fn () => Warehouse::query()->create([
-            'shop_id' => $this->rivalBranch->id,
-            'name' => 'Main Store',
-            'code' => 'RVLMAIN',
-            'is_default' => true,
-            'is_active' => true,
-        ]));
     }
 
     protected function tearDown(): void

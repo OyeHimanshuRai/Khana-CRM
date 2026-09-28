@@ -106,11 +106,6 @@ class SalesReturn extends Model
         return $this->morphMany(Payment::class, 'reference');
     }
 
-    public function movements(): MorphMany
-    {
-        return $this->morphMany(StockMovement::class, 'reference');
-    }
-
     /* ------------------------------------------------------------ scopes */
 
     public function scopeSearch(Builder $query, ?string $term): Builder

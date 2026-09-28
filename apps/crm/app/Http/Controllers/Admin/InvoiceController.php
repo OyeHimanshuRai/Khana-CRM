@@ -118,7 +118,6 @@ class InvoiceController extends Controller
             'invoice' => $invoice->load([
                 'items.product:id,name,sku',
                 'customer',
-                'warehouse:id,name',
                 'shop',
                 'creator:id,name',
             ]),

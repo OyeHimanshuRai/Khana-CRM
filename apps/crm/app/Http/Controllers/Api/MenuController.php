@@ -53,7 +53,7 @@ class MenuController extends Controller
 
     public function show(Product $product): JsonResponse
     {
-        abort_unless($product->is_active && ! $product->is_ingredient, 404);
+        abort_unless($product->is_active, 404);
 
         return response()->json(['data' => $this->row(
             $product->load(['category:id,name', 'variants', 'unit:id,code'])

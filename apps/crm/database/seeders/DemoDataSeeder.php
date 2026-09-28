@@ -13,13 +13,12 @@ use RuntimeException;
  * A shop with a year of trading behind it.
  *
  * Every module gets roughly twenty rows, and - this is the point - they are
- * rows the application itself would have written. Purchases go in through
- * PurchaseService, sales through InvoiceService, movements through
- * StockService, so the stock on the shelf matches the movements that put it
- * there, a customer's balance matches their ledger, and the dashboard's
- * profit tile is arithmetic on real cost prices rather than a number someone
- * typed. Data inserted straight into the tables would look identical on the
- * list screens and fall apart on the first report.
+ * rows the application itself would have written. Sales go in through
+ * InvoiceService and orders through OrderService, so a customer's balance
+ * matches their ledger and the dashboard's profit tile is arithmetic on real
+ * cost prices rather than a number someone typed. Data inserted straight into
+ * the tables would look identical on the list screens and fall apart on the
+ * first report.
  *
  *     php artisan db:seed --class=DemoDataSeeder
  *
@@ -33,10 +32,8 @@ use RuntimeException;
 class DemoDataSeeder extends Seeder
 {
     /**
-     * The order is the dependency order, and none of it is negotiable: there
-     * is nothing to sell before it has been bought, nothing to buy before
-     * there is a supplier, and no supplier before there is a shop to file
-     * them under.
+     * The order is the dependency order: nothing can be sold before it is on
+     * the menu, and nobody can be billed before there is a customer to bill.
      */
     public function run(): void
     {
@@ -51,15 +48,10 @@ class DemoDataSeeder extends Seeder
             // ticket's station is stamped on at placement and cannot be
             // backfilled onto one that has already been sent.
             DemoKitchenSeeder::class,
-            // After the menu too: it writes recipes for those dishes, and the
-            // ingredients they are made of.
-            DemoRecipeSeeder::class,
             // The room before anything that seats people in it.
             DemoDiningSeeder::class,
             DemoPartySeeder::class,
-            // Stock first: a sale cannot issue what was never received.
             DemoSalesSeeder::class,
-            DemoInventorySeeder::class,
             DemoFinanceSeeder::class,
             DemoStorefrontSeeder::class,
             DemoContentSeeder::class,

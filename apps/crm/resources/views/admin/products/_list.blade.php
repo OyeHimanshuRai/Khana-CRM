@@ -164,7 +164,7 @@
                             @allows('inventory.products.delete')
                                 <form method="POST" action="{{ route('admin.products.destroy', $product) }}"
                                       data-ajax data-refresh-list
-                                      onsubmit="return confirm('Remove “{{ $product->name }}”? Its stock and sales history are kept for audit.')">
+                                      onsubmit="return confirm('Remove “{{ $product->name }}”? Its sales history is kept for audit.')">
                                     @csrf
                                     @method('DELETE')
                                     <button type="submit" class="btn btn-icon is-danger"
@@ -309,7 +309,7 @@
                 @allows('inventory.products.delete')
                     <form method="POST" action="{{ route('admin.products.destroy', $product) }}"
                           data-ajax data-refresh-list
-                          onsubmit="return confirm('Remove “{{ $product->name }}”? Its stock and sales history are kept for audit.')">
+                          onsubmit="return confirm('Remove “{{ $product->name }}”? Its sales history is kept for audit.')">
                         @csrf
                         @method('DELETE')
                         <button type="submit" class="btn btn-icon is-danger"

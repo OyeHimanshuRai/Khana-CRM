@@ -86,7 +86,6 @@ class HeldSaleTest extends TestCase
             'sku' => Product::generateSku('Dal Makhani'),
             'selling_price' => 280,
             'is_active' => true,
-            'is_made_to_order' => true,
         ]);
     }
 
