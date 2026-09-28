@@ -7,7 +7,9 @@
             <x-brand />
 
             <h1>Sign in</h1>
-            <p class="lede">Use your administrator account to continue.</p>
+            <p class="lede">
+                {{ $throughAccounts ? 'Use your Khana account - the same one for CRM and ERP.' : 'Use your administrator account to continue.' }}
+            </p>
 
             {{-- With JavaScript on, these are delivered as toasts instead. --}}
             <noscript>
@@ -24,6 +26,22 @@
                     <div class="alert alert-danger" role="alert">{{ $errors->first() }}</div>
                 @endif
             </noscript>
+
+            {{--
+                A link, not an automatic redirect. A sign-in Accounts refused
+                comes back here with the reason, and bouncing straight to
+                Accounts again would loop somebody it has already signed in.
+            --}}
+            @if ($throughAccounts)
+                <a href="{{ route('khana.sso.login') }}" class="btn btn-primary btn-block btn-lg">
+                    Sign in with Khana Accounts
+                </a>
+            @endif
+
+            @if ($localAllowed)
+            @if ($throughAccounts)
+                <p class="foot" style="margin:14px 0">or with a password kept on this install</p>
+            @endif
 
             <form method="POST" action="{{ route('admin.login.store') }}" data-ajax novalidate>
                 @csrf
@@ -76,25 +94,27 @@
                         Keep me signed in
                     </label>
 
-                    {{-- The way out for an owner who opened their own account
-                         and has nobody to ask. See PasswordResetController. --}}
-                    <a href="{{ route('admin.password.request') }}">Forgotten your password?</a>
+                    {{-- Passwords live in Accounts now; so does resetting one. --}}
+                    @if ($forgotUrl = App\Support\SignInMode::accountsUrl('forgot'))
+                        <a href="{{ $forgotUrl }}">Forgotten your password?</a>
+                    @endif
                 </div>
 
-                <button type="submit" class="btn btn-primary btn-block btn-lg">Sign in</button>
+                <button type="submit" class="btn {{ $throughAccounts ? '' : 'btn-primary' }} btn-block btn-lg">Sign in</button>
             </form>
+            @endif
 
             {{--
-                The way in for somebody who has no account yet.
-
-                Here rather than only on the marketing page, because a
-                restaurant owner who was sent this URL by a friend lands on
-                this screen with nothing to type into it. See
-                App\Http\Controllers\SignupController.
+                The way in for somebody who has no account yet - opened in
+                Accounts, which is where a business signs up. Here rather
+                than only on the marketing page, because an owner who was
+                sent this URL by a friend lands on this screen first.
             --}}
-            <p class="foot" style="margin-bottom:6px">
-                No account yet? <a href="{{ route('signup') }}">Open one for your restaurant</a>.
-            </p>
+            @if ($signupUrl = App\Support\SignInMode::accountsUrl('signup'))
+                <p class="foot" style="margin-bottom:6px">
+                    No account yet? <a href="{{ $signupUrl }}">Open one for your restaurant</a>.
+                </p>
+            @endif
 
             <p class="foot">Authorised personnel only. Activity may be monitored.</p>
 @endsection

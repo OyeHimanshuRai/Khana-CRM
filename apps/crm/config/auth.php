@@ -22,6 +22,15 @@ return [
     ],
 
     /*
+    | Whether staff may sign in with an email and password kept here.
+    |
+    | Unset means "only when Accounts is not configured" - see
+    | App\Support\SignInMode. Set true to keep the form beside the Accounts
+    | button (a developer's machine), false to refuse it outright.
+    */
+    'local_login' => env('AUTH_LOCAL_LOGIN'),
+
+    /*
     |--------------------------------------------------------------------------
     | Authentication Guards
     |--------------------------------------------------------------------------

@@ -8,6 +8,7 @@ use App\Models\ActivityLog;
 use App\Models\LoginHistory;
 use App\Models\UserSession;
 use App\Support\CurrentShop;
+use App\Support\SignInMode;
 use Illuminate\Http\JsonResponse;
 use Illuminate\Http\RedirectResponse;
 use Illuminate\Http\Request;
@@ -21,7 +22,10 @@ class LoginController extends Controller
      */
     public function create(): View
     {
-        return view('admin.auth.login');
+        return view('admin.auth.login', [
+            'throughAccounts' => SignInMode::throughAccounts(),
+            'localAllowed' => SignInMode::localAllowed(),
+        ]);
     }
 
     /**
@@ -32,6 +36,16 @@ class LoginController extends Controller
      */
     public function store(LoginRequest $request): RedirectResponse|JsonResponse
     {
+        // Where Accounts signs people in, a password kept here is one
+        // nobody manages - see SignInMode.
+        if (! SignInMode::localAllowed()) {
+            $message = 'Sign in with your Khana account.';
+
+            return $request->expectsJson()
+                ? json_error($message, [], 403)
+                : redirect()->route('admin.login')->with('error', $message);
+        }
+
         $request->authenticate();
 
         // Issue a fresh session id so a pre-login session cannot be replayed.
