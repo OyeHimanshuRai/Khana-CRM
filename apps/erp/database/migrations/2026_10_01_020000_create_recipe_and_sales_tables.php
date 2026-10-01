@@ -176,7 +176,7 @@ return new class extends Migration
             $table->id();
             // ERP's own id for the sale, for whoever recorded it to keep:
             // CRM's sale id for a CRM sale, a new one for any other.
-            $table->char('ulid', 26)->unique();
+            $table->char('ulid', 26);
             $table->char('tenant_id', 26)->index();
             $table->char('outlet_id', 26);
             $table->string('source', 8);
@@ -196,6 +196,7 @@ return new class extends Migration
             $table->timestamps();
 
             $table->unique(['outlet_id', 'source', 'ref']);
+            $table->unique(['outlet_id', 'ulid']);
             $table->index(['outlet_id', 'business_date']);
         });
 

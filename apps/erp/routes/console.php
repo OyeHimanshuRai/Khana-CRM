@@ -1,8 +1,11 @@
 <?php
 
-use Illuminate\Foundation\Inspiring;
-use Illuminate\Support\Facades\Artisan;
+use Illuminate\Support\Facades\Schedule;
 
-Artisan::command('inspire', function () {
-    $this->comment(Inspiring::quote());
-})->purpose('Display an inspiring quote');
+/*
+| ERP's own nightly work. Sending and applying events is scheduled by the
+| kit (outbox:deliver, inbox:work, outbox:prune).
+*/
+
+// Every level must equal the sum of its movements - see ReconcileStock.
+Schedule::command('erp:reconcile')->dailyAt('04:30');

@@ -36,6 +36,7 @@ class DemoSeeder extends Seeder
         }
 
         $this->storeRoom();
+        $this->call(DemoServiceSeeder::class);
     }
 
     private function reference(): void
