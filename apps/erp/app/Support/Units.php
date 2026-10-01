@@ -111,6 +111,16 @@ final class Units
     }
 
     /**
+     * A stored quantity as a plain number of kilos, litres or pieces - the
+     * unit named by big(). What a count is typed in, and what a spreadsheet
+     * is given: one unit down the whole column, so it can be added up.
+     */
+    public static function inBig(int $qty, string $base): string
+    {
+        return self::plain($base === 'pc' ? $qty : Decimal::mulDiv($qty, 1, 1000));
+    }
+
+    /**
      * A stored quantity the way it is said aloud: 12500 g is "12.5 kg".
      */
     public static function show(int $qty, string $base): string

@@ -231,6 +231,28 @@ class StockService
         });
     }
 
+    /**
+     * Take in stock another outlet of the business sent: the batch it left
+     * as, at the cost it left at.
+     *
+     * Sending it was an ordinary take(), from one store, earliest expiry
+     * first. This is the other end. It is not receive(), because nothing was
+     * bought: what the item "last cost" is what a supplier charged for it,
+     * and a crate crossing town says nothing about that.
+     */
+    public function arrive(Store $store, StockItem $item, int $qty, int $costRate, Posting $why, ?Batch $batch = null): StockMovement
+    {
+        if ($qty <= 0) {
+            throw new RuntimeException('Stock comes in as a quantity above zero.');
+        }
+
+        return DB::transaction(function () use ($store, $item, $qty, $costRate, $why, $batch) {
+            $level = $this->lock($store, $item, $batch?->id ?? 0);
+
+            return $this->write($level, $item, $qty, $costRate > 0 ? $costRate : $this->knownRate($level, $item), $why);
+        });
+    }
+
     /* ------------------------------------------------------------ count */
 
     /**

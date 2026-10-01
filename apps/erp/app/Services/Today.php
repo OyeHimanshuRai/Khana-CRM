@@ -5,9 +5,10 @@ namespace App\Services;
 use App\Models\Batch;
 use App\Models\PaidOut;
 use App\Models\StockItem;
-use App\Models\SupplierBill;
 use App\Models\StockLevel;
 use App\Models\StockMovement;
+use App\Models\StockTransfer;
+use App\Models\SupplierBill;
 use App\Support\Outlets;
 use App\Support\Units;
 use Illuminate\Support\Facades\Route;
@@ -102,8 +103,9 @@ class Today
     }
 
     /**
-     * To-dos from the parts of ERP beyond the store room: dishes with no
-     * recipe, bills falling due, paid-outs nobody has filed.
+     * To-dos from the parts of ERP beyond the store room: a transfer on its
+     * way here, dishes with no recipe, bills falling due, paid-outs nobody
+     * has filed.
      *
      * @return list<array{label: string, count: int, hint: string, url: string|null, tone: string}>
      */
@@ -112,6 +114,13 @@ class Today
         $today = Outlets::businessDate($outletId);
 
         return [
+            [
+                'label' => 'Transfers to receive',
+                'count' => StockTransfer::allTenants()->awaitedAt($outletId)->count(),
+                'hint' => 'Stock another outlet has sent here. It joins yours when you receive it.',
+                'url' => self::url('transfers.index'),
+                'tone' => 'info',
+            ],
             [
                 'label' => 'Dishes with no recipe',
                 'count' => app(Recipes::class)->needsRecipe($outletId)->count(),

@@ -34,15 +34,18 @@ class User extends Authenticatable implements Actor
         ];
     }
 
-    /** What this person's role lets them do - see App\Support\Roles. */
+    /**
+     * What this person's role lets them do - see App\Support\Roles. The
+     * role may be one their own business made, so it is looked up there.
+     */
     public function allows(string $ability): bool
     {
-        return $this->is_platform_admin || Roles::allows($this->role_key, $ability);
+        return $this->is_platform_admin || Roles::allows($this->role_key, $ability, $this->tenant_id);
     }
 
     public function roleName(): string
     {
-        return $this->is_platform_admin ? 'Platform staff' : Roles::name($this->role_key);
+        return $this->is_platform_admin ? 'Platform staff' : Roles::name($this->role_key, $this->tenant_id);
     }
 
     /* ------------------------------------------------------------ Actor */

@@ -41,6 +41,10 @@
                                     @if ($kind === 'production')
                                         @php $made = $document->lines->firstWhere('qty', '>', 0); @endphp
                                         {{ $made ? $made->item->show($made->qty).' of '.$made->item->name : '' }}
+                                        {{-- Made as a batch, so the tubs can be labelled. --}}
+                                        @if ($made && $made->batch_id > 0 && auth()->user()->can('stock.view'))
+                                            <a href="{{ route('labels.show', ['document' => $document->id]) }}" class="text-xs" style="margin-left:6px">Print labels</a>
+                                        @endif
                                     @else
                                         {{ $document->lines->take(4)->map(fn ($line) => $line->item->name.' '.$line->item->show(abs($line->qty)))->implode(', ') }}
                                         @if ($document->lines->count() > 4) and {{ $document->lines->count() - 4 }} more @endif

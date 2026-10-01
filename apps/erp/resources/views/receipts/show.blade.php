@@ -10,6 +10,12 @@
         :crumbs="['Goods received' => route('receipts.index'), $receipt->number => null]">
         <x-slot:actions>
             <button type="button" class="btn" onclick="window.print()">Print</button>
+            {{-- Only what goes off came in as a batch, and only a batch gets a label. --}}
+            @can('stock.view')
+                @if ($receipt->lines->contains(fn ($line) => $line->batch_id > 0))
+                    <a class="btn" href="{{ route('labels.show', ['receipt' => $receipt->id]) }}">Print labels</a>
+                @endif
+            @endcan
         </x-slot:actions>
     </x-khana::page-header>
 

@@ -11,6 +11,7 @@ use App\Services\MenuCopy;
 use App\Services\Purchasing;
 use App\Services\Recipes;
 use App\Services\StoreRoom;
+use App\Services\Transfers;
 use App\Support\Outlets;
 use App\Support\Units;
 use Illuminate\Database\Seeder;
@@ -18,8 +19,8 @@ use Khana\Kit\Support\Ulid;
 
 /**
  * The rest of the demo restaurant: who it buys from, the menu CRM would
- * have sent, the chef's recipes, and a day of service - so every screen in
- * ERP has something in it to look at.
+ * have sent, the chef's recipes, a day of service, and stock sent to the
+ * branch - so every screen in ERP has something in it to look at.
  *
  * Everything goes through the same services the screens and the event
  * handlers use; nothing is inserted behind their backs.
@@ -41,10 +42,11 @@ class DemoServiceSeeder extends Seeder
         Supplier::allTenants()->create(['tenant_id' => $tenant, 'name' => 'Azadpur Vegetables', 'phone' => '9810000022', 'terms_days' => 0]);
         $grocer = Supplier::allTenants()->create(['tenant_id' => $tenant, 'name' => 'Shree Kirana Wholesale', 'terms_days' => 15]);
 
-        $line = fn (StockItem $stock, string|int $amount, string $unit, int $rupees, array $extra = []) => [
+        // The batch a line names goes first: with `+`, the left side wins.
+        $line = fn (StockItem $stock, string|int $amount, string $unit, int $rupees, array $batch = []) => $batch + [
             'item' => $stock, 'qty' => Units::toBase($amount, $unit, $stock->base_unit), 'entered_qty' => (string) $amount,
             'unit' => $unit, 'amount_paise' => $rupees * 100, 'batch_no' => null, 'expiry' => null,
-        ] + $extra;
+        ];
 
         $purchasing = app(Purchasing::class);
         $main = Outlets::stores($outlet)['main'];
@@ -61,8 +63,11 @@ class DemoServiceSeeder extends Seeder
 
         /* ---------------------------------------------- a prepared item */
 
+        // Good for three days, so each run is a batch with a use-by date
+        // and a label to print for the tub.
         $gravy = StockItem::allTenants()->create([
             'tenant_id' => $tenant, 'name' => 'Makhani Gravy', 'category' => 'Prepared', 'base_unit' => 'ml', 'is_prepared' => true,
+            'track_expiry' => true, 'shelf_life_days' => 3,
         ]);
 
         $ingredient = fn (StockItem $stock, string|int $amount, string $unit, bool $optional = false) => [
@@ -175,5 +180,25 @@ class DemoServiceSeeder extends Seeder
             'ulid' => Ulid::generate(), 'tenant_id' => $tenant, 'outlet_id' => $outlet, 'business_date' => $today,
             'amount_paise' => 185_000, 'category' => 'gas', 'note' => 'Two commercial cylinders',
         ]);
+
+        /* ------------------------------------------ stock for the branch */
+
+        // One transfer that has arrived, half a litre short, and one still
+        // on its way - so each outlet has something to look at and Saket
+        // has something to receive.
+        $transfers = app(Transfers::class);
+        $branch = DemoSeeder::BRANCH;
+        $sent = fn (StockItem $stock, string|int $amount, string $unit) => ['item' => $stock, 'qty' => Units::toBase($amount, $unit, $stock->base_unit)];
+
+        $oil = $transfers->send($outlet, $main, $branch, $yesterday, [$sent($item('Refined Oil'), 5, 'l')], 'To open the branch kitchen');
+
+        $transfers->receive($oil, Outlets::stores($branch)['main'], $today, [
+            $oil->lines->first()->id => Units::toBase('4.5', 'l', 'ml'),
+        ]);
+
+        $transfers->send($outlet, $main, $branch, $today, [
+            $sent($item('Basmati Rice'), 10, 'kg'),
+            $sent($item('Paneer'), 2, 'kg'),
+        ], 'For the weekend');
     }
 }

@@ -1,6 +1,7 @@
 <?php
 
 use App\Support\Menu\WhenAnyTab;
+use App\Support\Menu\WhenSeveralOutlets;
 
 /*
 |--------------------------------------------------------------------------
@@ -20,7 +21,8 @@ use App\Support\Menu\WhenAnyTab;
 | any tab of it (WhenAnyTab); a tab they may not open is not drawn.
 |
 | Tab keys: label, route, active (route-name patterns; defaults to the
-| route), can (an ability from App\Support\Roles), params.
+| route), can (an ability from App\Support\Roles), params, when (a class
+| that answers whether this business has any use for the tab).
 |
 */
 
@@ -58,6 +60,7 @@ return [
                 ['label' => 'On hand', 'route' => 'stock.index', 'active' => ['stock.index', 'stock.show'], 'can' => 'stock.view'],
                 ['label' => 'Items', 'route' => 'items.index', 'active' => 'items.*', 'can' => 'stock.view'],
                 ['label' => 'Movements', 'route' => 'movements.index', 'active' => 'movements.*', 'can' => 'stock.view'],
+                ['label' => 'Transfers', 'route' => 'transfers.index', 'active' => 'transfers.*', 'can' => 'stock.view', 'when' => WhenSeveralOutlets::class],
                 ['label' => 'Stores', 'route' => 'stores.index', 'active' => 'stores.*', 'can' => 'stock.manage'],
             ]),
             $hub('Purchases', 'cart', [
@@ -107,7 +110,10 @@ return [
     [
         'heading' => 'Setup',
         'items' => [
-            ['label' => 'Settings', 'icon' => 'settings', 'route' => 'settings.edit', 'active' => 'settings.*', 'can' => 'settings.manage'],
+            $hub('Settings', 'settings', [
+                ['label' => 'Stock settings', 'route' => 'settings.edit', 'active' => 'settings.*', 'can' => 'settings.manage'],
+                ['label' => 'Roles', 'route' => 'roles.index', 'active' => 'roles.*', 'can' => 'roles.manage'],
+            ]),
         ],
     ],
 

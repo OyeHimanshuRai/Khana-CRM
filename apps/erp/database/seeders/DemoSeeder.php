@@ -3,20 +3,25 @@
 namespace Database\Seeders;
 
 use App\Models\Batch;
+use App\Models\Role;
 use App\Models\StockItem;
 use App\Models\StockMovement;
 use App\Models\User;
 use App\Services\StockService;
 use App\Stock\Posting;
 use App\Support\Outlets;
+use App\Support\Roles;
 use App\Support\Units;
 use Illuminate\Database\Seeder;
 use Illuminate\Support\Facades\DB;
 
 /**
  * A restaurant to look at on a developer's machine: the reference copy
- * Accounts would have sent, three people to open ERP as, and a store room
+ * Accounts would have sent, the people to open ERP as, and a store room
  * with a week's stock in it.
+ *
+ * It has two outlets, so there is somewhere to send stock, and one role of
+ * its own, so the Roles screen has something on it.
  *
  * Safe to run twice - everything is keyed and looked up before it is made.
  */
@@ -25,6 +30,9 @@ class DemoSeeder extends Seeder
     public const TENANT = '01K6DEM0TENANT000000000001';
 
     public const OUTLET = '01K6DEM0SH0P00000000000001';
+
+    /** The second outlet: a branch with empty shelves. */
+    public const BRANCH = '01K6DEM0SH0P00000000000002';
 
     public function run(): void
     {
@@ -45,40 +53,55 @@ class DemoSeeder extends Seeder
 
         DB::table('khana_tenants')->updateOrInsert(['id' => self::TENANT], ['name' => 'Spice Garden', 'status' => 'active'] + $stamp);
 
-        DB::table('khana_outlets')->updateOrInsert(['id' => self::OUTLET], [
-            'tenant_id' => self::TENANT,
-            'name' => 'Spice Garden, MG Road',
-            'code' => 'SGMG',
-            'address' => json_encode(['line1' => '12 MG Road', 'line2' => null, 'city' => 'Delhi', 'pincode' => '110001']),
-            'state_code' => '07',
-            'timezone' => 'Asia/Kolkata',
-            'day_cutoff' => '04:00',
-            'status' => 'active',
-        ] + $stamp);
-
-        foreach (['crm', 'erp'] as $product) {
-            DB::table('khana_entitlements')->updateOrInsert(['outlet_id' => self::OUTLET, 'product' => $product], [
+        foreach ([
+            self::OUTLET => ['Spice Garden, MG Road', 'SGMG', '12 MG Road', '110001'],
+            self::BRANCH => ['Spice Garden, Saket', 'SGSK', '4 Press Enclave Road', '110017'],
+        ] as $outlet => [$name, $code, $street, $pincode]) {
+            DB::table('khana_outlets')->updateOrInsert(['id' => $outlet], [
                 'tenant_id' => self::TENANT,
-                'state' => 'active',
-                'plan' => 'suite',
-                'limits' => '{}',
+                'name' => $name,
+                'code' => $code,
+                'address' => json_encode(['line1' => $street, 'line2' => null, 'city' => 'Delhi', 'pincode' => $pincode]),
+                'state_code' => '07',
+                'timezone' => 'Asia/Kolkata',
+                'day_cutoff' => '04:00',
+                'status' => 'active',
             ] + $stamp);
+
+            foreach (['crm', 'erp'] as $product) {
+                DB::table('khana_entitlements')->updateOrInsert(['outlet_id' => $outlet, 'product' => $product], [
+                    'tenant_id' => self::TENANT,
+                    'state' => 'active',
+                    'plan' => 'suite',
+                    'limits' => '{}',
+                ] + $stamp);
+            }
         }
     }
 
     private function people(): void
     {
+        // The business's own role: a chef who writes recipes, makes the
+        // gravy and counts the kitchen, and never sees a supplier's bill.
+        Role::allTenants()->updateOrCreate(['tenant_id' => self::TENANT, 'key' => 'head_chef'], [
+            'name' => 'Head Chef',
+            'abilities' => Roles::grantable(['recipes.manage', 'wastage', 'count']),
+            'based_on' => 'storekeeper',
+        ]);
+
         foreach ([
-            ['01K6DEM0PERS0N000000000001', 'Meera Owner', 'owner'],
-            ['01K6DEM0PERS0N000000000002', 'Ravi Storekeeper', 'storekeeper'],
-            ['01K6DEM0PERS0N000000000003', 'Anil Accountant', 'accountant'],
-        ] as [$ulid, $name, $role]) {
+            ['01K6DEM0PERS0N000000000001', 'Meera Owner', 'owner', [self::OUTLET, self::BRANCH]],
+            ['01K6DEM0PERS0N000000000002', 'Ravi Storekeeper', 'storekeeper', [self::OUTLET]],
+            ['01K6DEM0PERS0N000000000003', 'Anil Accountant', 'accountant', [self::OUTLET]],
+            ['01K6DEM0PERS0N000000000004', 'Sunita Chef', 'head_chef', [self::OUTLET]],
+            ['01K6DEM0PERS0N000000000005', 'Kiran at Saket', 'storekeeper', [self::BRANCH]],
+        ] as [$ulid, $name, $role, $outlets]) {
             User::query()->updateOrCreate(['ulid' => $ulid], [
                 'tenant_id' => self::TENANT,
                 'name' => $name,
                 'email' => strtolower(strtok($name, ' ')).'@spicegarden.test',
                 'role_key' => $role,
-                'outlet_ids' => [self::OUTLET],
+                'outlet_ids' => $outlets,
             ]);
         }
     }

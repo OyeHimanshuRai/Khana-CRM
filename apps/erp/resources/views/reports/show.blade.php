@@ -8,6 +8,7 @@
     <x-khana::page-header :title="$title" :subtitle="$subtitle">
         <x-slot:actions>
             <button type="button" class="btn" onclick="window.print()">Print</button>
+            <a class="btn" href="{{ route('reports.export', ['report' => $report] + ($periodic ? ['from' => $from, 'to' => $to] : [])) }}">Download CSV</a>
         </x-slot:actions>
     </x-khana::page-header>
 

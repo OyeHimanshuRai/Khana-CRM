@@ -5,6 +5,7 @@ namespace Tests;
 use App\Models\StockItem;
 use App\Models\User;
 use App\Support\Outlets;
+use App\Support\Roles;
 use App\Support\Units;
 use Illuminate\Foundation\Testing\TestCase as BaseTestCase;
 use Illuminate\Support\Facades\DB;
@@ -19,13 +20,15 @@ abstract class TestCase extends BaseTestCase
         parent::setUp();
 
         // Memoised for the life of the process, which in a suite is many
-        // databases - see App\Support\Outlets.
+        // databases - see App\Support\Outlets and App\Support\Roles.
         Outlets::forget();
+        Roles::forget();
     }
 
     protected function tearDown(): void
     {
         Outlets::forget();
+        Roles::forget();
 
         parent::tearDown();
     }

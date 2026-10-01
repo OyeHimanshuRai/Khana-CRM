@@ -5,8 +5,10 @@ namespace App\Support;
 use App\Models\OutletSetting;
 use App\Models\Store;
 use Carbon\CarbonInterface;
+use Illuminate\Support\Collection;
 use Illuminate\Support\Facades\DB;
 use Khana\Kit\Support\BusinessDay;
+use Khana\Kit\Tenancy\Entitlements;
 use RuntimeException;
 
 /**
@@ -18,6 +20,9 @@ final class Outlets
 {
     /** @var array<string, object|null> */
     private static array $rows = [];
+
+    /** @var array<string, Collection> */
+    private static array $others = [];
 
     public static function find(string $outletId): ?object
     {
@@ -86,9 +91,30 @@ final class Outlets
         return ['main' => $stores[Store::MAIN], 'kitchen' => $stores[Store::KITCHEN]];
     }
 
+    /**
+     * The other outlets of the same business that stock can be sent to:
+     * the ones that are open and can use ERP today. An outlet running CRM
+     * alone has no shelf here to put it on.
+     *
+     * @return Collection<int, object{id: string, name: string, code: string}>
+     */
+    public static function others(string $outletId): Collection
+    {
+        return self::$others[$outletId] ??= DB::table('khana_outlets')
+            ->join('khana_entitlements', 'khana_entitlements.outlet_id', '=', 'khana_outlets.id')
+            ->where('khana_entitlements.product', 'erp')
+            ->whereIn('khana_entitlements.state', Entitlements::USABLE)
+            ->where('khana_outlets.tenant_id', self::tenantOf($outletId))
+            ->where('khana_outlets.id', '!=', $outletId)
+            ->where('khana_outlets.status', 'active')
+            ->orderBy('khana_outlets.name')
+            ->get(['khana_outlets.id', 'khana_outlets.name', 'khana_outlets.code']);
+    }
+
     /** For tests and long-running workers: forget what was memoised. */
     public static function forget(): void
     {
         self::$rows = [];
+        self::$others = [];
     }
 }

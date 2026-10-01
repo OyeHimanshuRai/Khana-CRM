@@ -44,6 +44,15 @@ class StockMovement extends Model
     /** A guest's return of something that can be sold again. */
     public const CUSTOMER_RETURN = 'customer_return';
 
+    /*
+    | Stock sent to another outlet of the business, or come from one. Kept
+    | apart from TRANSFER_OUT and TRANSFER_IN, which are the two halves of a
+    | move inside one outlet and always cancel out there; these do not.
+    */
+    public const OUTLET_OUT = 'outlet_out';
+
+    public const OUTLET_IN = 'outlet_in';
+
     public const TYPES = [
         self::OPENING => 'Opening stock',
         self::RECEIPT => 'Goods received',
@@ -57,6 +66,8 @@ class StockMovement extends Model
         self::PRODUCTION_OUT => 'Used in production',
         self::PRODUCTION_IN => 'Produced',
         self::CUSTOMER_RETURN => 'Returned by a guest',
+        self::OUTLET_OUT => 'Sent to another outlet',
+        self::OUTLET_IN => 'Came from another outlet',
     ];
 
     protected $fillable = [

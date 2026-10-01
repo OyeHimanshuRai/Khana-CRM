@@ -70,7 +70,8 @@ final class AccountsSignIn implements LocalSignIn
 
         $role = $person->platformAdmin ? null : $person->roleIn('erp');
 
-        if (! $person->platformAdmin && ! Roles::exists($role)) {
+        // A preset, or a role this person's own business made in ERP.
+        if (! $person->platformAdmin && ! Roles::exists($role, $person->tenantId)) {
             throw new SignInFailed(sprintf(
                 'Your role in Accounts ("%s") has no rights set up in ERP. Ask the owner to check your role.',
                 $role ?? 'none',

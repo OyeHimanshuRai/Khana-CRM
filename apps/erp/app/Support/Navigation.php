@@ -40,14 +40,20 @@ final class Navigation
         return null;
     }
 
-    /** @return list<array<string, mixed>> */
+    /**
+     * A tab is drawn when the person's role allows it (`can`) and, for a
+     * tab that only some businesses have a use for, when its `when` says so.
+     *
+     * @return list<array<string, mixed>>
+     */
     public static function visibleTabs(array $hub): array
     {
         $user = auth()->user();
 
         return array_values(array_filter(
             $hub['tabs'] ?? [],
-            fn (array $tab) => empty($tab['can']) || $user?->can($tab['can']),
+            fn (array $tab) => (empty($tab['can']) || $user?->can($tab['can']))
+                && (empty($tab['when']) || app($tab['when'])($tab)),
         ));
     }
 

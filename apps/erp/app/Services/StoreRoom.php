@@ -2,6 +2,7 @@
 
 namespace App\Services;
 
+use App\Models\Batch;
 use App\Models\StockDocument;
 use App\Models\StockItem;
 use App\Models\StockLevel;
@@ -148,13 +149,38 @@ class StoreRoom
                 $spent += $value;
             }
 
-            $this->stock->receive($store, $prepared, $qty, Units::rate($spent, $qty), $why->as(StockMovement::PRODUCTION_IN, 'Made in-house'));
+            $batch = $this->batchMade($outletId, $prepared, $document);
 
-            $document->lines()->create(['stock_item_id' => $prepared->id, 'qty' => $qty, 'value_paise' => $spent]);
+            $this->stock->receive($store, $prepared, $qty, Units::rate($spent, $qty), $why->as(StockMovement::PRODUCTION_IN, 'Made in-house'), $batch);
+
+            $document->lines()->create(['stock_item_id' => $prepared->id, 'batch_id' => $batch?->id ?? 0, 'qty' => $qty, 'value_paise' => $spent]);
             $document->update(['value_paise' => $spent]);
 
             return $document;
         });
+    }
+
+    /**
+     * The batch a production run makes, for a prepared item that goes off:
+     * numbered after its own note, made today, good for the item's shelf
+     * life. It is what the tub's label is printed from, and what lets the
+     * kitchen use Monday's gravy before Tuesday's.
+     */
+    private function batchMade(string $outletId, StockItem $prepared, StockDocument $document): ?Batch
+    {
+        if (! $prepared->track_expiry) {
+            return null;
+        }
+
+        return Batch::allOutlets()->create([
+            'outlet_id' => $outletId,
+            'stock_item_id' => $prepared->id,
+            'batch_no' => $document->number,
+            'made_on' => $document->on_date,
+            'expiry_date' => $prepared->shelf_life_days
+                ? $document->on_date->copy()->addDays($prepared->shelf_life_days)->toDateString()
+                : null,
+        ]);
     }
 
     /**

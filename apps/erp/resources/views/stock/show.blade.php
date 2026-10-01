@@ -23,7 +23,7 @@
         @else
             <div class="table-wrap">
                 <table class="table">
-                    <thead><tr><th>Store</th><th>Batch</th><th>Expires</th><th style="text-align:right">On hand</th><th style="text-align:right">Worth</th></tr></thead>
+                    <thead><tr><th>Store</th><th>Batch</th><th>Expires</th><th style="text-align:right">On hand</th><th style="text-align:right">Worth</th><th></th></tr></thead>
                     <tbody>
                         @foreach ($levels as $level)
                             <tr>
@@ -39,6 +39,11 @@
                                 </td>
                                 <td style="text-align:right">{{ $item->show($level->qty) }}</td>
                                 <td style="text-align:right">&#8377;{{ Units::rupees($level->valuePaise()) }}</td>
+                                <td class="col-action">
+                                    @if ($level->batch)
+                                        <a href="{{ route('labels.show', ['batch' => [$level->batch_id]]) }}" class="btn btn-sm btn-ghost">Label</a>
+                                    @endif
+                                </td>
                             </tr>
                         @endforeach
                     </tbody>

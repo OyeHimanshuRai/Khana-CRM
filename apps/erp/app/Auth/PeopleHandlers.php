@@ -57,12 +57,16 @@ final class PeopleHandlers
 
         $role = $event->data['role_key'] ?? null;
 
+        // A worker applying events lives a long time; a role made on a
+        // screen since it last looked would otherwise be unknown to it.
+        Roles::forget();
+
         /*
          | No role, or one ERP has no rights for, is no access: the row keeps
          | the person's name on the things they did, but opens nothing, and
          | whatever they have open is closed.
          */
-        if (! Roles::exists($role)) {
+        if (! Roles::exists($role, $user->tenant_id)) {
             $user->forceFill(['role_key' => null, 'outlet_ids' => []])->saveQuietly();
             DB::table((string) config('session.table', 'sessions'))->where('user_id', $user->id)->delete();
 

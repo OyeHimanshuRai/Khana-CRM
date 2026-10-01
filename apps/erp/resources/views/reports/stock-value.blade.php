@@ -2,6 +2,15 @@
 
 <div class="stat-grid" style="margin-bottom:18px">
     <div class="stat"><div class="stat-body"><div class="stat-label">Stock on hand, at cost</div><div class="stat-value">&#8377;{{ Units::rupees($data['total']) }}</div></div></div>
+    @if ($data['in_transit'] > 0)
+        <div class="stat">
+            <div class="stat-body">
+                <div class="stat-label">On its way to another outlet</div>
+                <div class="stat-value">&#8377;{{ Units::rupees($data['in_transit']) }}</div>
+                <div class="text-xs text-muted">sent, not yet received - <a href="{{ route('transfers.index') }}">see transfers</a></div>
+            </div>
+        </div>
+    @endif
 </div>
 
 @forelse ($data['categories'] as $category)

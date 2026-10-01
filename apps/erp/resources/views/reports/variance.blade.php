@@ -1,4 +1,10 @@
-@php use App\Support\Units; $missing = (int) $data->where('difference_value', '<', 0)->sum('difference_value'); @endphp
+@php
+    use App\Support\Units;
+
+    $missing = (int) $data->where('difference_value', '<', 0)->sum('difference_value');
+    // Only a business with more than one outlet ever sends stock away.
+    $sends = $data->contains(fn ($row) => $row['sent'] !== 0);
+@endphp
 
 <div class="stat-grid" style="margin-bottom:18px">
     <div class="stat">
@@ -20,7 +26,17 @@
         </div>
         <div class="table-wrap">
             <table class="table">
-                <thead><tr><th>Item</th><th style="text-align:right">Came in</th><th style="text-align:right">Recipes used</th><th style="text-align:right">Wasted</th><th style="text-align:right">Counts found</th><th style="text-align:right">Worth</th></tr></thead>
+                <thead>
+                    <tr>
+                        <th>Item</th>
+                        <th style="text-align:right">Came in</th>
+                        <th style="text-align:right">Recipes used</th>
+                        <th style="text-align:right">Wasted</th>
+                        @if ($sends) <th style="text-align:right">Sent to other outlets</th> @endif
+                        <th style="text-align:right">Counts found</th>
+                        <th style="text-align:right">Worth</th>
+                    </tr>
+                </thead>
                 <tbody>
                     @foreach ($data as $row)
                         <tr>
@@ -28,6 +44,7 @@
                             <td style="text-align:right">{{ $row['received'] ? $row['item']->show($row['received']) : '—' }}</td>
                             <td style="text-align:right">{{ $row['used'] ? $row['item']->show($row['used']) : '—' }}</td>
                             <td style="text-align:right">{{ $row['wasted'] ? $row['item']->show($row['wasted']) : '—' }}</td>
+                            @if ($sends) <td style="text-align:right">{{ $row['sent'] ? $row['item']->show($row['sent']) : '—' }}</td> @endif
                             <td style="text-align:right;{{ $row['difference'] < 0 ? 'color:var(--danger)' : '' }}">
                                 @if ($row['difference'] === 0)
                                     <span class="text-muted">—</span>

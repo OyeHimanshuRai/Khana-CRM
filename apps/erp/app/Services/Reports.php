@@ -96,7 +96,11 @@ class Reports
      * adjustments are the variance, and the rest of the row is the context
      * it is read in.
      *
-     * @return Collection<int, array{item: StockItem, received: int, used: int, wasted: int, difference: int, difference_value: int}>
+     * Stock from another outlet counts as having come in, and stock sent
+     * to one is its own column. A move between two stores of this outlet is
+     * neither: it left one shelf for another and the outlet has what it had.
+     *
+     * @return Collection<int, array{item: StockItem, received: int, used: int, wasted: int, sent: int, difference: int, difference_value: int}>
      */
     public function variance(string $outletId, string $from, string $to): Collection
     {
@@ -115,9 +119,10 @@ class Reports
 
             return [
                 'item' => $items[$itemId] ?? null,
-                'received' => $qty(StockMovement::RECEIPT, StockMovement::OPENING, StockMovement::PRODUCTION_IN, StockMovement::CUSTOMER_RETURN, StockMovement::SUPPLIER_RETURN),
+                'received' => $qty(StockMovement::RECEIPT, StockMovement::OPENING, StockMovement::PRODUCTION_IN, StockMovement::CUSTOMER_RETURN, StockMovement::SUPPLIER_RETURN, StockMovement::OUTLET_IN),
                 'used' => -$qty(StockMovement::CONSUMPTION, StockMovement::REVERSAL, StockMovement::PRODUCTION_OUT),
                 'wasted' => -$qty(StockMovement::WASTAGE),
+                'sent' => -$qty(StockMovement::OUTLET_OUT),
                 'difference' => $qty(StockMovement::ADJUSTMENT),
                 'difference_value' => (int) $rows->where('type', StockMovement::ADJUSTMENT)->sum('value'),
             ];
@@ -129,7 +134,11 @@ class Reports
     /**
      * Stock value: what is on the shelf and what it is worth, by category.
      *
-     * @return array{total: int, categories: Collection}
+     * `in_transit` is what this outlet has sent to another that has not
+     * been received yet: off the shelf, so not in the total, but not the
+     * other outlet's either.
+     *
+     * @return array{total: int, in_transit: int, categories: Collection}
      */
     public function stockValue(string $outletId): array
     {
@@ -146,6 +155,7 @@ class Reports
 
         return [
             'total' => (int) $rows->sum('value'),
+            'in_transit' => app(Transfers::class)->onTheWayFrom($outletId),
             'categories' => $rows->groupBy(fn (array $row) => $row['item']->category ?? 'Uncategorised')
                 ->map(fn (Collection $group, string $name) => ['name' => $name, 'value' => (int) $group->sum('value'), 'items' => $group->sortByDesc('value')->values()])
                 ->sortByDesc('value')->values(),
@@ -218,6 +228,29 @@ class Reports
                 'tax' => (int) $row->tax,
             ])->filter(fn (array $row) => $row['item'] !== null)->sortByDesc('net')->values(),
         ];
+    }
+
+    /**
+     * The purchase register: every line of every delivery in a period, one
+     * row each. Added up by supplier or by item it is the two tables of
+     * purchases() - which is why it, and not they, is what is downloaded.
+     *
+     * @return Collection<int, object{received_on: string, number: string, supplier: ?string, bill_no: ?string, item: string, base_unit: string, qty: int, net_paise: int, tax_paise: int}>
+     */
+    public function purchaseRegister(string $outletId, string $from, string $to): Collection
+    {
+        return DB::table('goods_receipt_lines')
+            ->join('goods_receipts', 'goods_receipts.id', '=', 'goods_receipt_lines.goods_receipt_id')
+            ->join('stock_items', 'stock_items.id', '=', 'goods_receipt_lines.stock_item_id')
+            ->leftJoin('suppliers', 'suppliers.id', '=', 'goods_receipts.supplier_id')
+            ->where('goods_receipts.outlet_id', $outletId)
+            ->whereBetween('goods_receipts.received_on', [$from, $to.' 23:59:59'])
+            ->orderBy('goods_receipts.received_on')->orderBy('goods_receipts.id')->orderBy('goods_receipt_lines.id')
+            ->get([
+                'goods_receipts.received_on', 'goods_receipts.number', 'suppliers.name as supplier', 'goods_receipts.bill_no',
+                'stock_items.name as item', 'stock_items.base_unit', 'goods_receipt_lines.qty',
+                'goods_receipt_lines.net_paise', 'goods_receipt_lines.tax_paise',
+            ]);
     }
 
     /**
