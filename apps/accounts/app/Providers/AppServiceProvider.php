@@ -4,6 +4,7 @@ namespace App\Providers;
 
 use App\Models\Passport\Client;
 use App\Services\AccountsDirectory;
+use App\Support\MachineScopes;
 use Illuminate\Support\ServiceProvider;
 use Khana\Kit\Tenancy\Directory;
 use Laravel\Passport\Passport;
@@ -27,13 +28,19 @@ class AppServiceProvider extends ServiceProvider
         Passport::useClientModel(Client::class);
 
         /*
-        | The scopes a machine token may carry. A product reading the
-        | snapshot asks for `tenants:read` and nothing else.
+        | Never normally shown, for the reason above - but Passport asks for
+        | it before it knows whether it will be, so without it every sign-in
+        | through /oauth/authorize fails before it starts.
         */
-        Passport::tokensCan([
-            'tenants:read' => 'Read businesses, outlets, people and entitlements',
-            'roles:read' => 'Read the roles a product offers, a business\'s own included',
-        ]);
+        Passport::authorizationView('auth.authorize');
+
+        /*
+        | The scopes a machine token may carry. Passport drops any scope it
+        | has not been told about, silently, so one missing from this list
+        | is a token that is issued and then refused by the product it was
+        | meant for. Which of them a client may ask for is on the client.
+        */
+        Passport::tokensCan(MachineScopes::ALL);
 
         /*
         | A person's browser token is short; a refresh token carries the
