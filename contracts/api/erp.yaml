@@ -87,6 +87,80 @@ paths:
                         available: { type: boolean }
         '403': { $ref: '#/components/responses/Forbidden' }
         '404': { description: ERP has not heard of this item. }
+  /api/v1/outlets/{id}/food-cost:
+    get:
+      operationId: foodCost
+      summary: One business day's food cost, for the tile on CRM's home screen
+      description: |
+        What the day's sales earned before tax and what the food in them
+        cost, from the sales and kitchen lines ERP has heard about so far.
+        A dish sold with no recipe has no cost, so it is in sales_paise and
+        not in cost_paise; `uncosted` says how many such dishes there were,
+        so the reader knows how far to trust the percentage.
+      security: [{ machineToken: ['stock:read'] }]
+      parameters:
+        - $ref: '#/components/parameters/OutletId'
+        - name: date
+          in: query
+          required: false
+          description: The business day. The outlet's current one when left out.
+          schema: { $ref: '../events/defs.json#/$defs/businessDate' }
+      responses:
+        '200':
+          description: The day's figures.
+          content:
+            application/json:
+              schema:
+                type: object
+                required: [outlet_id, business_date, sales_paise, cost_paise, food_cost_percent, uncosted]
+                properties:
+                  outlet_id: { $ref: '../events/defs.json#/$defs/ulid' }
+                  business_date: { $ref: '../events/defs.json#/$defs/businessDate' }
+                  sales_paise: { $ref: '../events/defs.json#/$defs/nonNegativePaise' }
+                  cost_paise: { $ref: '../events/defs.json#/$defs/nonNegativePaise' }
+                  food_cost_percent:
+                    anyOf: [{ $ref: '../events/defs.json#/$defs/percent' }, { type: 'null' }]
+                    description: Null when nothing was sold, or nothing sold has a cost yet.
+                  uncosted: { type: integer, minimum: 0, description: Dishes sold that day with no recipe. }
+        '403': { $ref: '#/components/responses/Forbidden' }
+        '422': { description: The date is not a business day (YYYY-MM-DD). }
+  /api/v1/outlets/{id}/signals:
+    get:
+      operationId: signals
+      summary: What ERP last told CRM about each dish, for CRM's nightly check
+      description: |
+        One entry per dish (or per size of a dish with sizes) that ERP has
+        sent erp.availability.changed or erp.cost.changed for. It is what
+        CRM holds if no such event was lost, so CRM compares the two and puts
+        right whatever differs. A dish that is not listed is one ERP has
+        said nothing about: on sale, cost unknown.
+      security: [{ machineToken: ['stock:read'] }]
+      parameters:
+        - $ref: '#/components/parameters/OutletId'
+      responses:
+        '200':
+          description: The signals as they stand.
+          content:
+            application/json:
+              schema:
+                type: object
+                required: [outlet_id, items, taken_at]
+                properties:
+                  outlet_id: { $ref: '../events/defs.json#/$defs/ulid' }
+                  items:
+                    type: array
+                    items:
+                      type: object
+                      required: [item_id, variant_id, available, cost_paise]
+                      properties:
+                        item_id: { $ref: '../events/defs.json#/$defs/ulid', description: CRM's menu item id. }
+                        variant_id: { $ref: '../events/defs.json#/$defs/nullableUlid' }
+                        available: { type: boolean }
+                        cost_paise:
+                          anyOf: [{ $ref: '../events/defs.json#/$defs/nonNegativePaise' }, { type: 'null' }]
+                          description: Null until ERP has told CRM a cost for it.
+                  taken_at: { $ref: '../events/defs.json#/$defs/timestamp' }
+        '403': { $ref: '#/components/responses/Forbidden' }
   /api/v1/sales:
     post:
       operationId: recordSale
@@ -197,7 +271,7 @@ components:
           tokenUrl: https://accounts.khana.example.com/oauth/token
           scopes:
             bills:read: Read supplier bills
-            stock:read: Read stock and recipe cost
+            stock:read: Read stock, recipe cost, the day's food cost and the sold-out signals
             sales:write: Record and cancel sales (third-party keys are bound to one outlet)
             roles:read: Read the product's roles
   parameters:
