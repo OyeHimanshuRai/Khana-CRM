@@ -5,6 +5,7 @@ namespace App\Http\Controllers\Owner;
 use App\Models\Outlet;
 use App\Models\Plan;
 use App\Services\Outlets;
+use App\Services\SalesKeys;
 use Illuminate\Http\RedirectResponse;
 use Illuminate\Http\Request;
 use Illuminate\Validation\Rule;
@@ -49,7 +50,7 @@ final class OutletController
         return redirect()->route('outlets.index')->with('status', 'Outlet added and its trial started.');
     }
 
-    public function edit(Outlet $outlet, Request $request): View
+    public function edit(Outlet $outlet, Request $request, SalesKeys $keys): View
     {
         $this->authorizeOutlet($outlet, $request);
 
@@ -57,6 +58,8 @@ final class OutletController
             'outlet' => $outlet,
             'plans' => Plan::active()->get(),
             'states' => Outlet::STATES,
+            // Null where the outlet has no ERP: the section is left off.
+            'salesKeys' => $keys->allowedFor($outlet) ? $keys->of($outlet) : null,
         ]);
     }
 

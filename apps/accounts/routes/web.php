@@ -11,6 +11,7 @@ use App\Http\Controllers\HomeController;
 use App\Http\Controllers\Owner\BillingController;
 use App\Http\Controllers\Owner\BusinessController;
 use App\Http\Controllers\Owner\OutletController;
+use App\Http\Controllers\Owner\SalesKeyController;
 use App\Http\Controllers\Owner\TeamController;
 use App\Http\Controllers\ProfileController;
 use Illuminate\Support\Facades\Route;
@@ -62,6 +63,10 @@ Route::middleware('auth')->group(function () {
         Route::post('outlets', [OutletController::class, 'store'])->name('outlets.store');
         Route::get('outlets/{outlet}/edit', [OutletController::class, 'edit'])->name('outlets.edit');
         Route::put('outlets/{outlet}', [OutletController::class, 'update'])->name('outlets.update');
+
+        // Keys for other billing software, one outlet at a time.
+        Route::post('outlets/{outlet}/keys', [SalesKeyController::class, 'store'])->name('outlets.keys.store');
+        Route::delete('outlets/{outlet}/keys/{key}', [SalesKeyController::class, 'destroy'])->name('outlets.keys.destroy');
 
         Route::get('team', [TeamController::class, 'index'])->name('team.index');
         Route::get('team/new', [TeamController::class, 'create'])->name('team.create');

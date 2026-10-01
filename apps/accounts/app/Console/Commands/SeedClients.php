@@ -33,7 +33,7 @@ final class SeedClients extends Command
     public function handle(ClientRepository $clients): int
     {
         if ($this->option('fresh')) {
-            Client::query()->where('name', 'like', 'Khana %')->update(['revoked' => true]);
+            $this->ours()->where('name', 'like', 'Khana %')->update(['revoked' => true]);
             $this->warn('Existing Khana clients revoked.');
         }
 
@@ -96,6 +96,18 @@ final class SeedClients extends Command
     /** The client of this name that is still in use, if there is one. */
     private function existing(string $name): ?Client
     {
-        return Client::query()->where('name', $name)->where('revoked', false)->latest()->first();
+        return $this->ours()->where('name', $name)->where('revoked', false)->latest()->first();
+    }
+
+    /**
+     * The products' own clients: the ones nobody owns. A key an owner made
+     * for other billing software belongs to an outlet and is named whatever
+     * the owner typed - "Khana ERP machine" included - so it is told apart
+     * by its owner, never by its name, or this command would hand it a
+     * product's scopes.
+     */
+    private function ours()
+    {
+        return Client::query()->whereNull('owner_type');
     }
 }

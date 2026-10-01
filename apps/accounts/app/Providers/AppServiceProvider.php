@@ -2,6 +2,7 @@
 
 namespace App\Providers;
 
+use App\Models\Passport\AccessToken;
 use App\Models\Passport\Client;
 use App\Services\AccountsDirectory;
 use App\Support\MachineScopes;
@@ -33,6 +34,9 @@ class AppServiceProvider extends ServiceProvider
         | through /oauth/authorize fails before it starts.
         */
         Passport::authorizationView('auth.authorize');
+
+        // A key made for one outlet gets tokens that say so.
+        Passport::useAccessTokenEntity(AccessToken::class);
 
         /*
         | The scopes a machine token may carry. Passport drops any scope it
