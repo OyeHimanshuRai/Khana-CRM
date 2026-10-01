@@ -171,6 +171,22 @@ final class Units
         return Decimal::mulDiv($paise, 1, $factor);
     }
 
+    /** An amount typed in rupees ("1,250.50"), as paise. */
+    public static function paise(string|int|float|null $rupees): int
+    {
+        return Decimal::mulDiv(self::parse($rupees ?? 0), 100, self::SCALE);
+    }
+
+    /** The unit people buy and count in: kilos, litres, pieces. */
+    public static function big(string $base): string
+    {
+        return match ($base) {
+            'g' => 'kg',
+            'ml' => 'l',
+            default => 'pc',
+        };
+    }
+
     public static function rupees(int $paise): string
     {
         return ($paise < 0 ? '-' : '').number_format(abs($paise) / 100, 2);

@@ -3,7 +3,9 @@
 namespace App\Services;
 
 use App\Models\Batch;
+use App\Models\PaidOut;
 use App\Models\StockItem;
+use App\Models\SupplierBill;
 use App\Models\StockLevel;
 use App\Models\StockMovement;
 use App\Support\Outlets;
@@ -107,7 +109,31 @@ class Today
      */
     protected function more(string $outletId): array
     {
-        return [];
+        $today = Outlets::businessDate($outletId);
+
+        return [
+            [
+                'label' => 'Dishes with no recipe',
+                'count' => app(Recipes::class)->needsRecipe($outletId)->count(),
+                'hint' => 'Selling them uses no stock and they have no cost.',
+                'url' => self::url('recipes.index'),
+                'tone' => 'warning',
+            ],
+            [
+                'label' => 'Supplier bills overdue',
+                'count' => SupplierBill::forOutlet($outletId)->open()->whereDate('due_on', '<', $today)->count(),
+                'hint' => 'Past the date they were to be paid by.',
+                'url' => self::url('bills.index'),
+                'tone' => 'danger',
+            ],
+            [
+                'label' => 'Paid-outs to file',
+                'count' => PaidOut::forOutlet($outletId)->pending()->count(),
+                'hint' => 'Cash that left the till: say whether it was a supplier or an expense.',
+                'url' => self::url('paid-outs.index'),
+                'tone' => 'info',
+            ],
+        ];
     }
 
     protected static function url(string $route, array $params = []): ?string
