@@ -2,24 +2,22 @@
 
 namespace Database\Seeders;
 
-use App\Models\User;
-use Illuminate\Database\Console\Seeds\WithoutModelEvents;
 use Illuminate\Database\Seeder;
 
+/**
+ * A fresh ERP needs nothing seeded: businesses, outlets and people arrive
+ * from Khana Accounts, and each outlet's stores are made the first time it
+ * is opened.
+ *
+ * On a developer's machine there is no Accounts to send any of that, so the
+ * demo seeder stands in for it.
+ */
 class DatabaseSeeder extends Seeder
 {
-    use WithoutModelEvents;
-
-    /**
-     * Seed the application's database.
-     */
     public function run(): void
     {
-        // User::factory(10)->create();
-
-        User::factory()->create([
-            'name' => 'Test User',
-            'email' => 'test@example.com',
-        ]);
+        if (app()->environment('local')) {
+            $this->call(DemoSeeder::class);
+        }
     }
 }

@@ -21,6 +21,15 @@ return [
     ],
 
     /*
+    | Whether the sign-in page may let a developer pick one of the people
+    | already mirrored here, without going through Accounts.
+    |
+    | Unset means "only when Accounts is not configured, and never in
+    | production" - see App\Support\SignInMode.
+    */
+    'local_login' => env('AUTH_LOCAL_LOGIN'),
+
+    /*
     |--------------------------------------------------------------------------
     | Authentication Guards
     |--------------------------------------------------------------------------
