@@ -17,6 +17,8 @@
 
     <div class="app-main">
         <main class="app-content">
+            @include('admin.partials.hub-tabs')
+
             @yield('content')
         </main>
 

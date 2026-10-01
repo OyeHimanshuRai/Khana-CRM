@@ -291,7 +291,7 @@ class ShopModuleTest extends TestCase
             ->get('/admin/dashboard')
             ->assertOk()
             ->assertDontSee('Money owed')
-            ->assertDontSee('Customer Master');
+            ->assertDontSee('data-label="Customers"', false);
 
         $this->enable(['retail', 'inventory', 'customers']);
 
@@ -299,7 +299,7 @@ class ShopModuleTest extends TestCase
             ->get('/admin/dashboard')
             ->assertOk()
             ->assertSee('Money owed')
-            ->assertSee('Customer Master');
+            ->assertSee('data-label="Customers"', false);
     }
 
     /* -------------------------------------------------------- the sidebar */
@@ -314,11 +314,33 @@ class ShopModuleTest extends TestCase
         $this->actingAs($owner)
             ->get('/admin/dashboard')
             ->assertOk()
-            ->assertDontSee('Customer Master')
-            // The inventory module's own entry, which is still there. Named
-            // "Menu Items" since the catalogue became a restaurant menu - the
+            // Every tab of the Customers hub belongs to the module, so the
+            // hub goes with it.
+            ->assertDontSee('data-label="Customers"', false)
+            // The inventory module's own hub, which is still there. Named
+            // "Menu" since the catalogue became a restaurant menu - the
             // module key did not change, only what a restaurant calls it.
-            ->assertSee('Menu Items');
+            ->assertSee('data-label="Menu"', false);
+    }
+
+    /**
+     * A hub survives a disabled module when another of its tabs does not
+     * belong to it - and the tab strip leaves the disabled one out.
+     */
+    public function test_a_hub_keeps_the_tabs_of_the_modules_that_are_on(): void
+    {
+        $owner = $this->owner();
+        $owner->givePermissionTo(['sales.coupons.view', 'crm.campaigns.view']);
+
+        $this->actingAs($owner);
+        $this->enable(['retail', 'inventory']);
+
+        $this->actingAs($owner)
+            ->get('/admin/coupons')
+            ->assertOk()
+            ->assertSee('data-label="Marketing"', false)
+            ->assertSee('Coupons &amp; Offers', false)
+            ->assertDontSee('href="'.route('admin.campaigns.index').'"', false);
     }
 
     /* ---------------------------------------------------------- the form */

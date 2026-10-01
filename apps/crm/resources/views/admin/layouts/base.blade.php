@@ -58,7 +58,7 @@
 
     @php
         // CRM's own screens. filemtime() cache-busts without a build step.
-        $assets = ['css/pos.css', 'css/floor-plan.css', 'css/kds.css'];
+        $assets = ['css/pos.css', 'css/floor-plan.css', 'css/kds.css', 'css/hub.css'];
     @endphp
 
     @foreach ($assets as $file)

@@ -2,45 +2,51 @@
 
 /*
 |--------------------------------------------------------------------------
-| Admin sidebar menu
+| Admin navigation
 |--------------------------------------------------------------------------
 |
-| Rendered by resources/views/admin/partials/sidebar.blade.php.
+| Read by App\Support\Navigation, drawn by
+| resources/views/admin/partials/sidebar.blade.php (the hubs) and
+| resources/views/admin/partials/hub-tabs.blade.php (a hub's screens).
+|
+| The sidebar is a short list of hubs. A hub's screens are not a second
+| level of sidebar: they are tabs across the top of every one of its pages.
+| Any job is the hub, then the tab - two clicks - and the sidebar stays
+| short enough to read at a glance on a busy evening.
 |
 | Group keys:
 |   heading   section label (hidden when the sidebar is collapsed)
-|   items     entries in the section
+|   items     the hubs in the section
 |
-| Item keys:
+| Hub keys:
 |   label     required
-|   icon      name from resources/views/components/icon.blade.php
-|   route     named route; omit for a not-yet-built module, which then
-|             renders as a placeholder instead of a dead link
-|   accounts  a path in Khana Accounts instead of a route here; the entry
-|             is hidden when this install has no Accounts address
-|   params    route parameters, for entries that point at the same route
-|             with a different segment (the reports do this)
-|   active    route-name pattern(s) used to highlight the entry; defaults
-|             to the item's own route name
-|   badge     small pill on the right
-|   can       permission required to see the entry. A parent is hidden
-|             automatically once all of its children are hidden, and an
-|             empty section heading is dropped with it.
-|   children  submenu items (same keys, no icon needed)
+|   icon      name from config/icons.php
+|   tabs      its screens, in the order they are reached for. The hub links
+|             to the first one this person may open, and is hidden once
+|             they may open none of them.
+|   active    extra route-name pattern(s) that belong to the hub without
+|             being a tab of it (a report's export, say)
 |
-| Permission names come from config/permissions.php.
+| A hub with no tabs is a single screen, and takes the tab keys below.
 |
-| Entries without a `route` are modules still to be built. They are listed
-| on purpose: the shape of the finished system is easier to review here than
-| in a plan, and the sidebar renders them as inert placeholders rather than
-| dead links.
+| Tab keys:
+|   label     required
+|   route     named route
+|   accounts  a path in Khana Accounts instead of a route here; hidden when
+|             this install has no Accounts address
+|   params    route parameters, for tabs that are one route with a
+|             different segment (the reports)
+|   active    route-name pattern(s) that light the tab up; defaults to its
+|             own route name
+|   can       permission required to see it (config/permissions.php). The
+|             same permission is enforced server-side; hiding is courtesy.
 |
 */
 
 return [
 
     [
-        'heading' => 'Main',
+        'heading' => null,
         'items' => [
             [
                 'label' => 'Dashboard',
@@ -52,142 +58,150 @@ return [
     ],
 
     /*
-    | The room. Above the counter because on a busy evening the floor plan is
-    | the screen the front of house lives in - the till is opened when a table
-    | asks for the bill, the plan is looked at between every cover.
+    | The evening, in the order it happens: a table is seated, the kitchen
+    | cooks, the bill is taken, the order is looked up afterwards.
     */
     [
-        'heading' => 'Floor',
+        'heading' => 'Service',
         'items' => [
             [
-                'label' => 'Floor Plan',
-                'icon' => 'grid',
-                'route' => 'admin.tables.plan',
-                'active' => 'admin.tables.plan',
-                'can' => 'dining.tables.view',
-            ],
-            [
-                'label' => 'Tables',
-                'icon' => 'list',
-                'route' => 'admin.tables.index',
-                // The plan has its own entry above and must not light this
-                // one up as well, so the pattern is spelled out rather than
-                // wildcarded.
-                'active' => ['admin.tables.index', 'admin.tables.show', 'admin.tables.edit', 'admin.tables.create'],
-                'can' => 'dining.tables.view',
-            ],
-            [
-                'label' => 'Dining Areas',
+                'label' => 'Floor',
                 'icon' => 'building',
-                'route' => 'admin.floors.index',
-                'active' => 'admin.floors.*',
-                'can' => 'dining.floors.view',
+                'tabs' => [
+                    [
+                        'label' => 'Floor Plan',
+                        'route' => 'admin.tables.plan',
+                        'can' => 'dining.tables.view',
+                    ],
+                    [
+                        'label' => 'Tables',
+                        'route' => 'admin.tables.index',
+                        // Spelled out rather than wildcarded, so the plan
+                        // does not light this tab up as well.
+                        'active' => ['admin.tables.index', 'admin.tables.show', 'admin.tables.edit', 'admin.tables.create'],
+                        'can' => 'dining.tables.view',
+                    ],
+                    [
+                        'label' => 'Reservations',
+                        'route' => 'admin.reservations.index',
+                        'active' => 'admin.reservations.*',
+                        'can' => 'dining.reservations.view',
+                    ],
+                    [
+                        'label' => 'Dining Areas',
+                        'route' => 'admin.floors.index',
+                        'active' => 'admin.floors.*',
+                        'can' => 'dining.floors.view',
+                    ],
+                    [
+                        'label' => 'QR Codes',
+                        'route' => 'admin.qr.index',
+                        'active' => 'admin.qr.*',
+                        'can' => 'dining.qr.view',
+                    ],
+                ],
             ],
             [
-                'label' => 'Table QR Codes',
-                'icon' => 'scan',
-                'route' => 'admin.qr.index',
-                'active' => 'admin.qr.*',
-                'can' => 'dining.qr.view',
-            ],
-            /*
-             | Bookings (§7). With the floor rather than with orders, because
-             | a reservation is a table promised for a time - it is a fact
-             | about the room, not about a bill.
-             */
-            [
-                'label' => 'Reservations',
-                'icon' => 'calendar',
-                'route' => 'admin.reservations.index',
-                'active' => 'admin.reservations.*',
-                'can' => 'dining.reservations.view',
-            ],
-        ],
-    ],
-
-    /*
-    | The kitchen. Between the floor and the counter because that is the order
-    | of the evening: a table orders, the kitchen cooks, the till is opened at
-    | the end. The display is first in its own section for the same reason the
-    | floor plan is first in its - it is the screen somebody lives in.
-    */
-    [
-        'heading' => 'Kitchen',
-        'items' => [
-            [
-                'label' => 'Kitchen Display',
+                'label' => 'Kitchen',
                 'icon' => 'zap',
-                'route' => 'admin.kitchen.index',
-                'active' => 'admin.kitchen.*',
-                'can' => 'kitchen.tickets.view',
+                'tabs' => [
+                    [
+                        'label' => 'Kitchen Display',
+                        'route' => 'admin.kitchen.index',
+                        'active' => 'admin.kitchen.*',
+                        'can' => 'kitchen.tickets.view',
+                    ],
+                    [
+                        'label' => 'Stations',
+                        'route' => 'admin.kitchen-stations.index',
+                        'active' => 'admin.kitchen-stations.*',
+                        'can' => 'kitchen.stations.view',
+                    ],
+                ],
             ],
-            [
-                'label' => 'Stations',
-                'icon' => 'tool',
-                'route' => 'admin.kitchen-stations.index',
-                'active' => 'admin.kitchen-stations.*',
-                'can' => 'kitchen.stations.view',
-            ],
-        ],
-    ],
-
-    /*
-    | The counter. Below the floor because for a restaurant the till is
-    | opened when a table asks for the bill rather than lived in all day.
-    */
-    [
-        'heading' => 'Counter',
-        'items' => [
             /*
-            | Above the counter's own screen, because in a restaurant the till
-            | is opened for a table far more often than for somebody standing
-            | at it.
+            | Every way money is taken, in one place. Table bills before the
+            | till, because in a restaurant the till is opened for a table far
+            | more often than for somebody standing at it.
             */
             [
-                'label' => 'Table Bills',
-                'icon' => 'wallet',
-                'route' => 'admin.table-bills.index',
-                'active' => 'admin.table-bills.*',
-                'can' => 'pos.tables.view',
-            ],
-            [
-                'label' => 'Held Sales',
-                'icon' => 'clock',
-                'route' => 'admin.pos.parked',
-                'active' => 'admin.pos.parked',
-                'can' => 'pos.terminal.create',
-            ],
-            [
-                'label' => 'POS Billing',
+                'label' => 'Billing',
                 'icon' => 'cart',
-                'route' => 'admin.pos.terminal',
-                'active' => 'admin.pos.terminal',
-                'can' => 'pos.terminal.view',
+                'tabs' => [
+                    [
+                        'label' => 'Table Bills',
+                        'route' => 'admin.table-bills.index',
+                        'active' => 'admin.table-bills.*',
+                        'can' => 'pos.tables.view',
+                    ],
+                    [
+                        'label' => 'POS Billing',
+                        'route' => 'admin.pos.terminal',
+                        'active' => 'admin.pos.terminal',
+                        'can' => 'pos.terminal.view',
+                    ],
+                    [
+                        'label' => 'Held Sales',
+                        'route' => 'admin.pos.parked',
+                        'active' => 'admin.pos.parked',
+                        'can' => 'pos.terminal.create',
+                    ],
+                    [
+                        'label' => 'Day Close',
+                        'route' => 'admin.registers.index',
+                        'active' => 'admin.registers.*',
+                        'can' => 'pos.registers.view',
+                    ],
+                ],
             ],
             [
-                'label' => 'Day Close',
-                'icon' => 'wallet',
-                'route' => 'admin.registers.index',
-                'active' => 'admin.registers.*',
-                'can' => 'pos.registers.view',
-            ],
-            [
-                'label' => 'Barcode Labels',
-                'icon' => 'tag',
-                'route' => 'admin.labels.index',
-                'active' => 'admin.labels.*',
-                'can' => 'pos.labels.view',
+                'label' => 'Orders',
+                'icon' => 'list',
+                'tabs' => [
+                    [
+                        // First, because "what is running late" is asked forty
+                        // times an evening and "what did we sell last Tuesday"
+                        // once a month.
+                        'label' => 'Live Orders',
+                        'route' => 'admin.live-orders.index',
+                        'active' => 'admin.live-orders.*',
+                        'can' => 'sales.orders.view',
+                    ],
+                    [
+                        // Every channel, not only the storefront's.
+                        'label' => 'All Orders',
+                        'route' => 'admin.orders.index',
+                        'active' => 'admin.orders.*',
+                        'can' => 'sales.orders.view',
+                    ],
+                    [
+                        'label' => 'Invoices',
+                        'route' => 'admin.invoices.index',
+                        'active' => ['admin.invoices.*', 'admin.pos.manual'],
+                        'can' => 'sales.invoices.view',
+                    ],
+                    [
+                        'label' => 'Returns',
+                        'route' => 'admin.sales-returns.index',
+                        'active' => 'admin.sales-returns.*',
+                        'can' => 'sales.returns.view',
+                    ],
+                ],
             ],
         ],
     ],
 
     [
-        'heading' => 'Operations',
+        'heading' => 'Business',
         'items' => [
+            /*
+            | What is sold and at what price. Stock, recipes and purchasing
+            | are ERP's; this is the menu as the guest and the till see it.
+            */
             [
                 'label' => 'Menu',
                 'icon' => 'package',
-                'children' => [
+                'tabs' => [
                     [
                         'label' => 'Menu Items',
                         'route' => 'admin.products.index',
@@ -201,10 +215,10 @@ return [
                         'can' => 'inventory.categories.view',
                     ],
                     [
-                        'label' => 'Brands',
-                        'route' => 'admin.brands.index',
-                        'active' => 'admin.brands.*',
-                        'can' => 'inventory.brands.view',
+                        'label' => 'Add-ons',
+                        'route' => 'admin.modifiers.index',
+                        'active' => 'admin.modifiers.*',
+                        'can' => 'inventory.modifiers.view',
                     ],
                     [
                         'label' => 'Price Lists',
@@ -213,45 +227,75 @@ return [
                         'can' => 'inventory.price_lists.view',
                     ],
                     [
-                        'label' => 'Add-ons & Modifiers',
-                        'route' => 'admin.modifiers.index',
-                        'active' => 'admin.modifiers.*',
-                        'can' => 'inventory.modifiers.view',
+                        'label' => 'Brands',
+                        'route' => 'admin.brands.index',
+                        'active' => 'admin.brands.*',
+                        'can' => 'inventory.brands.view',
+                    ],
+                    [
+                        'label' => 'Labels',
+                        'route' => 'admin.labels.index',
+                        'active' => 'admin.labels.*',
+                        'can' => 'pos.labels.view',
                     ],
                 ],
             ],
+            /*
+            | A regular, everything about them: who they are, what they owe,
+            | what they have earned, what they said.
+            */
             [
-                'label' => 'Sales',
-                'icon' => 'cart',
-                'children' => [
+                'label' => 'Customers',
+                'icon' => 'users',
+                'tabs' => [
                     [
-                        'label' => 'Invoices',
-                        'route' => 'admin.invoices.index',
-                        'active' => ['admin.invoices.*', 'admin.pos.manual'],
-                        'can' => 'sales.invoices.view',
+                        'label' => 'Customers',
+                        'route' => 'admin.customers.index',
+                        'active' => 'admin.customers.*',
+                        'can' => 'crm.customers.view',
                     ],
                     [
-                        'label' => 'Sales Returns',
-                        'route' => 'admin.sales-returns.index',
-                        'active' => 'admin.sales-returns.*',
-                        'can' => 'sales.returns.view',
+                        'label' => 'Credit & Dues',
+                        'route' => 'admin.dues.index',
+                        'active' => 'admin.dues.*',
+                        'can' => 'crm.dues.view',
                     ],
                     [
-                        // Above the history, because "what is running late" is
-                        // asked forty times an evening and "what did we sell
-                        // last Tuesday" is asked once a month.
-                        'label' => 'Live Orders',
-                        'route' => 'admin.live-orders.index',
-                        'active' => 'admin.live-orders.*',
-                        'can' => 'sales.orders.view',
+                        'label' => 'Ledger',
+                        'route' => 'admin.ledger.index',
+                        'active' => 'admin.ledger.*',
+                        'can' => 'crm.ledger.view',
                     ],
                     [
-                        // Named for what it holds now: every channel, not only
-                        // the storefront's. See OnlineOrderController.
-                        'label' => 'Orders',
-                        'route' => 'admin.orders.index',
-                        'active' => 'admin.orders.*',
-                        'can' => 'sales.orders.view',
+                        'label' => 'Loyalty',
+                        'route' => 'admin.loyalty.index',
+                        'active' => 'admin.loyalty.*',
+                        'can' => 'crm.loyalty.view',
+                    ],
+                    [
+                        'label' => 'Feedback',
+                        'route' => 'admin.feedback.index',
+                        'active' => 'admin.feedback.*',
+                        'can' => 'crm.feedback.view',
+                    ],
+                    [
+                        'label' => 'Reminders',
+                        'route' => 'admin.reminders.index',
+                        'active' => 'admin.reminders.*',
+                        'can' => 'crm.reminders.view',
+                    ],
+                ],
+            ],
+            /* Bringing guests back: what is offered and how it is sent. */
+            [
+                'label' => 'Marketing',
+                'icon' => 'tag',
+                'tabs' => [
+                    [
+                        'label' => 'Campaigns',
+                        'route' => 'admin.campaigns.index',
+                        'active' => 'admin.campaigns.*',
+                        'can' => 'crm.campaigns.view',
                     ],
                     [
                         'label' => 'Coupons & Offers',
@@ -259,23 +303,34 @@ return [
                         'active' => 'admin.coupons.*',
                         'can' => 'sales.coupons.view',
                     ],
+                    [
+                        'label' => 'Email Templates',
+                        'route' => 'admin.email.templates.index',
+                        'active' => 'admin.email.templates.*',
+                        'can' => 'email.templates.view',
+                    ],
+                    [
+                        'label' => 'Email Log',
+                        'route' => 'admin.email.logs.index',
+                        'active' => 'admin.email.logs.*',
+                        'can' => 'email.logs.view',
+                    ],
                 ],
             ],
+            /*
+            | Money that came in. The books themselves - chart of accounts,
+            | journals - are ERP's.
+            */
             [
-                'label' => 'Finance',
+                'label' => 'Payments',
                 'icon' => 'wallet',
-                'children' => [
+                'tabs' => [
                     [
                         'label' => 'Payments',
                         'route' => 'admin.payments.index',
                         'active' => 'admin.payments.*',
                         'can' => 'finance.payments.view',
                     ],
-                    /*
-                     | The gateway's side (§4, §11). Separate from the
-                     | customer ledger above: one is what a regular owes, the
-                     | other is what guests paid from their phones.
-                     */
                     [
                         'label' => 'Online Payments',
                         'route' => 'admin.online-payments.index',
@@ -294,117 +349,117 @@ return [
                         'active' => 'admin.online-payments.settlements',
                         'can' => 'finance.online_payments.view',
                     ],
-                    [
-                        'label' => 'Tax / GST Setup',
-                        'route' => 'admin.taxes.index',
-                        'active' => 'admin.taxes.*',
-                        'can' => 'finance.taxes.view',
-                    ],
-                    ['label' => 'Chart of Accounts', 'can' => 'finance.accounts.view'],
                 ],
-            ],
-        ],
-    ],
-
-    [
-        'heading' => 'Customers',
-        'items' => [
-            [
-                'label' => 'CRM',
-                'icon' => 'users',
-                'children' => [
-                    [
-                        'label' => 'Customer Master',
-                        'route' => 'admin.customers.index',
-                        'active' => 'admin.customers.*',
-                        'can' => 'crm.customers.view',
-                    ],
-                    [
-                        'label' => 'Customer Ledger',
-                        'route' => 'admin.ledger.index',
-                        'active' => 'admin.ledger.*',
-                        'can' => 'crm.ledger.view',
-                    ],
-                    [
-                        'label' => 'Credit & Dues',
-                        'route' => 'admin.dues.index',
-                        'active' => 'admin.dues.*',
-                        'can' => 'crm.dues.view',
-                    ],
-                    [
-                        'label' => 'Loyalty Points',
-                        'route' => 'admin.loyalty.index',
-                        'active' => 'admin.loyalty.*',
-                        'can' => 'crm.loyalty.view',
-                    ],
-                    [
-                        'label' => 'Campaigns',
-                        'route' => 'admin.campaigns.index',
-                        'active' => 'admin.campaigns.*',
-                        'can' => 'crm.campaigns.view',
-                    ],
-                    [
-                        'label' => 'Guest Feedback',
-                        'route' => 'admin.feedback.index',
-                        'active' => 'admin.feedback.*',
-                        'can' => 'crm.feedback.view',
-                    ],
-                    [
-                        'label' => 'Payment Reminders',
-                        'route' => 'admin.reminders.index',
-                        'active' => 'admin.reminders.*',
-                        'can' => 'crm.reminders.view',
-                    ],
-                ],
-            ],
-        ],
-    ],
-
-    [
-        'heading' => 'Content',
-        'items' => [
-            [
-                'label' => 'Sliders',
-                'icon' => 'package',
-                'route' => 'admin.sliders.index',
-                'active' => 'admin.sliders.*',
-                'can' => 'content.sliders.view',
-            ],
-            [
-                'label' => 'Services',
-                'icon' => 'tool',
-                'route' => 'admin.services.index',
-                'active' => 'admin.services.*',
-                'can' => 'content.services.view',
             ],
             /*
-             | The landing page (§19).
-             |
-             | Grouped under one parent rather than six siblings, because that
-             | is how somebody looks for them: "change something on the
-             | website" is one errand, and six top-level entries would bury the
-             | rest of the Content section under it.
-             |
-             | Demo Requests sits in the same group and is the odd one - it is
-             | an inbox, not copy - but it is where the website sends people,
-             | so it is where somebody will look for what the website
-             | collected.
-             */
+            | Every report is one route with a different segment, so the tabs
+            | carry `params` and only the open one is lit.
+            */
             [
-                'label' => 'Landing Page',
-                'icon' => 'globe',
-                'children' => [
+                'label' => 'Reports',
+                'icon' => 'chart',
+                'active' => 'admin.reports.*',
+                'tabs' => [
                     [
-                        'label' => 'Trust Numbers',
-                        'route' => 'admin.landing-stats.index',
-                        'active' => 'admin.landing-stats.*',
-                        'can' => 'content.stats.view',
+                        'label' => 'Overview',
+                        'route' => 'admin.reports.index',
+                        'can' => 'reports.sales_report.view',
+                    ],
+                    [
+                        'label' => 'Sales',
+                        'route' => 'admin.reports.show',
+                        'params' => ['report' => 'sales'],
+                        'can' => 'reports.sales_report.view',
+                    ],
+                    [
+                        'label' => 'Items Sold',
+                        'route' => 'admin.reports.show',
+                        'params' => ['report' => 'products'],
+                        'can' => 'reports.sales_report.view',
+                    ],
+                    [
+                        'label' => 'Profit',
+                        'route' => 'admin.reports.show',
+                        'params' => ['report' => 'profit'],
+                        'can' => 'reports.profit_report.view',
+                    ],
+                    [
+                        'label' => 'Payment Methods',
+                        'route' => 'admin.reports.show',
+                        'params' => ['report' => 'payments'],
+                        'can' => 'reports.payment_report.view',
+                    ],
+                    [
+                        'label' => 'Day Closing',
+                        'route' => 'admin.reports.show',
+                        'params' => ['report' => 'day-closing'],
+                        'can' => 'reports.payment_report.view',
+                    ],
+                    [
+                        'label' => 'Dues',
+                        'route' => 'admin.reports.show',
+                        'params' => ['report' => 'outstanding'],
+                        'can' => 'reports.dues_report.view',
+                    ],
+                    [
+                        'label' => 'Tax / GST',
+                        'route' => 'admin.reports.show',
+                        'params' => ['report' => 'tax'],
+                        'can' => 'reports.tax_report.view',
+                    ],
+                    [
+                        'label' => 'Returns',
+                        'route' => 'admin.reports.show',
+                        'params' => ['report' => 'returns'],
+                        'can' => 'reports.returns_report.view',
+                    ],
+                ],
+            ],
+        ],
+    ],
+
+    [
+        'heading' => 'Setup',
+        'items' => [
+            /*
+            | The public site (§19): "change something on the website" is one
+            | errand. Demo Requests is an inbox rather than copy, but it is
+            | where the website sends people, so it is where somebody looks
+            | for what the website collected.
+            */
+            [
+                'label' => 'Website',
+                'icon' => 'globe',
+                'tabs' => [
+                    [
+                        'label' => 'Sliders',
+                        'route' => 'admin.sliders.index',
+                        'active' => 'admin.sliders.*',
+                        'can' => 'content.sliders.view',
+                    ],
+                    [
+                        'label' => 'Services',
+                        'route' => 'admin.services.index',
+                        'active' => 'admin.services.*',
+                        'can' => 'content.services.view',
+                    ],
+                    [
+                        'label' => 'FAQs',
+                        'route' => 'admin.faqs.index',
+                        'active' => 'admin.faqs.*',
+                        'can' => 'content.faqs.view',
                     ],
                     [
                         'label' => 'Testimonials',
                         'route' => 'admin.testimonials.index',
                         'active' => 'admin.testimonials.*',
                         'can' => 'content.testimonials.view',
+                    ],
+                    [
+                        'label' => 'Trust Numbers',
+                        'route' => 'admin.landing-stats.index',
+                        'active' => 'admin.landing-stats.*',
+                        'can' => 'content.stats.view',
                     ],
                     [
                         'label' => 'Outlet Types',
@@ -432,171 +487,50 @@ return [
                     ],
                 ],
             ],
+            /*
+            | How this install is set up. The team and the plan are not here:
+            | they are Khana Accounts', one entry below.
+            */
             [
-                'label' => 'FAQs',
-                'icon' => 'help',
-                'route' => 'admin.faqs.index',
-                'active' => 'admin.faqs.*',
-                'can' => 'content.faqs.view',
-            ],
-        ],
-    ],
-
-    /* Marketing. */
-    [
-        'heading' => 'Marketing',
-        'items' => [
-            [
-                'label' => 'Email Templates',
-                'icon' => 'file',
-                'route' => 'admin.email.templates.index',
-                'active' => 'admin.email.templates.*',
-                'can' => 'email.templates.view',
-            ],
-            [
-                'label' => 'Email Logs',
-                'icon' => 'list',
-                'route' => 'admin.email.logs.index',
-                'active' => 'admin.email.logs.*',
-                'can' => 'email.logs.view',
-            ],
-        ],
-    ],
-
-    [
-        'heading' => 'Insights',
-        'items' => [
-            [
-                'label' => 'Reports',
-                'icon' => 'chart',
-                'active' => 'admin.reports.*',
-                'children' => [
+                'label' => 'Settings',
+                'icon' => 'settings',
+                'tabs' => [
                     [
-                        'label' => 'All reports',
-                        'route' => 'admin.reports.index',
-                        'active' => 'admin.reports.index',
-                        'can' => 'reports.sales_report.view',
-                    ],
-                    /*
-                     | Every report below is the same route with a different
-                     | segment, so they carry `params` rather than needing a
-                     | controller action each.
-                     */
-                    [
-                        'label' => 'Sales',
-                        'route' => 'admin.reports.show',
-                        'params' => ['report' => 'sales'],
-                        'can' => 'reports.sales_report.view',
+                        'label' => 'General',
+                        'route' => 'admin.settings.company',
+                        'active' => 'admin.settings.*',
+                        'can' => 'settings.general.view',
                     ],
                     [
-                        'label' => 'Profit',
-                        'route' => 'admin.reports.show',
-                        'params' => ['report' => 'profit'],
-                        'can' => 'reports.profit_report.view',
-                    ],
-                    [
-                        'label' => 'Product Sales',
-                        'route' => 'admin.reports.show',
-                        'params' => ['report' => 'products'],
-                        'can' => 'reports.sales_report.view',
-                    ],
-                    [
-                        'label' => 'Outstanding & Dues',
-                        'route' => 'admin.reports.show',
-                        'params' => ['report' => 'outstanding'],
-                        'can' => 'reports.dues_report.view',
-                    ],
-                    [
-                        'label' => 'Payment Methods',
-                        'route' => 'admin.reports.show',
-                        'params' => ['report' => 'payments'],
-                        'can' => 'reports.payment_report.view',
+                        'label' => 'Outlets',
+                        'route' => 'admin.shops.index',
+                        'active' => 'admin.shops.*',
+                        'can' => 'settings.shops.view',
                     ],
                     [
                         'label' => 'Tax / GST',
-                        'route' => 'admin.reports.show',
-                        'params' => ['report' => 'tax'],
-                        'can' => 'reports.tax_report.view',
+                        'route' => 'admin.taxes.index',
+                        'active' => 'admin.taxes.*',
+                        'can' => 'finance.taxes.view',
                     ],
                     [
-                        'label' => 'Day Closing',
-                        'route' => 'admin.reports.show',
-                        'params' => ['report' => 'day-closing'],
-                        'can' => 'reports.payment_report.view',
-                    ],
-                    [
-                        'label' => 'Returns & Refunds',
-                        'route' => 'admin.reports.show',
-                        'params' => ['report' => 'returns'],
-                        'can' => 'reports.returns_report.view',
-                    ],
-                ],
-            ],
-        ],
-    ],
-
-    [
-        'heading' => 'System',
-        'items' => [
-            /*
-             | The business, its outlets, its team and its plan (§4, §21).
-             |
-             | One entry where there used to be six - Companies, Users,
-             | Subscription, Billing, Subscriptions, Plans - because all of
-             | them are Khana Accounts' screens now. `accounts` is a path
-             | there rather than a route here; the entry is hidden on an
-             | install that has not been told where Accounts is.
-             |
-             | Shown to whoever runs branches here - the owner, and platform
-             | staff - which is who Accounts lets through to those screens.
-             */
-            [
-                'label' => 'Business & team',
-                'icon' => 'grid',
-                'accounts' => '/',
-                'can' => 'settings.shops.view',
-            ],
-            [
-                'label' => 'Shops',
-                'icon' => 'building',
-                'route' => 'admin.shops.index',
-                'active' => 'admin.shops.*',
-                'can' => 'settings.shops.view',
-            ],
-            /*
-             | The support desk (§2).
-             |
-             | One entry, not two, although it serves both ends of the desk -
-             | the restaurant raising a ticket and the platform staff working
-             | the queue. Both audiences read the *same* screen, which simply
-             | shows more to whoever holds `support.tickets.manage`.
-             | Splitting the label would imply two places to look, and a
-             | ticket going missing between them.
-             */
-            [
-                'label' => 'Support',
-                'icon' => 'help',
-                'route' => 'admin.support.index',
-                'active' => 'admin.support.*',
-                'can' => 'support.tickets.view',
-            ],
-            /*
-             | Printers and devices (§4).
-             |
-             | A parent with two children rather than one entry, because the
-             | two are read for different reasons by different people: the
-             | list is configured once, and the log is opened during service
-             | when a ticket did not arrive.
-             */
-            [
-                'label' => 'Printers',
-                'icon' => 'file',
-                'children' => [
-                    [
-                        'label' => 'Printers & Devices',
+                        'label' => 'Printers',
                         'route' => 'admin.printers.index',
                         'active' => 'admin.printers.index',
                         'can' => 'settings.printers.view',
+                    ],
+                    [
+                        // Opened during service when a ticket did not arrive.
+                        'label' => 'Print Log',
+                        'route' => 'admin.printers.jobs',
+                        'active' => 'admin.printers.jobs',
+                        'can' => 'settings.printers.view',
+                    ],
+                    [
+                        'label' => 'Roles',
+                        'route' => 'admin.roles.index',
+                        'active' => 'admin.roles.*',
+                        'can' => 'settings.roles.view',
                     ],
                     [
                         'label' => 'API Tokens',
@@ -605,50 +539,42 @@ return [
                         'can' => 'settings.api_tokens.view',
                     ],
                     [
-                        'label' => 'Print Log',
-                        'route' => 'admin.printers.jobs',
-                        'active' => 'admin.printers.jobs',
-                        'can' => 'settings.printers.view',
-                    ],
-                ],
-            ],
-            [
-                'label' => 'Settings',
-                'icon' => 'settings',
-                'children' => [
-                    [
-                        'label' => 'Roles & Permissions',
-                        'route' => 'admin.roles.index',
-                        'active' => 'admin.roles.*',
-                        'can' => 'settings.roles.view',
-                    ],
-                    [
-                        'label' => 'Activity Logs',
+                        'label' => 'Activity Log',
                         'route' => 'admin.activity.index',
                         'active' => 'admin.activity.*',
                         'can' => 'settings.activity_logs.view',
                     ],
-                    /*
-                     | System health (§17).
-                     |
-                     | Next to the activity log because the two answer the
-                     | same question from opposite ends: the log is what
-                     | people did, this is what the machine did while nobody
-                     | was watching. Platform staff only - see the permission.
-                     */
                     [
+                        // What the machine did while nobody was watching.
+                        // Platform staff only - see the permission.
                         'label' => 'System Health',
                         'route' => 'admin.health.index',
                         'active' => 'admin.health.*',
                         'can' => 'settings.health.view',
                     ],
-                    [
-                        'label' => 'General',
-                        'route' => 'admin.settings.company',
-                        'active' => 'admin.settings.*',
-                        'can' => 'settings.general.view',
-                    ],
                 ],
+            ],
+            /*
+            | The business, its outlets, its team and its plan (§4, §21) are
+            | Khana Accounts' screens. Hidden on an install that has not been
+            | told where Accounts is.
+            */
+            [
+                'label' => 'Business & team',
+                'icon' => 'users',
+                'accounts' => '/',
+                'can' => 'settings.shops.view',
+            ],
+            /*
+            | The support desk (§2). One entry for both ends of the desk: the
+            | screen shows more to whoever holds `support.tickets.manage`.
+            */
+            [
+                'label' => 'Support',
+                'icon' => 'help',
+                'route' => 'admin.support.index',
+                'active' => 'admin.support.*',
+                'can' => 'support.tickets.view',
             ],
         ],
     ],
