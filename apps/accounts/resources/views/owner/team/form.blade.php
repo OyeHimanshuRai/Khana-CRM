@@ -50,10 +50,15 @@
                     <label class="form-label" for="{{ $product }}_role">Role</label>
                     <select class="form-control" id="{{ $product }}_role" name="access[{{ $product }}][role_key]">
                         <option value="">No access</option>
-                        @foreach ($presets[$product] as $key => $preset)
-                            <option value="{{ $key }}" @selected($heldRole === $key)>{{ $preset['name'] }} — {{ $preset['can'] }}</option>
+                        @foreach ($roles[$product] as $key => $role)
+                            <option value="{{ $key }}" @selected($heldRole === $key)>{{ $role['name'] }} — {{ $role['can'] }}</option>
                         @endforeach
+                        {{-- A role made in the product, which is not answering just now: kept, so saving does not take it away. --}}
+                        @if ($heldRole && ! isset($roles[$product][$heldRole]))
+                            <option value="{{ $heldRole }}" selected>{{ $heldRole }} — a role made in {{ $label }}</option>
+                        @endif
                     </select>
+                    @error("access.$product.role_key")<div class="field-error">{{ $message }}</div>@enderror
                 </div>
                 <div class="field">
                     <label class="check">

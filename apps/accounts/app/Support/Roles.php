@@ -8,8 +8,8 @@ namespace App\Support;
  * Presets work on day one: each carries the rights its job needs, so an
  * owner picks "Cashier" and the cashier can settle a table. The rights
  * themselves live in the product; Accounts only records which role a person
- * holds. A product's own custom roles (cloned from a preset there) are added
- * to these lists by App\Services\RoleCatalog.
+ * holds. A product's own custom roles (copied from a preset there) are added
+ * to these lists by App\Services\RoleCatalog, which asks the product.
  */
 final class Roles
 {

@@ -32,7 +32,7 @@ class AppServiceProvider extends ServiceProvider
         */
         Passport::tokensCan([
             'tenants:read' => 'Read businesses, outlets, people and entitlements',
-            'roles:read' => 'Read the role presets a product offers',
+            'roles:read' => 'Read the roles a product offers, a business\'s own included',
         ]);
 
         /*

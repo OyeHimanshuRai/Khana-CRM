@@ -39,8 +39,8 @@
                                 @if ($member->is_owner)<span class="badge badge-brand">Owner</span>@endif
                             </td>
                             <td>{{ $member->email ?? $member->mobile }}</td>
-                            <td>{{ $crm ? ($presets['crm'][$crm->role_key]['name'] ?? $crm->role_key) : '—' }}</td>
-                            <td>{{ $erp ? ($presets['erp'][$erp->role_key]['name'] ?? $erp->role_key) : '—' }}</td>
+                            <td>{{ $crm ? ($roles['crm'][$crm->role_key]['name'] ?? $crm->role_key) : '—' }}</td>
+                            <td>{{ $erp ? ($roles['erp'][$erp->role_key]['name'] ?? $erp->role_key) : '—' }}</td>
                             <td>
                                 <span class="badge badge-{{ $member->status === 'active' ? 'success' : ($member->status === 'invited' ? 'info' : 'danger') }}">
                                     {{ ucfirst($member->status) }}

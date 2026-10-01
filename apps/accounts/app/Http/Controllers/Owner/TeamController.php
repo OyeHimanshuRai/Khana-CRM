@@ -2,21 +2,29 @@
 
 namespace App\Http\Controllers\Owner;
 
+use App\Models\Tenant;
 use App\Models\User;
+use App\Services\RoleCatalog;
 use App\Services\Team;
 use App\Support\Roles;
 use Illuminate\Http\RedirectResponse;
 use Illuminate\Http\Request;
-use Illuminate\Validation\Rule;
+use Illuminate\Validation\ValidationException;
 use Illuminate\View\View;
 
 /**
  * The people of a business. An owner invites someone once, picks their role
  * in CRM and ERP and the outlets they reach, and both products learn of them
  * before they have signed in.
+ *
+ * The roles on offer are each product's presets and, after them, whatever
+ * roles the business has made for itself inside that product
+ * (App\Services\RoleCatalog).
  */
 final class TeamController
 {
+    public function __construct(private readonly RoleCatalog $roles) {}
+
     public function index(Request $request): View
     {
         $tenant = $request->user()->tenant;
@@ -24,16 +32,18 @@ final class TeamController
 
         return view('owner.team.index', [
             'members' => $tenant->users->sortByDesc('is_owner')->values(),
-            'presets' => Roles::PRESETS,
+            'roles' => $this->roles->for($tenant),
         ]);
     }
 
     public function create(Request $request): View
     {
+        $tenant = $request->user()->tenant;
+
         return view('owner.team.form', [
             'member' => null,
-            'presets' => Roles::PRESETS,
-            'outlets' => $request->user()->tenant->outlets()->orderBy('name')->get(),
+            'roles' => $this->roles->for($tenant),
+            'outlets' => $tenant->outlets()->orderBy('name')->get(),
             'access' => [],
         ]);
     }
@@ -41,11 +51,12 @@ final class TeamController
     public function store(Request $request, Team $team): RedirectResponse
     {
         $data = $this->validated($request);
+        $tenant = $request->user()->tenant;
 
         [$user, $token] = $team->invite(
-            $request->user()->tenant,
+            $tenant,
             ['name' => $data['name'], 'email' => $data['email'] ?? null, 'mobile' => $data['mobile'] ?? null],
-            $this->accessFrom($data),
+            $this->accessFrom($data, $tenant),
             $request->user(),
         );
 
@@ -62,10 +73,12 @@ final class TeamController
         $this->authorizeMember($member, $request);
         $member->loadMissing('access.outlets');
 
+        $tenant = $request->user()->tenant;
+
         return view('owner.team.form', [
             'member' => $member,
-            'presets' => Roles::PRESETS,
-            'outlets' => $request->user()->tenant->outlets()->orderBy('name')->get(),
+            'roles' => $this->roles->for($tenant),
+            'outlets' => $tenant->outlets()->orderBy('name')->get(),
             'access' => $member->access->keyBy('product'),
         ]);
     }
@@ -83,7 +96,7 @@ final class TeamController
             'access.*.outlet_ids' => ['nullable', 'array'],
         ]);
 
-        $team->updateAccess($member, $this->accessFrom($data));
+        $team->updateAccess($member, $this->accessFrom($data, $request->user()->tenant, $member));
 
         return redirect()->route('team.index')->with('status', "Saved {$member->name}'s access.");
     }
@@ -116,22 +129,38 @@ final class TeamController
     }
 
     /**
-     * Keep only the products the owner actually gave a role.
+     * Keep only the products the owner actually gave a role, and only roles
+     * that product has.
+     *
+     * A role the person already holds is let through unasked: it may be one
+     * the business made in a product that is not answering just now, and
+     * saving somebody's outlets must not take their role away.
      *
      * @param  array<string, mixed>  $data
      * @return array<string, array{role_key: string, all_outlets: bool, outlet_ids: list<int>}>
+     *
+     * @throws ValidationException
      */
-    private function accessFrom(array $data): array
+    private function accessFrom(array $data, Tenant $tenant, ?User $member = null): array
     {
         $access = [];
+        $held = $member?->access->pluck('role_key', 'product')->all() ?? [];
 
         foreach ((array) ($data['access'] ?? []) as $product => $grant) {
             if (empty($grant['role_key'])) {
                 continue;
             }
 
+            $key = (string) $grant['role_key'];
+
+            if (($held[$product] ?? null) !== $key && ! $this->roles->offers($tenant, (string) $product, $key)) {
+                throw ValidationException::withMessages([
+                    "access.{$product}.role_key" => 'That is not a role '.(Roles::PRODUCT_NAMES[$product] ?? 'this product').' has. If you made it there a moment ago, open this page again.',
+                ]);
+            }
+
             $access[$product] = [
-                'role_key' => $grant['role_key'],
+                'role_key' => $key,
                 'all_outlets' => (bool) ($grant['all_outlets'] ?? false),
                 'outlet_ids' => array_map('intval', (array) ($grant['outlet_ids'] ?? [])),
             ];
