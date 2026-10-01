@@ -5,6 +5,7 @@ namespace App\Models;
 use App\Models\Concerns\InOutlet;
 use Illuminate\Database\Eloquent\Model;
 use Illuminate\Database\Eloquent\Relations\HasMany;
+use Khana\Kit\Support\Ulid;
 
 /**
  * A bill ERP has heard about - from CRM by event, from a CSV import, or
@@ -22,8 +23,17 @@ class Sale extends Model
 
     public const CANCELLED = 'cancelled';
 
+    protected $attributes = ['status' => self::RECORDED];
+
+    protected static function booted(): void
+    {
+        static::creating(function (Sale $sale) {
+            $sale->ulid ??= $sale->source === SalesItem::CRM && Ulid::isValid($sale->ref) ? $sale->ref : Ulid::generate();
+        });
+    }
+
     protected $fillable = [
-        'tenant_id', 'outlet_id', 'source', 'ref', 'invoice_no', 'business_date', 'channel',
+        'ulid', 'tenant_id', 'outlet_id', 'source', 'ref', 'invoice_no', 'business_date', 'channel',
         'net_paise', 'tax_paise', 'round_off_paise', 'grand_paise', 'status', 'cancel_reason', 'sales_import_id',
     ];
 

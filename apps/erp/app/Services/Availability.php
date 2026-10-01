@@ -74,6 +74,72 @@ class Availability
     }
 
     /**
+     * What stock can do for one dish right now, size by size - the panel on
+     * CRM's menu screen, and ERP's own recipe page.
+     *
+     * @return list<array{size_id: int, variant_ref: ?string, size_name: ?string, has_recipe: bool, portions: ?int, cost_paise: ?int, price_paise: int, available: bool}>
+     */
+    public function snapshot(SalesItem $item): array
+    {
+        $outletId = $item->outlet_id;
+        $settings = Outlets::settings($outletId);
+        $usableOn = $settings->exclude_expired ? Outlets::businessDate($outletId) : null;
+        $store = $settings->kitchen_only ? Outlets::stores($outletId)['kitchen'] : null;
+
+        $recipes = Recipe::allOutlets()->with('lines.item')
+            ->where('outlet_id', $outletId)->where('sales_item_id', $item->id)
+            ->get()->keyBy('sales_item_size_id');
+
+        $sizes = $item->sizes()->where('is_active', true)->orderBy('id')->get();
+        $rows = [];
+
+        foreach ($sizes->isEmpty() ? [null] : $sizes->all() as $size) {
+            $recipe = $recipes[$size?->id ?? 0] ?? $recipes[0] ?? null;
+            $portions = null;
+            $cost = null;
+
+            if ($recipe !== null) {
+                $cost = 0;
+
+                foreach ($recipe->lines as $line) {
+                    if ($line->item === null) {
+                        continue;
+                    }
+
+                    $cost += Units::value($line->qty, $this->stock->costRate($outletId, $line->item));
+
+                    if (! $line->is_optional && $line->qty > 0) {
+                        $covers = intdiv(max(0, $this->stock->onHand($outletId, $line->item, $store, $usableOn)) * Units::SCALE, $line->qty);
+                        $portions = $portions === null ? $covers : min($portions, $covers);
+                    }
+                }
+            }
+
+            $rows[] = [
+                'size_id' => $size?->id ?? 0,
+                'variant_ref' => $size?->ref,
+                'size_name' => $size?->name,
+                'has_recipe' => $recipe !== null,
+                'portions' => $portions,
+                'cost_paise' => $cost,
+                'price_paise' => $size?->price_paise ?? $item->price_paise,
+                // With no recipe ERP has no opinion: the dish is on sale.
+                'available' => $portions === null || $portions >= Units::SCALE,
+            ];
+        }
+
+        return $rows;
+    }
+
+    /** Food cost as a percentage of the price, to two places; null with no price. */
+    public static function percent(?int $costPaise, int $pricePaise): ?string
+    {
+        return $costPaise === null || $pricePaise <= 0
+            ? null
+            : Decimal::format(min(99_999, Decimal::mulDiv($costPaise, 10_000, $pricePaise)), 2);
+    }
+
+    /**
      * Look at everything noted since the last look.
      *
      * Runs after the commit of whatever moved the stock, in a transaction

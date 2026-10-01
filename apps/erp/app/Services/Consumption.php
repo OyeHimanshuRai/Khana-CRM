@@ -386,6 +386,15 @@ class Consumption
      */
     private function salesItem(string $tenantId, string $outletId, string $source, array $data): array
     {
+        // A CSV row already matched to one of ERP's sales items by a person.
+        if (! empty($data['sales_item_id'])) {
+            $item = SalesItem::allOutlets()->where('outlet_id', $outletId)->find($data['sales_item_id']);
+
+            return [$item, $item === null || empty($data['sales_item_size_id'])
+                ? null
+                : SalesItemSize::query()->where('sales_item_id', $item->id)->find($data['sales_item_size_id'])];
+        }
+
         $itemRef = $data['item_ref'] ?? null;
 
         if (blank($itemRef)) {

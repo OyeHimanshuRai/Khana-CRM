@@ -31,6 +31,8 @@ class PurchaseOrder extends Model
         self::CANCELLED => 'Cancelled',
     ];
 
+    protected $attributes = ['status' => self::OPEN];
+
     protected $fillable = ['tenant_id', 'outlet_id', 'supplier_id', 'number', 'ordered_on', 'expected_on', 'status', 'total_paise', 'notes', 'user_id'];
 
     protected function casts(): array

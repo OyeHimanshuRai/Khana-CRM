@@ -27,6 +27,8 @@ class SupplierBill extends Model
 
     public const CANCELLED = 'cancelled';
 
+    protected $attributes = ['status' => self::OPEN, 'paid_paise' => 0];
+
     protected $fillable = [
         'ulid', 'tenant_id', 'outlet_id', 'supplier_id', 'bill_no', 'billed_on', 'due_on',
         'total_paise', 'paid_paise', 'status', 'notes', 'user_id',

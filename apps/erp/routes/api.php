@@ -1,6 +1,9 @@
 <?php
 
+use App\Http\Controllers\Api\ItemStockController;
 use App\Http\Controllers\Api\RoleController;
+use App\Http\Controllers\Api\SaleController;
+use App\Http\Controllers\Api\SupplierBillController;
 use Illuminate\Support\Facades\Route;
 
 /*
@@ -14,6 +17,26 @@ use Illuminate\Support\Facades\Route;
 |
 */
 
+$ulid = '[0-7][0-9A-HJKMNP-TV-Z]{25}';
+
 Route::middleware('machine:roles:read')
     ->get('roles', RoleController::class)
     ->name('api.roles');
+
+// CRM's paid-out screen.
+Route::middleware('machine:bills:read')
+    ->get('outlets/{id}/supplier-bills', SupplierBillController::class)
+    ->where('id', $ulid)
+    ->name('api.supplier-bills');
+
+// The stock and cost panel on CRM's menu item page.
+Route::middleware('machine:stock:read')
+    ->get('outlets/{id}/items/{item}/stock', ItemStockController::class)
+    ->where(['id' => $ulid, 'item' => $ulid])
+    ->name('api.item-stock');
+
+// Other billing software.
+Route::middleware('machine:sales:write')->group(function () {
+    Route::post('sales', [SaleController::class, 'store'])->name('api.sales.store');
+    Route::post('sales/{ref}/cancel', [SaleController::class, 'cancel'])->where('ref', '.+')->name('api.sales.cancel');
+});

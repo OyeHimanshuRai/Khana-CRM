@@ -18,6 +18,8 @@ class KitchenLine extends Model
     /** The order a line climbs in. */
     public const STAGES = ['placed' => 0, 'accepted' => 1, 'preparing' => 2, 'ready' => 3, 'served' => 4];
 
+    protected $attributes = ['cost_paise' => 0, 'wasted' => false, 'sales_item_id' => 0, 'sales_item_size_id' => 0];
+
     protected $fillable = [
         'tenant_id', 'outlet_id', 'ref', 'order_ref', 'sales_item_id', 'sales_item_size_id', 'item_ref',
         'variant_ref', 'option_refs', 'qty', 'stage', 'consumed_at', 'cost_paise', 'cancelled_at',

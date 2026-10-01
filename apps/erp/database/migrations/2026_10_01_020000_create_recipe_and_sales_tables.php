@@ -174,6 +174,9 @@ return new class extends Migration
 
         Schema::create('sales', function (Blueprint $table) {
             $table->id();
+            // ERP's own id for the sale, for whoever recorded it to keep:
+            // CRM's sale id for a CRM sale, a new one for any other.
+            $table->char('ulid', 26)->unique();
             $table->char('tenant_id', 26)->index();
             $table->char('outlet_id', 26);
             $table->string('source', 8);

@@ -25,6 +25,8 @@ class SupplierPayment extends Model
         'drawer' => 'From the till',
     ];
 
+    protected $attributes = ['kind' => self::PAYMENT];
+
     protected $fillable = [
         'tenant_id', 'outlet_id', 'supplier_id', 'supplier_bill_id', 'kind', 'amount_paise',
         'method', 'paid_on', 'reference', 'notes', 'user_id',

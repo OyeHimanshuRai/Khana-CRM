@@ -19,6 +19,8 @@ class PaidOut extends Model
 
     public const FILED = 'filed';
 
+    protected $attributes = ['status' => self::PENDING];
+
     protected $fillable = [
         'ulid', 'tenant_id', 'outlet_id', 'business_date', 'amount_paise', 'category', 'note',
         'status', 'supplier_payment_id', 'expense_id',
