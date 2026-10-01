@@ -56,7 +56,7 @@ final class Outlets
     public static function settings(string $outletId): OutletSetting
     {
         return OutletSetting::query()->find($outletId)
-            ?? new OutletSetting(['outlet_id' => $outletId, 'consume_stage' => 'ready', 'exclude_expired' => true]);
+            ?? new OutletSetting(['outlet_id' => $outletId, 'consume_stage' => 'ready', 'exclude_expired' => true, 'input_tax_is_cost' => true, 'kitchen_only' => false]);
     }
 
     /**

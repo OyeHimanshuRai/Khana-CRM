@@ -27,6 +27,19 @@ class StockItem extends Model
         'reorder_qty', 'last_cost_rate', 'is_active',
     ];
 
+    /**
+     * The table's own defaults, so a row just made reads the same as the
+     * same row read back.
+     */
+    protected $attributes = [
+        'is_prepared' => false,
+        'track_expiry' => false,
+        'gst_rate_bp' => 0,
+        'reorder_qty' => 0,
+        'last_cost_rate' => 0,
+        'is_active' => true,
+    ];
+
     protected function casts(): array
     {
         return [

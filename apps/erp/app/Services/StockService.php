@@ -84,33 +84,78 @@ class StockService
 
         return DB::transaction(function () use ($store, $item, $qty, $why) {
             $movements = collect();
-            $left = $qty;
-
-            foreach ($this->pickOrder($store, $item, $why->businessDate) as $level) {
-                if ($left <= 0) {
-                    break;
-                }
-
-                // Read again under the lock: somebody else may have just
-                // taken from this slot.
-                $level = $this->lock($store, $item, $level->batch_id);
-                $take = min($left, $level->qty);
-
-                if ($take <= 0) {
-                    continue;
-                }
-
-                $movements->push($this->write($level, $item, -$take, $this->knownRate($level, $item), $why));
-                $left -= $take;
-            }
+            $left = $this->takeWhatIsThere($store, $item, $qty, $why, $movements);
 
             if ($left > 0) {
-                $level = $this->lock($store, $item, 0);
-                $movements->push($this->write($level, $item, -$left, $this->knownRate($level, $item), $why));
+                $movements->push($this->overdraw($store, $item, $left, $why));
             }
 
             return $movements;
         });
+    }
+
+    /**
+     * Take what a dish used, from wherever at the outlet it is.
+     *
+     * The kitchen store first - that is where cooking happens. Unless the
+     * outlet only cooks with what has been issued to the kitchen, the main
+     * store and any others are drawn on next: a small kitchen that never
+     * "issues" anything should not show paneer in one room and a debt in the
+     * other. Whatever the whole outlet cannot cover is overdrawn in the
+     * kitchen.
+     *
+     * @return Collection<int, StockMovement>
+     */
+    public function useAt(string $outletId, StockItem $item, int $qty, Posting $why): Collection
+    {
+        if ($qty <= 0) {
+            throw new RuntimeException('Stock goes out as a quantity above zero.');
+        }
+
+        return DB::transaction(function () use ($outletId, $item, $qty, $why) {
+            $stores = $this->cookingStores($outletId);
+            $movements = collect();
+            $left = $qty;
+
+            foreach ($stores as $store) {
+                if ($left <= 0) {
+                    break;
+                }
+
+                $left = $this->takeWhatIsThere($store, $item, $left, $why, $movements);
+            }
+
+            if ($left > 0) {
+                $movements->push($this->overdraw($stores[0], $item, $left, $why));
+            }
+
+            return $movements;
+        });
+    }
+
+    /**
+     * The stores a dish may be cooked from, in the order they are drawn on.
+     *
+     * @return list<Store>
+     */
+    public function cookingStores(string $outletId): array
+    {
+        $kitchen = Outlets::stores($outletId)['kitchen'];
+
+        if (Outlets::settings($outletId)->kitchen_only) {
+            return [$kitchen];
+        }
+
+        $others = Store::allOutlets()
+            ->where('outlet_id', $outletId)
+            ->where('is_active', true)
+            ->where('id', '!=', $kitchen->id)
+            ->orderByRaw("CASE kind WHEN 'main' THEN 0 ELSE 1 END")
+            ->orderBy('id')
+            ->get()
+            ->all();
+
+        return [$kitchen, ...$others];
     }
 
     /** Take stock out of one named batch (0 for the undated slot). */
@@ -304,6 +349,45 @@ class StockService
     }
 
     /* ---------------------------------------------------------- private */
+
+    /**
+     * Take up to a quantity from one store, earliest expiry first, and say
+     * how much could not be found there.
+     *
+     * @param  Collection<int, StockMovement>  $movements  added to
+     */
+    private function takeWhatIsThere(Store $store, StockItem $item, int $qty, Posting $why, Collection $movements): int
+    {
+        $left = $qty;
+
+        foreach ($this->pickOrder($store, $item, $why->businessDate) as $level) {
+            if ($left <= 0) {
+                break;
+            }
+
+            // Read again under the lock: somebody else may have just taken
+            // from this slot.
+            $level = $this->lock($store, $item, $level->batch_id);
+            $take = min($left, $level->qty);
+
+            if ($take <= 0) {
+                continue;
+            }
+
+            $movements->push($this->write($level, $item, -$take, $this->knownRate($level, $item), $why));
+            $left -= $take;
+        }
+
+        return $left;
+    }
+
+    /** Take what is not there, from the undated slot: the level goes negative. */
+    private function overdraw(Store $store, StockItem $item, int $qty, Posting $why): StockMovement
+    {
+        $level = $this->lock($store, $item, 0);
+
+        return $this->write($level, $item, -$qty, $this->knownRate($level, $item), $why);
+    }
 
     /**
      * The slots a quantity is taken from, in the order it is taken:

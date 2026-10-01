@@ -22,10 +22,10 @@ class OutletSetting extends Model
 
     public $incrementing = false;
 
-    protected $fillable = ['outlet_id', 'tenant_id', 'consume_stage', 'exclude_expired'];
+    protected $fillable = ['outlet_id', 'tenant_id', 'consume_stage', 'exclude_expired', 'input_tax_is_cost', 'kitchen_only', 'csv_layout'];
 
     protected function casts(): array
     {
-        return ['exclude_expired' => 'boolean'];
+        return ['exclude_expired' => 'boolean', 'input_tax_is_cost' => 'boolean', 'kitchen_only' => 'boolean', 'csv_layout' => 'array'];
     }
 }
