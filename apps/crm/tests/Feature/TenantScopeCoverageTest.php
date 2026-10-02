@@ -2,8 +2,17 @@
 
 namespace Tests\Feature;
 
+use App\Models\ActivityLog;
+use App\Models\Address;
+use App\Models\Cart;
 use App\Models\Concerns\BelongsToShop;
 use App\Models\Concerns\BelongsToTenant;
+use App\Models\CouponRedemption;
+use App\Models\NightlyCheck;
+use App\Models\Shop;
+use App\Models\SupportTicket;
+use App\Models\User;
+use App\Models\WishlistItem;
 use Illuminate\Database\Eloquent\Model;
 use Illuminate\Foundation\Testing\RefreshDatabase;
 use Illuminate\Support\Facades\Schema;
@@ -32,14 +41,15 @@ class TenantScopeCoverageTest extends TestCase
      * @var array<class-string, string>
      */
     private const DELIBERATELY_UNSCOPED = [
-        \App\Models\Shop::class => 'Is the boundary itself; reachability is CurrentShop, and ShopController::readable()/authorise() narrow every screen.',
-        \App\Models\User::class => 'Staff, mirrored from Accounts; no screen edits other people - ProfileController reads only the signed-in user, ShopController::assignableUsers()/syncMembers() narrow to the shop\'s own business.',
-        \App\Models\ActivityLog::class => 'ActivityLogController::readable(): own business only, platform history to the Super Admin alone.',
-        \App\Models\SupportTicket::class => 'Belongs to the business, not a branch; SupportTicket::scopeVisibleTo() narrows every read.',
-        \App\Models\Address::class => 'A customer\'s own address book; always read by customer and shop (OrderService, Shop\\AddressController).',
-        \App\Models\Cart::class => 'A customer\'s own cart; read only through CartService by customer and shop.',
-        \App\Models\WishlistItem::class => 'A customer\'s own wishlist; Shop\\WishlistController filters by customer and shop.',
-        \App\Models\CouponRedemption::class => 'Written under the customer guard; ReportService::couponsRedeemed() names the branches explicitly.',
+        Shop::class => 'Is the boundary itself; reachability is CurrentShop, and ShopController::readable()/authorise() narrow every screen.',
+        User::class => 'Staff, mirrored from Accounts; no screen edits other people - ProfileController reads only the signed-in user, ShopController::assignableUsers()/syncMembers() narrow to the shop\'s own business.',
+        ActivityLog::class => 'ActivityLogController::readable(): own business only, platform history to the Super Admin alone.',
+        SupportTicket::class => 'Belongs to the business, not a branch; SupportTicket::scopeVisibleTo() narrows every read.',
+        Address::class => 'A customer\'s own address book; always read by customer and shop (OrderService, Shop\\AddressController).',
+        Cart::class => 'A customer\'s own cart; read only through CartService by customer and shop.',
+        WishlistItem::class => 'A customer\'s own wishlist; Shop\\WishlistController filters by customer and shop.',
+        CouponRedemption::class => 'Written under the customer guard; ReportService::couponsRedeemed() names the branches explicitly.',
+        NightlyCheck::class => 'Cross-service bookkeeping keyed by Accounts\' ULIDs (tenant_id/outlet_id are Accounts ids, not CRM\'s tenant FK); written and read only by the crm:nightly command, narrowed by outlet_id there, with no per-user web read.',
     ];
 
     public function test_every_model_with_an_owner_column_applies_its_scope(): void
@@ -60,7 +70,7 @@ class TenantScopeCoverageTest extends TestCase
             }
 
             /** @var Model $model */
-            $model = new $class();
+            $model = new $class;
             $table = $model->getTable();
 
             if (! Schema::hasTable($table)) {
