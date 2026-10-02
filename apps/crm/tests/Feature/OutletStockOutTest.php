@@ -719,6 +719,38 @@ class OutletStockOutTest extends TestCase
         $this->assertCount(2, app(StockOuts::class)->dishesOutAt($this->riverside->id));
     }
 
+    public function test_the_home_screen_lists_what_stock_has_taken_off_the_menu_here(): void
+    {
+        // A Suite install knows where ERP lives; the card is drawn for a linked
+        // outlet. The list itself reads CRM's own table, not ERP.
+        config(['khana.urls.erp' => 'http://erp.suite.test']);
+
+        $paneer = $this->dishNamed('Paneer Tikka', 280);
+        $biryani = $this->dishNamed('Biryani', 300);
+        $half = $this->sizeOf($biryani, 'Half', 180, default: true);
+
+        $this->runsOutAt($this->riverside, $paneer);
+        $this->runsOutAt($this->riverside, $biryani, $half);
+
+        // A cashier who may not see the margin still sees what the kitchen
+        // cannot serve, named, and the size when only a size is out.
+        $this->actingAs($this->staffAt($this->riverside, []))
+            ->get(route('admin.dashboard'))
+            ->assertOk()
+            ->assertSee('Sold out by stock')
+            ->assertSee('Paneer Tikka')
+            ->assertSee('Biryani')
+            ->assertSee('Half');
+
+        $this->asNobody();
+
+        // The other outlet has nothing off, so there is no card to draw.
+        $this->actingAs($this->staffAt($this->main, []))
+            ->get(route('admin.dashboard'))
+            ->assertOk()
+            ->assertDontSee('Sold out by stock');
+    }
+
     /* --------------------------------------------------------- read once */
 
     public function test_a_whole_menu_asks_the_table_once(): void

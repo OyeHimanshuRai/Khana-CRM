@@ -13,6 +13,7 @@ use App\Models\RestaurantTable;
 use App\Services\Erp\ErpLink;
 use App\Support\CurrentShop;
 use App\Support\Modules;
+use App\Support\StockOuts;
 use Illuminate\Database\Eloquent\Builder;
 use Illuminate\Support\Collection;
 use Illuminate\Support\Facades\Gate;
@@ -95,16 +96,24 @@ class DashboardController extends Controller
      * what the food cost against what it sold for is a profit figure, and a
      * cashier who is not shown the margin is not shown this either.
      *
-     * @return array{food_cost: bool}|null
+     * `sold_out` is not: what the kitchen cannot serve is read from CRM's own
+     * table of stock-outs, not from ERP, so it needs no fetch and no "not
+     * reachable" state, and everybody who opens the screen should see it - a
+     * cashier most of all.
+     *
+     * @return array{food_cost: bool, sold_out: Collection<int, array{name: string, sizes: list<string>}>}|null
      */
     private function erp(): ?array
     {
-        if (! $this->erpLink->linked(CurrentShop::get())) {
+        $shop = CurrentShop::get();
+
+        if (! $this->erpLink->linked($shop)) {
             return null;
         }
 
         return [
             'food_cost' => $this->may('reports.profit_report.view'),
+            'sold_out' => StockOuts::dishesOutAt($shop->id),
         ];
     }
 
