@@ -91,6 +91,21 @@ Schedule::command('campaigns:send')
     ->runInBackground();
 
 /*
+| Nightly checks (Suite link).
+|
+| Hourly, which is both the schedule and the retry. "Night" is each outlet's
+| own, so an hourly sweep catches each one's just-closed day in its own
+| timezone; and a check that ended in a problem - ERP was unreachable - is
+| tried again the next hour until it is not. Most runs do nothing. The work
+| is idempotent: the availability check reconciles CRM's own rows to ERP and
+| writes one row per outlet and day. See App\Services\NightlyChecks.
+*/
+Schedule::command('crm:nightly')
+    ->hourly()
+    ->withoutOverlapping()
+    ->runInBackground();
+
+/*
 | Database backups (§17).
 |
 | At 03:45, which is after the kitchen has closed everywhere this platform
