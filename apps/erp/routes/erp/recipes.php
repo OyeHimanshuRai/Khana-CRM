@@ -18,6 +18,9 @@ Route::middleware('can:recipes.view')->group(function () {
 });
 
 Route::middleware('can:recipes.manage')->group(function () {
+    // An outlet with Khana CRM too: bring the dish list in line with its menu.
+    Route::post('recipes/pull-menu', [DishController::class, 'pullMenu'])->name('recipes.pull-menu');
+
     Route::put('recipes/dish/{item}/{size?}', [DishController::class, 'update'])->whereNumber(['item', 'size'])->name('recipes.update');
     Route::delete('recipes/dish/{item}/{size?}', [DishController::class, 'destroy'])->whereNumber(['item', 'size'])->name('recipes.destroy');
     Route::put('recipes/addon/{addon}', [DishController::class, 'updateAddon'])->whereNumber('addon')->name('recipes.addon.update');

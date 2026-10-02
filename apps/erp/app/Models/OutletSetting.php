@@ -22,10 +22,14 @@ class OutletSetting extends Model
 
     public $incrementing = false;
 
-    protected $fillable = ['outlet_id', 'tenant_id', 'consume_stage', 'exclude_expired', 'input_tax_is_cost', 'kitchen_only', 'csv_layout'];
+    protected $fillable = ['outlet_id', 'tenant_id', 'consume_stage', 'exclude_expired', 'input_tax_is_cost', 'kitchen_only', 'csv_layout', 'menu_synced_at'];
 
     protected function casts(): array
     {
-        return ['exclude_expired' => 'boolean', 'input_tax_is_cost' => 'boolean', 'kitchen_only' => 'boolean', 'csv_layout' => 'array'];
+        return [
+            'exclude_expired' => 'boolean', 'input_tax_is_cost' => 'boolean', 'kitchen_only' => 'boolean', 'csv_layout' => 'array',
+            // When the menu was last brought in line with CRM's; null if never.
+            'menu_synced_at' => 'datetime',
+        ];
     }
 }

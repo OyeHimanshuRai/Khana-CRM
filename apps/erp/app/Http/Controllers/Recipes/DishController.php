@@ -7,12 +7,16 @@ use App\Models\SalesAddon;
 use App\Models\SalesItem;
 use App\Models\SalesItemSize;
 use App\Services\Availability;
+use App\Services\Crm\CrmUnavailable;
+use App\Services\MenuSync;
 use App\Services\Recipes;
 use App\Support\Here;
 use App\Support\Lines;
+use App\Support\Outlets;
 use Illuminate\Http\RedirectResponse;
 use Illuminate\Http\Request;
 use Illuminate\View\View;
+use Khana\Kit\Tenancy\Entitlements;
 use RuntimeException;
 
 /**
@@ -27,7 +31,7 @@ use RuntimeException;
  */
 final class DishController
 {
-    public function index(Request $request, Recipes $recipes, Availability $availability): View
+    public function index(Request $request, Recipes $recipes, Availability $availability, Entitlements $entitlements): View
     {
         $outlet = Here::outlet();
         $search = trim((string) $request->query('q'));
@@ -47,7 +51,30 @@ final class DishController
             'snapshots' => $dishes->getCollection()->mapWithKeys(fn (SalesItem $item) => [$item->id => $availability->snapshot($item)]),
             'addons' => SalesAddon::forOutlet($outlet)->where('is_active', true)->orderBy('group_name')->orderBy('name')->get(),
             'addonRecipes' => Recipe::forOutlet($outlet)->where('sales_addon_id', '>', 0)->pluck('id', 'sales_addon_id'),
+            // Only an outlet with both products has a menu in CRM to pull.
+            'suite' => $entitlements->isSuite($outlet),
+            'menuSyncedAt' => Outlets::settings($outlet)->menu_synced_at,
         ]);
+    }
+
+    /**
+     * "Pull the menu from CRM": for the person who has just added a dish
+     * there and would rather not wait, or who suspects the two have drifted.
+     * The nightly check does the same on its own.
+     */
+    public function pullMenu(MenuSync $menus, Entitlements $entitlements): RedirectResponse
+    {
+        $outlet = Here::outlet();
+
+        abort_unless($entitlements->isSuite($outlet), 404);
+
+        try {
+            $counts = $menus->pull($outlet);
+        } catch (CrmUnavailable) {
+            return redirect()->route('recipes.index')->with('error', 'CRM is not reachable right now.');
+        }
+
+        return redirect()->route('recipes.index')->with('status', MenuSync::describe($counts));
     }
 
     public function edit(Recipes $recipes, Availability $availability, int $item, ?int $size = null): View

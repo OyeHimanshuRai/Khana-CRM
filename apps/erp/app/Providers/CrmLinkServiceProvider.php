@@ -10,6 +10,7 @@ use App\Services\Availability;
 use App\Services\Consumption;
 use App\Services\MenuCopy;
 use App\Services\Purchasing;
+use App\Services\ReferenceSync;
 use Illuminate\Support\Facades\Event;
 use Illuminate\Support\ServiceProvider;
 use Khana\Kit\Events\Envelope;
@@ -62,6 +63,12 @@ class CrmLinkServiceProvider extends ServiceProvider
             ->saleReturned($e->outletId, $e->data, $e->id, Consumption::moment($e->occurredAt)));
 
         $handlers->on('crm.cash.paid_out', 1, fn (Envelope $e) => self::paidOut($e));
+
+        // Holding both products is what switches this link on, so the
+        // kit's handler for an entitlement is wrapped rather than replaced:
+        // ReferenceSync lets it keep the copy, then pulls the menu the first
+        // time an outlet holds both. Registered after the kit's, so it wins.
+        $handlers->on('accounts.entitlement.changed', 1, fn (Envelope $e) => app(ReferenceSync::class)->entitlement($e));
     }
 
     /**

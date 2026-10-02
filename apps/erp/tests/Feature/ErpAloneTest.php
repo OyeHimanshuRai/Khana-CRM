@@ -9,12 +9,14 @@ use App\Models\StockMovement;
 use App\Models\Supplier;
 use App\Models\SupplierBill;
 use App\Services\Recipes;
+use App\Services\Reports;
 use App\Services\SalesImporter;
 use App\Services\StockService;
 use App\Stock\Posting;
 use App\Support\Outlets;
 use App\Support\Units;
 use Illuminate\Foundation\Testing\RefreshDatabase;
+use Illuminate\Support\Facades\DB;
 use Khana\Kit\Events\OutboxEvent;
 use Khana\Kit\Support\Ulid;
 use Tests\Concerns\HearsFromCrm;
@@ -241,7 +243,7 @@ class ErpAloneTest extends TestCase
         $this->assertSame([2, 0], [$first->sales, $first->skipped]);
         $this->assertSame([0, 2], [$second->sales, $second->skipped]);
         $this->assertSame(2, Sale::allOutlets()->count());
-        $this->assertSame(['coffee', 'dosa|full', 'dosa|half'], \Illuminate\Support\Facades\DB::table('sales_item_aliases')->orderBy('alias')->pluck('alias')->all());
+        $this->assertSame(['coffee', 'dosa|full', 'dosa|half'], DB::table('sales_item_aliases')->orderBy('alias')->pluck('alias')->all());
     }
 
     public function test_a_name_in_the_file_can_be_matched_to_a_dish_erp_already_has(): void
@@ -344,6 +346,125 @@ class ErpAloneTest extends TestCase
             ]);
 
         $this->getJson("/api/v1/outlets/{$suite['outlet']}/items/".Ulid::generate().'/stock', $this->bearer(['stock:read']))->assertNotFound();
+    }
+
+    public function test_crm_reads_a_days_food_cost(): void
+    {
+        // 19:30 at the outlet on the 1st; its day runs until 4 am.
+        $this->travelTo('2026-10-01T14:00:00Z');
+
+        $suite = $this->business('Spice Garden', ['erp' => 'active', 'crm' => 'active']);
+        $paneer = $this->stockItem($suite['tenant'], 'Paneer', 'g', 400);
+        $this->stock->receive(Outlets::stores($suite['outlet'])['kitchen'], $paneer, Units::toBase(2, 'kg', 'g'), $paneer->last_cost_rate,
+            new Posting(StockMovement::RECEIPT, businessDate: '2026-10-01'));
+
+        $url = "/api/v1/outlets/{$suite['outlet']}/food-cost";
+
+        // Nothing sold yet: no percentage to give.
+        $this->getJson($url, $this->bearer(['stock:read']))->assertOk()->assertExactJson([
+            'outlet_id' => $suite['outlet'], 'business_date' => '2026-10-01',
+            'sales_paise' => 0, 'cost_paise' => 0, 'food_cost_percent' => null, 'uncosted' => 0,
+        ]);
+
+        $tikka = $this->menuItem('Paneer Tikka', 320);
+        $soup = $this->menuItem('Tomato Soup', 120);
+        $this->fromCrm($suite, 'crm.menu.item_upserted', $tikka);
+        $this->fromCrm($suite, 'crm.menu.item_upserted', $soup);
+        $this->recipe($suite, $tikka, null, [[$paneer, 250, 'g']]);
+
+        $line = $this->kitchenLine($tikka, null, 2);
+        $this->fromCrm($suite, 'crm.kitchen.line_advanced', $line);
+        $this->fromCrm($suite, 'crm.sale.recorded', $this->saleOf([[$tikka, null, 2, 640, [$line['line_id']]], [$soup, null, 1, 120]]));
+        // Another day's sale is another day's figure.
+        $this->fromCrm($suite, 'crm.sale.recorded', $this->saleOf([[$soup, null, 4, 480]], '2026-09-30'));
+
+        // Rs 760 sold; the two tikkas used Rs 200 of paneer; the soup has no recipe.
+        $today = [
+            'outlet_id' => $suite['outlet'], 'business_date' => '2026-10-01',
+            'sales_paise' => 76_000, 'cost_paise' => 20_000, 'food_cost_percent' => '26.32', 'uncosted' => 1,
+        ];
+
+        // With no date it is the outlet's own current day, and the report's own figures.
+        $this->getJson($url, $this->bearer(['stock:read']))->assertOk()->assertExactJson($today);
+        $this->getJson($url.'?date=2026-10-01', $this->bearer(['stock:read']))->assertOk()->assertExactJson($today);
+        $this->assertSame(
+            [76_000, 20_000, '26.32'],
+            array_values(array_intersect_key(app(Reports::class)->foodCost($suite['outlet'], '2026-10-01', '2026-10-01'), ['revenue' => 1, 'cost' => 1, 'percent' => 1])),
+        );
+
+        $this->getJson($url.'?date=2026-09-30', $this->bearer(['stock:read']))->assertOk()
+            ->assertJsonPath('sales_paise', 48_000)->assertJsonPath('food_cost_percent', null)->assertJsonPath('uncosted', 1);
+
+        // A date that is not one is said so, not guessed at.
+        foreach (['01-10-2026', '2026-02-30', 'yesterday'] as $bad) {
+            $this->getJson($url.'?date='.$bad, $this->bearer(['stock:read']))
+                ->assertStatus(422)->assertExactJson(['message' => 'Send the business day as ?date=YYYY-MM-DD.']);
+        }
+
+        $this->getJson($url)->assertUnauthorized();
+        $this->getJson($url, $this->bearer(['bills:read']))->assertForbidden();
+
+        $crmOnly = $this->business('Chai Point', ['crm' => 'active']);
+        $this->getJson("/api/v1/outlets/{$crmOnly['outlet']}/food-cost", $this->bearer(['stock:read']))->assertForbidden();
+        $this->getJson('/api/v1/outlets/'.Ulid::generate().'/food-cost', $this->bearer(['stock:read']))->assertNotFound();
+    }
+
+    public function test_crm_reads_what_erp_last_told_it_about_each_dish(): void
+    {
+        $this->travelTo('2026-10-01T14:00:00Z');
+
+        $suite = $this->business('Spice Garden', ['erp' => 'active', 'crm' => 'active']);
+        $paneer = $this->stockItem($suite['tenant'], 'Paneer', 'g', 400);
+        $this->stock->receive(Outlets::stores($suite['outlet'])['kitchen'], $paneer, Units::toBase(700, 'g', 'g'), $paneer->last_cost_rate,
+            new Posting(StockMovement::RECEIPT, businessDate: '2026-10-01'));
+
+        $tikka = $this->menuItem('Paneer Tikka', 320, [['Full', 320], ['Half', 180]]);
+        $soup = $this->menuItem('Tomato Soup', 120);
+        $this->fromCrm($suite, 'crm.menu.item_upserted', $tikka);
+        $this->fromCrm($suite, 'crm.menu.item_upserted', $soup);
+
+        $url = "/api/v1/outlets/{$suite['outlet']}/signals";
+
+        // Nothing said about anything yet.
+        $this->getJson($url, $this->bearer(['stock:read']))->assertOk()
+            ->assertExactJson(['outlet_id' => $suite['outlet'], 'items' => [], 'taken_at' => '2026-10-01T14:00:00Z']);
+
+        $this->recipe($suite, $tikka, 'Full', [[$paneer, 250, 'g']]);
+        $this->recipe($suite, $tikka, 'Half', [[$paneer, 125, 'g']]);
+
+        // Two Full leave 200 g: not enough for a Full, enough for a Half.
+        $this->fromCrm($suite, 'crm.kitchen.line_advanced', $this->kitchenLine($tikka, 'Full', 2));
+
+        $full = ['item_id' => $tikka['item_id'], 'variant_id' => $this->variant($tikka, 'Full'), 'available' => false, 'cost_paise' => 10_000];
+        $half = ['item_id' => $tikka['item_id'], 'variant_id' => $this->variant($tikka, 'Half'), 'available' => true, 'cost_paise' => 5_000];
+
+        // The soup has no recipe, so ERP has said nothing about it and it is not listed.
+        $this->getJson($url, $this->bearer(['stock:read']))->assertOk()->assertExactJson([
+            'outlet_id' => $suite['outlet'], 'items' => [$full, $half], 'taken_at' => '2026-10-01T14:00:00Z',
+        ]);
+
+        // And it is what the events said: the endpoint and the outbox agree.
+        $told = $this->sent('erp.availability.changed')->map(fn ($event) => [$event->data['variant_id'], $event->data['available']])->all();
+        $this->assertSame([[$full['variant_id'], false]], $told);
+
+        // CRM drops Half: what ERP once said about it is about nothing CRM still has.
+        $tikka['sizes'] = [$tikka['sizes'][0]];
+        $this->fromCrm($suite, 'crm.menu.item_upserted', $tikka);
+        $this->getJson($url, $this->bearer(['stock:read']))->assertOk()->assertJsonPath('items', [$full]);
+
+        // A dish with no sizes is listed with no variant.
+        $this->recipe($suite, $soup, null, [[$paneer, 500, 'g']]);
+        $this->getJson($url, $this->bearer(['stock:read']))->assertOk()->assertJsonPath('items', [
+            $full,
+            ['item_id' => $soup['item_id'], 'variant_id' => null, 'available' => false, 'cost_paise' => 20_000],
+        ]);
+
+        // An archived dish is no longer on CRM's menu to be told about.
+        $this->fromCrm($suite, 'crm.menu.item_archived', ['item_id' => $tikka['item_id']]);
+        $this->getJson($url, $this->bearer(['stock:read']))->assertOk()->assertJsonCount(1, 'items')->assertJsonPath('items.0.item_id', $soup['item_id']);
+
+        $this->getJson($url, $this->bearer(['bills:read']))->assertForbidden();
+        $this->getJson("/api/v1/outlets/{$this->at['outlet']}/signals", $this->bearer(['stock:read']))->assertOk()->assertJsonPath('items', []);
     }
 
     public function test_accounts_reads_erps_roles(): void

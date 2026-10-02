@@ -8,7 +8,22 @@
 @endphp
 
 @section('page')
-    <x-khana::page-header title="Recipes" subtitle="What each dish is made of, what it costs, and whether stock can still cover it" />
+    <x-khana::page-header title="Recipes" subtitle="What each dish is made of, what it costs, and whether stock can still cover it">
+        {{-- Only where there is a menu in CRM to pull, and only for whoever writes the recipes. --}}
+        @if ($suite)
+            @can('recipes.manage')
+                <x-slot:actions>
+                    <form method="POST" action="{{ route('recipes.pull-menu') }}">
+                        @csrf
+                        <button type="submit" class="btn"
+                                title="{{ $menuSyncedAt ? 'Last pulled '.$menuSyncedAt->diffForHumans() : 'Dishes arrive from CRM by themselves; this fetches the whole menu now.' }}">
+                            <x-khana::icon name="refresh" :size="16" /> Pull the menu from CRM
+                        </button>
+                    </form>
+                </x-slot:actions>
+            @endcan
+        @endif
+    </x-khana::page-header>
 
     {{-- What needs doing first. --}}
     @if ($needs->isNotEmpty())

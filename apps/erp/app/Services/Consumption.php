@@ -13,6 +13,7 @@ use App\Stock\Posting;
 use App\Support\Outlets;
 use Carbon\CarbonImmutable;
 use Carbon\CarbonInterface;
+use Illuminate\Support\Collection;
 use Illuminate\Support\Facades\DB;
 use Khana\Kit\Support\Decimal;
 
@@ -32,6 +33,9 @@ use Khana\Kit\Support\Decimal;
  *   - A cancelled bill gives back only what the bill itself took. What the
  *     kitchen cooked stays used, because it was cooked.
  *   - A return puts stock back only where CRM says it can be sold again.
+ *   - A dish on a bill was served, whatever the kitchen screen said. One the
+ *     kitchen never reported as cooked is booked by the nightly check, on
+ *     the bill's own day.
  *
  * A dish with no recipe uses nothing. It is recorded all the same, so the
  * sale still counts towards food cost and the dish still shows under "Needs
@@ -205,6 +209,93 @@ class Consumption
     }
 
     /**
+     * Book the kitchen lines a bill settled that were never booked as used.
+     *
+     * A line is booked when the kitchen says it reached the outlet's chosen
+     * stage. If that event was lost, or nobody tapped the stage, the line
+     * sits unbooked for ever - yet the dish is on a bill, so it was served
+     * and its ingredients are gone. The nightly check calls this for each of
+     * the day's bills, and the food is booked now, dated to the bill's day.
+     *
+     * A line the kitchen never described at all is known only through the
+     * bill, so the bill line stands in for it: its dish, its size, its
+     * add-ons, and whatever of its quantity no other kitchen line accounts
+     * for.
+     *
+     * Each line is booked against itself, as the kitchen's own event would
+     * have booked it. So that event arriving late finds the line consumed
+     * and books nothing more, and a cancellation arriving late undoes
+     * exactly this.
+     *
+     * @return int how many kitchen lines were booked
+     */
+    public function bookBilledKitchenLines(Sale $sale, ?CarbonInterface $at = null): int
+    {
+        return DB::transaction(function () use ($sale, $at) {
+            if ($sale->isCancelled()) {
+                return 0;
+            }
+
+            $at ??= now();
+            $day = $sale->business_date->toDateString();
+            $why = 'On bill '.$sale->invoice_no.' but never marked cooked; booked by the nightly check';
+            $booked = 0;
+
+            foreach ($sale->lines()->orderBy('id')->get() as $billed) {
+                $refs = array_values($billed->kitchen_refs ?? []);
+
+                if ($refs === []) {
+                    continue;
+                }
+
+                // Locked, so the kitchen's own event cannot book the same
+                // line between this look and this booking.
+                $lines = KitchenLine::allOutlets()
+                    ->where('outlet_id', $sale->outlet_id)->whereIn('ref', $refs)
+                    ->orderBy('id')->lockForUpdate()->get()
+                    ->filter(fn (KitchenLine $line) => $line->cancelled_at === null);
+
+                $blank = $lines->filter(fn (KitchenLine $line) => $line->item_ref === null && $line->consumed_at === null)->values();
+                $left = max(0, $billed->qty - (int) $lines->filter(fn (KitchenLine $line) => $line->item_ref !== null)->sum('qty'));
+
+                foreach ($lines->filter(fn (KitchenLine $line) => $line->consumed_at === null) as $line) {
+                    if ($line->item_ref === null) {
+                        // An even share of what is left, the odd bit to the first.
+                        $share = intdiv($left, $blank->count()) + ($line->is($blank[0]) ? $left % $blank->count() : 0);
+
+                        $line->fill([
+                            'item_ref' => $billed->item_ref,
+                            'variant_ref' => $billed->variant_ref,
+                            'option_refs' => $billed->option_refs ?? [],
+                            'qty' => $share,
+                            'sales_item_id' => $billed->sales_item_id,
+                            'sales_item_size_id' => $billed->sales_item_size_id,
+                        ]);
+                    }
+
+                    if ($line->sales_item_id === 0 && $line->item_ref !== null) {
+                        // First heard of before ERP knew the dish; it may by now.
+                        [$item, $size] = $this->salesItem($line->tenant_id, $line->outlet_id, SalesItem::CRM, [
+                            'item_ref' => $line->item_ref, 'variant_ref' => $line->variant_ref, 'name' => '',
+                        ]);
+
+                        $line->fill(['sales_item_id' => $item?->id ?? 0, 'sales_item_size_id' => $size?->id ?? 0]);
+                    }
+
+                    $line->cost_paise = $this->cook($line, $line, StockMovement::CONSUMPTION, $why, null, $line->ref, $at, businessDate: $day);
+                    $line->consumed_at = $at;
+                    $line->business_date = $day;
+                    $line->save();
+
+                    $booked++;
+                }
+            }
+
+            return $booked;
+        });
+    }
+
+    /**
      * A bill was cancelled. Gives back what the bill itself took out of
      * stock; what the kitchen cooked for it stays used.
      */
@@ -334,7 +425,7 @@ class Consumption
         return $needs;
     }
 
-    /** @return \Illuminate\Support\Collection<int, StockMovement> */
+    /** @return Collection<int, StockMovement> */
     private function bookedBy(KitchenLine $line)
     {
         return StockMovement::allOutlets()
@@ -353,7 +444,10 @@ class Consumption
      */
     private function kitchenLine(string $tenantId, string $outletId, array $data): KitchenLine
     {
-        $line = KitchenLine::allOutlets()->firstOrNew(['outlet_id' => $outletId, 'ref' => $data['line_id']]);
+        // Locked where it exists: the nightly check may be booking the same
+        // line (bookBilledKitchenLines), and it must be booked by one of
+        // the two, not both.
+        $line = KitchenLine::allOutlets()->lockForUpdate()->firstOrNew(['outlet_id' => $outletId, 'ref' => $data['line_id']]);
 
         if ($line->item_ref === null) {
             [$item, $size] = $this->salesItem($tenantId, $outletId, SalesItem::CRM, [
