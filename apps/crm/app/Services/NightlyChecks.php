@@ -6,6 +6,8 @@ use App\Models\NightlyCheck;
 use App\Models\Shop;
 use App\Services\Nightly\AvailabilityCheck;
 use App\Services\Nightly\Finding;
+use App\Services\Nightly\ReferenceCheck;
+use Illuminate\Support\Facades\DB;
 use Illuminate\Support\Facades\Log;
 use Throwable;
 
@@ -25,18 +27,24 @@ use Throwable;
  */
 class NightlyChecks
 {
-    public const ORDER = [NightlyCheck::AVAILABILITY];
+    public const ORDER = [NightlyCheck::REFERENCE, NightlyCheck::AVAILABILITY];
 
     /**
      * Checks finished once they have run for a day, re-run only with --force.
-     * Availability is not one: stock moves all day, so it is reconciled on
-     * every pass and its row is overwritten with the latest answer.
+     *
+     * Reference is one: it is the business snapshot from Accounts, and once it
+     * has matched for the day there is nothing to re-ask. Availability is not:
+     * stock moves all day, so it is reconciled on every pass and its row is
+     * overwritten with the latest answer.
      *
      * @var list<string>
      */
-    private const ONCE_PER_DAY = [];
+    private const ONCE_PER_DAY = [NightlyCheck::REFERENCE];
 
-    public function __construct(private readonly AvailabilityCheck $availability) {}
+    public function __construct(
+        private readonly ReferenceCheck $reference,
+        private readonly AvailabilityCheck $availability,
+    ) {}
 
     /**
      * @return array<string, array{row: NightlyCheck, ran: bool}> check => its row, and whether this call ran it
@@ -44,7 +52,7 @@ class NightlyChecks
     public function run(string $outletId, string $date, bool $force = false): array
     {
         $shop = Shop::query()->where('ulid', $outletId)->first();
-        $tenantId = $shop?->tenant?->ulid;
+        $tenantId = $shop?->tenant?->ulid ?? DB::table('khana_outlets')->where('id', $outletId)->value('tenant_id');
         $key = fn (string $check) => ['outlet_id' => $outletId, 'business_date' => $date, 'check' => $check];
         $results = [];
 
@@ -57,7 +65,7 @@ class NightlyChecks
                 continue;
             }
 
-            $finding = $this->check($check, $shop);
+            $finding = $this->check($check, $outletId, $shop);
 
             if ($finding->isProblem()) {
                 Log::warning('A nightly check needs a look.', $key($check) + ['detail' => $finding->detail]);
@@ -80,15 +88,18 @@ class NightlyChecks
      * One check, which is never allowed to stop the others: whatever it throws
      * is reported, and written down as a problem to try again.
      */
-    private function check(string $check, ?Shop $shop): Finding
+    private function check(string $check, string $outletId, ?Shop $shop): Finding
     {
-        if ($shop === null) {
-            return Finding::skipped('CRM has no outlet for this id.');
-        }
-
         try {
             return match ($check) {
-                NightlyCheck::AVAILABILITY => $this->availability->run($shop),
+                // Reference reconciles CRM's copy of the business from Accounts;
+                // it needs the outlet's id, not a CRM shop row.
+                NightlyCheck::REFERENCE => $this->reference->run($outletId),
+                // Availability reconciles this outlet's sold-out against ERP;
+                // without a CRM shop there is nothing of CRM's to put right.
+                NightlyCheck::AVAILABILITY => $shop === null
+                    ? Finding::skipped('CRM has no shop for this outlet.')
+                    : $this->availability->run($shop),
             };
         } catch (Throwable $e) {
             report($e);

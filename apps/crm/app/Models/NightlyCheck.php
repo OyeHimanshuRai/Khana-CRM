@@ -34,6 +34,7 @@ class NightlyCheck extends Model
 
     /** The checks, in the order a person reads them, in plain words. */
     public const CHECKS = [
+        self::REFERENCE => 'Business details against Accounts',
         self::AVAILABILITY => 'Sold-out against ERP',
     ];
 
