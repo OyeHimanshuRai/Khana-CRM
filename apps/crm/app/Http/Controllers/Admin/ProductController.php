@@ -12,15 +12,16 @@ use App\Models\Product;
 use App\Models\ProductImage;
 use App\Models\TaxRate;
 use App\Models\Unit;
+use App\Services\Erp\ErpLink;
 use App\Services\MenuImportService;
 use App\Services\ScannerService;
 use App\Support\ApiResponse;
 use App\Support\CurrentShop;
+use App\Support\StockOuts;
 use Illuminate\Database\Eloquent\Builder;
 use Illuminate\Http\JsonResponse;
 use Illuminate\Http\Request;
 use Illuminate\Http\UploadedFile;
-use Illuminate\Support\Facades\DB;
 use Illuminate\Support\Facades\Storage;
 use Illuminate\Validation\Rule;
 use Illuminate\View\View;
@@ -43,6 +44,7 @@ class ProductController extends Controller
         private ScannerService $scanner,
         private readonly MenuImportService $menu,
         private readonly MenuChanges $menuChanges,
+        private readonly ErpLink $erp,
     ) {}
 
     private const PAGE_SIZES = [10, 15, 25, 50, 100];
@@ -130,7 +132,7 @@ class ProductController extends Controller
 
     public function create(): View
     {
-        return view('admin.products._form', $this->formData(new Product()));
+        return view('admin.products._form', $this->formData(new Product));
     }
 
     public function edit(Product $product): View
@@ -140,9 +142,22 @@ class ProductController extends Controller
 
     public function show(Product $product): View
     {
+        $shop = CurrentShop::get();
+
         return view('admin.products._show', [
             'product' => $product->load(['category', 'brand', 'unit', 'taxRate', 'images', 'variants', 'modifiers']),
             'shopId' => CurrentShop::id(),
+            /*
+             | What ERP adds to this page. An outlet linked to ERP gets a
+             | stock and cost panel, which the page asks for once it is up
+             | (ErpPanelController::stock) - nothing is read from ERP here.
+             | An outlet with CRM alone gets a line saying what ERP would
+             | show. Neither in the All-shops view, which is no one outlet,
+             | nor for an outlet that owns ERP on an install that cannot
+             | reach it: there is nothing to draw and nothing to sell.
+             */
+            'erpLinked' => $this->erp->linked($shop),
+            'erpAlone' => $shop !== null && ! $this->erp->owns($shop),
         ]);
     }
 
@@ -183,6 +198,13 @@ class ProductController extends Controller
             'overrideShop' => $shopId ? CurrentShop::get() : null,
             'override' => $shopId && $product->exists ? $product->overrideFor($shopId)?->pivot : null,
             'maxGallery' => self::MAX_GALLERY,
+            /*
+             | At an outlet linked to ERP the cost of a dish is ERP's figure:
+             | erp.cost.changed writes it over whatever is in the box (see
+             | App\Events\Inbound\ApplyCost). The form says so and stops
+             | offering to take a number it would not keep.
+             */
+            'costFromErp' => $this->erp->linked(CurrentShop::get()),
         ];
     }
 
@@ -309,26 +331,57 @@ class ProductController extends Controller
      * Throwing it clears any "back on at" time. That time is how the flag
      * un-sets itself, and inheriting yesterday's would put a dish back on the
      * menu the moment it was taken off.
+     *
+     * ---------------------------------------------------------------------
+     * Sold-out is set by stock, and staff can override it
+     * ---------------------------------------------------------------------
+     *
+     * The tap undoes what the list shows, for the outlet the list is showing.
+     * A dish can be off for two reasons (Product::isSoldOut) and putting it
+     * back clears both: the flag staff threw, and - where ERP's stock is
+     * what took it off here - this outlet's stock-out rows for the dish and
+     * its sizes. The cook holding the last tray knows something the stock
+     * count does not.
+     *
+     * An override lasts until ERP speaks about the dish again: its next
+     * stock change, or the nightly check. The message says so, because
+     * otherwise a dish that goes off again by itself looks like a bug.
+     *
+     * Taking a dish off is always the hand flag, for the whole business.
+     * None of this is sent to ERP - sold-out is not in
+     * crm.menu.item_upserted.
      */
     public function toggleSoldOut(Product $product): JsonResponse
     {
-        $soldOut = ! $product->is_sold_out;
+        $shopId = CurrentShop::id();
+
+        $outOfStock = $product->isOutOfStock($shopId);
+        $soldOut = ! $product->isSoldOut(null, $shopId);
 
         $product->forceFill([
             'is_sold_out' => $soldOut,
             'sold_out_until' => null,
         ])->save();
 
+        $overrode = ! $soldOut && $outOfStock && StockOuts::putBack((int) $shopId, (int) $product->id) > 0;
+
         ActivityLog::record(
             $soldOut ? 'product.sold_out' : 'product.back_on',
-            ($soldOut ? 'Marked sold out' : 'Put back on the menu').": \"{$product->name}\"",
+            match (true) {
+                $soldOut => 'Marked sold out',
+                $overrode => 'Put back on the menu, though stock says it has run out',
+                default => 'Put back on the menu',
+            }.": \"{$product->name}\"",
             $product,
         );
 
         return ApiResponse::success(
-            $soldOut
-                ? "\"{$product->name}\" is off the menu."
-                : "\"{$product->name}\" is back on the menu.",
+            match (true) {
+                $soldOut => "\"{$product->name}\" is off the menu.",
+                $overrode => "\"{$product->name}\" is back on the menu here. Stock still says it has run out, "
+                    .'so it will come off again when its stock next changes, or after tonight\'s check.',
+                default => "\"{$product->name}\" is back on the menu.",
+            },
             ['is_sold_out' => $soldOut],
         );
     }

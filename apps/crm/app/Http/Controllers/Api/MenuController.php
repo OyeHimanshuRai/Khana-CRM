@@ -66,6 +66,14 @@ class MenuController extends Controller
      * Its own ability. An aggregator that can close a dish is useful; one
      * that could do it while only holding read access is a way to shut a
      * restaurant's menu from outside.
+     *
+     * This throws the switch staff throw by hand, for the whole business,
+     * and nothing else. A dish ERP's stock has taken off this outlet's menu
+     * is not put back from here: an integration that pushed "available" for
+     * every dish on a timer would undo every stock-out as fast as ERP sent
+     * it. Putting a dish back against stock is somebody's decision, made on
+     * the menu screen. So the answer says what the menu now says at this
+     * outlet - which can still be sold out after asking for it back.
      */
     public function availability(Request $request, Product $product): JsonResponse
     {
@@ -76,7 +84,7 @@ class MenuController extends Controller
         $product->forceFill(['is_sold_out' => $data['is_sold_out']])->save();
 
         return response()->json([
-            'data' => ['id' => $product->id, 'is_sold_out' => (bool) $product->is_sold_out],
+            'data' => ['id' => $product->id, 'is_sold_out' => $product->isSoldOut(null, CurrentShop::id())],
         ]);
     }
 
@@ -89,6 +97,10 @@ class MenuController extends Controller
     {
         $shopId = CurrentShop::id();
 
+        // For the token's own outlet: taken off by hand, or out of stock
+        // there. Another outlet of the same business may still be selling it.
+        $soldOut = $product->isSoldOut(null, $shopId);
+
         return [
             'id' => $product->id,
             'name' => $product->name,
@@ -99,14 +111,17 @@ class MenuController extends Controller
             // The three channel prices §8 asks for, where they differ.
             'dine_in_price' => $product->dine_in_price !== null ? (float) $product->dine_in_price : null,
             'takeaway_price' => $product->takeaway_price !== null ? (float) $product->takeaway_price : null,
-            'is_sold_out' => (bool) $product->is_sold_out,
-            'is_available' => $product->is_active && ! $product->is_sold_out,
+            'is_sold_out' => $soldOut,
+            'is_available' => $product->is_active && ! $soldOut,
             'food_tags' => $product->food_tags ?? [],
             'image' => $product->imageUrl(),
             'variants' => $product->variants->map(fn ($variant) => [
                 'id' => $variant->id,
                 'name' => $variant->name,
                 'price' => (float) ($variant->selling_price ?? $product->counterPriceFor($shopId)),
+                // A size can be off while the dish is on: switched off by
+                // staff, or one this outlet's stock cannot cover.
+                'is_available' => $variant->isAvailableAt($shopId),
             ])->values(),
             'updated_at' => $product->updated_at?->toIso8601String(),
         ];

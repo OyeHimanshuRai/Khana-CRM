@@ -1,5 +1,14 @@
 <?php
 
+use App\Http\Middleware\EnsureCustomerBelongsToShop;
+use App\Http\Middleware\EnsureGuestOutletIsEntitled;
+use App\Http\Middleware\EnsureIpNotBlocked;
+use App\Http\Middleware\EnsureModuleIsEnabled;
+use App\Http\Middleware\EnsureShopIsEntitled;
+use App\Http\Middleware\EnsureTenantIsActive;
+use App\Http\Middleware\EnsureUserIsAdmin;
+use App\Http\Middleware\ShareStorefrontShop;
+use App\Http\Middleware\TrackUserSession;
 use App\Support\ApiResponse;
 use Illuminate\Auth\AuthenticationException;
 use Illuminate\Foundation\Application;
@@ -8,6 +17,11 @@ use Illuminate\Foundation\Configuration\Middleware;
 use Illuminate\Http\Request;
 use Illuminate\Support\Facades\Route;
 use Illuminate\Validation\ValidationException;
+use Laravel\Sanctum\Http\Middleware\CheckAbilities;
+use Laravel\Sanctum\Http\Middleware\CheckForAnyAbility;
+use Spatie\Permission\Middleware\PermissionMiddleware;
+use Spatie\Permission\Middleware\RoleMiddleware;
+use Spatie\Permission\Middleware\RoleOrPermissionMiddleware;
 use Symfony\Component\HttpKernel\Exception\HttpExceptionInterface;
 
 return Application::configure(basePath: dirname(__DIR__))
@@ -38,9 +52,9 @@ return Application::configure(basePath: dirname(__DIR__))
     )
     ->withMiddleware(function (Middleware $middleware): void {
         $middleware->alias([
-            'admin' => \App\Http\Middleware\EnsureUserIsAdmin::class,
+            'admin' => EnsureUserIsAdmin::class,
             // Runs after `admin`: a suspended company's staff are signed out.
-            'tenant.active' => \App\Http\Middleware\EnsureTenantIsActive::class,
+            'tenant.active' => EnsureTenantIsActive::class,
             /*
             | The per-outlet half of the same question: has this outlet bought
             | CRM? Accounts sells per outlet and the kit keeps its answer in
@@ -49,7 +63,13 @@ return Application::configure(basePath: dirname(__DIR__))
             | and trading. Named apart from the kit's own `entitled` alias,
             | which reads the kit's tenancy context; see the middleware.
             */
-            'shop.entitled' => \App\Http\Middleware\EnsureShopIsEntitled::class,
+            'shop.entitled' => EnsureShopIsEntitled::class,
+            /*
+            | The same question for a guest - the QR stickers and the
+            | storefront - where nobody is signed in and the outlet is the
+            | one the guest is at. The rule is EnsureShopIsEntitled's.
+            */
+            'guest.entitled' => EnsureGuestOutletIsEntitled::class,
             /*
             | The shop-level half of access. Reads the route's own
             | `permission:` middleware and refuses it when the branch does not
@@ -57,10 +77,10 @@ return Application::configure(basePath: dirname(__DIR__))
             | by typed URL and by API, not merely missing from the sidebar.
             | Applied once to the whole admin group; see routes/web.php.
             */
-            'module' => \App\Http\Middleware\EnsureModuleIsEnabled::class,
-            'ip.allowed' => \App\Http\Middleware\EnsureIpNotBlocked::class,
-            'customer.shop' => \App\Http\Middleware\EnsureCustomerBelongsToShop::class,
-            'storefront.shop' => \App\Http\Middleware\ShareStorefrontShop::class,
+            'module' => EnsureModuleIsEnabled::class,
+            'ip.allowed' => EnsureIpNotBlocked::class,
+            'customer.shop' => EnsureCustomerBelongsToShop::class,
+            'storefront.shop' => ShareStorefrontShop::class,
             /*
             | Sanctum's token scopes, for the API.
             |
@@ -68,11 +88,11 @@ return Application::configure(basePath: dirname(__DIR__))
             | for an aggregator can read the menu and post orders and do
             | nothing else. See routes/api.php.
             */
-            'ability' => \Laravel\Sanctum\Http\Middleware\CheckForAnyAbility::class,
-            'abilities' => \Laravel\Sanctum\Http\Middleware\CheckAbilities::class,
-            'role' => \Spatie\Permission\Middleware\RoleMiddleware::class,
-            'permission' => \Spatie\Permission\Middleware\PermissionMiddleware::class,
-            'role_or_permission' => \Spatie\Permission\Middleware\RoleOrPermissionMiddleware::class,
+            'ability' => CheckForAnyAbility::class,
+            'abilities' => CheckAbilities::class,
+            'role' => RoleMiddleware::class,
+            'permission' => PermissionMiddleware::class,
+            'role_or_permission' => RoleOrPermissionMiddleware::class,
         ]);
 
         /*
@@ -80,7 +100,7 @@ return Application::configure(basePath: dirname(__DIR__))
         | has gone out, so tracking never sits on the request's critical path.
         */
         $middleware->web(append: [
-            \App\Http\Middleware\TrackUserSession::class,
+            TrackUserSession::class,
         ]);
 
         /*

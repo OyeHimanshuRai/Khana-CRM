@@ -7,12 +7,14 @@ use App\Models\Concerns\HasPublicId;
 use App\Models\Concerns\HasUniqueSlug;
 use App\Support\CurrentShop;
 use App\Support\PriceLists;
+use App\Support\StockOuts;
 use Illuminate\Database\Eloquent\Builder;
 use Illuminate\Database\Eloquent\Model;
 use Illuminate\Database\Eloquent\Relations\BelongsTo;
 use Illuminate\Database\Eloquent\Relations\BelongsToMany;
 use Illuminate\Database\Eloquent\Relations\HasMany;
 use Illuminate\Database\Eloquent\SoftDeletes;
+use Illuminate\Support\Carbon;
 use Illuminate\Support\Facades\Storage;
 use Illuminate\Support\Str;
 
@@ -24,11 +26,17 @@ use Illuminate\Support\Str;
  *
  *   sellingPriceFor()     product_shop override, falling back to the master
  *   channelPriceFor()     the same, for one order channel (§8)
+ *   isSoldOut()           the switch staff throw for the whole business, or
+ *                         ERP's stock at this one outlet
  *
- * Both default to the shop the request is working in, so an ordinary caller
- * never has to remember to pass one. CRM keeps no count of what is on a
- * shelf - see the architecture doc's "CRM alone" table - so there is no
- * shop-scoped stock figure to read here.
+ * All of them default to the shop the request is working in, so an ordinary
+ * caller never has to remember to pass one. A guest's page has no such shop -
+ * nobody is signed in - and names the outlet it is serving.
+ *
+ * CRM keeps no count of what is on a shelf - see the architecture doc's "CRM
+ * alone" table - so there is no stock figure to read here. What ERP tells it
+ * is only whether an outlet's stock can still cover a portion: see
+ * App\Support\StockOuts.
  */
 class Product extends Model
 {
@@ -451,18 +459,59 @@ class Product extends Model
      * Kept as one method because every caller wants the same answer and a
      * customer menu that disagreed with the POS about whether breakfast is
      * on would be worse than either being wrong alone.
+     *
+     * The second question is asked of one outlet - see isSoldOut().
      */
-    public function isOrderable(?\DateTimeInterface $at = null): bool
+    public function isOrderable(?\DateTimeInterface $at = null, ?int $shopId = null): bool
     {
         if (! $this->is_active) {
             return false;
         }
 
-        return ! $this->isSoldOut($at) && $this->isInServingWindow($at);
+        return ! $this->isSoldOut($at, $shopId) && $this->isInServingWindow($at);
     }
 
     /**
-     * Sold out, with the overnight reprieve §8 implies.
+     * Sold out at one outlet, for either of the two reasons a dish can be.
+     *
+     *   staff said so   for the whole business - isSoldOutByStaff().
+     *   stock said so   at this outlet only - isOutOfStock().
+     *
+     * The outlet defaults to the shop the request is working in. With none -
+     * the consolidated All-shops view, or a page nobody is signed in to that
+     * did not name one - there is no single outlet's stock to ask, and only
+     * the staff flag answers.
+     */
+    public function isSoldOut(?\DateTimeInterface $at = null, ?int $shopId = null): bool
+    {
+        return $this->isSoldOutByStaff($at) || $this->isOutOfStock($shopId);
+    }
+
+    /**
+     * Whether ERP's stock has taken the dish off this outlet's menu: it
+     * cannot cover a portion of the dish, or of any size staff have left on.
+     *
+     * Read through App\Support\StockOuts, which fetches an outlet's rows
+     * once however many dishes ask.
+     */
+    public function isOutOfStock(?int $shopId = null): bool
+    {
+        return StockOuts::dishOut($shopId ?? CurrentShop::id(), (int) $this->id);
+    }
+
+    /**
+     * The sizes stock has taken off at this outlet, by name - for a screen
+     * that has to say which, when the dish itself is still on sale.
+     *
+     * @return list<string>
+     */
+    public function sizesOutOfStock(?int $shopId = null): array
+    {
+        return StockOuts::sizesOut($shopId ?? CurrentShop::id(), (int) $this->id);
+    }
+
+    /**
+     * Taken off by hand, with the overnight reprieve §8 implies.
      *
      * `sold_out_until` in the past clears itself rather than needing somebody
      * to remember at midnight - a kitchen that runs out of prawns at nine
@@ -471,7 +520,7 @@ class Product extends Model
      * The flag is not written back here. Reading is not the place to write,
      * and a menu page for a guest must not fire an UPDATE.
      */
-    public function isSoldOut(?\DateTimeInterface $at = null): bool
+    public function isSoldOutByStaff(?\DateTimeInterface $at = null): bool
     {
         if (! $this->is_sold_out) {
             return false;
@@ -493,7 +542,7 @@ class Product extends Model
      */
     public function isInServingWindow(?\DateTimeInterface $at = null): bool
     {
-        $now = $at ? \Illuminate\Support\Carbon::instance($at) : now();
+        $now = $at ? Carbon::instance($at) : now();
 
         $days = $this->available_days;
 
@@ -518,15 +567,25 @@ class Product extends Model
             : ($clock >= $from || $clock <= $to);   // wraps midnight
     }
 
-    /** Why it cannot be ordered, for a menu card that has to say something. */
-    public function unavailableReason(?\DateTimeInterface $at = null): ?string
+    /**
+     * Why it cannot be ordered, for a menu card that has to say something.
+     *
+     * The two kinds of sold-out are worded apart, because the person reading
+     * does different things about them: "Sold out" is somebody's decision and
+     * is undone by asking them, "Out of stock" is undone by a delivery.
+     */
+    public function unavailableReason(?\DateTimeInterface $at = null, ?int $shopId = null): ?string
     {
         if (! $this->is_active) {
             return 'Not on the menu';
         }
 
-        if ($this->isSoldOut($at)) {
+        if ($this->isSoldOutByStaff($at)) {
             return 'Sold out';
+        }
+
+        if ($this->isOutOfStock($shopId)) {
+            return 'Out of stock';
         }
 
         if (! $this->isInServingWindow($at)) {
@@ -543,7 +602,7 @@ class Product extends Model
             return null;
         }
 
-        $short = fn (string $time) => \Illuminate\Support\Carbon::createFromFormat(
+        $short = fn (string $time) => Carbon::createFromFormat(
             'H:i:s', self::clockTime($time)
         )->format('g:i a');
 

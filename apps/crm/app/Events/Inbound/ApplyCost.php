@@ -26,8 +26,9 @@ use Khana\Kit\Events\Inbox\Handler;
  * when it needs one, and a stored percentage would go stale the moment the
  * price changed.
  *
- * Like sold-out, the dish-level and size-level costs are per business, not
- * per outlet, except where an outlet keeps its own override.
+ * Unlike sold-out, which is kept per outlet (ApplyAvailability), the
+ * dish-level and size-level costs are per business, except where an outlet
+ * keeps its own override.
  */
 final class ApplyCost implements Handler
 {

@@ -9,8 +9,8 @@ use App\Models\InvoiceItem;
 use App\Models\Order;
 use App\Models\Payment;
 use App\Models\PaymentReminder;
-use App\Models\Product;
 use App\Models\RestaurantTable;
+use App\Services\Erp\ErpLink;
 use App\Support\CurrentShop;
 use App\Support\Modules;
 use Illuminate\Database\Eloquent\Builder;
@@ -32,10 +32,13 @@ use Illuminate\View\View;
  */
 class DashboardController extends Controller
 {
+    public function __construct(private readonly ErpLink $erpLink) {}
+
     public function __invoke(): View
     {
         return view('admin.dashboard', [
             'shop' => CurrentShop::get(),
+            'erp' => $this->erp(),
             'sales' => $this->when('reports.sales_report.view', fn () => $this->sales()),
             'profit' => $this->when('reports.profit_report.view', fn () => $this->profit()),
             'room' => $this->when('dining.tables.view', fn () => $this->room()),
@@ -72,6 +75,37 @@ class DashboardController extends Controller
     private function may(string $permission): bool
     {
         return Modules::allows($permission) && Gate::allows($permission);
+    }
+
+    /* ------------------------------------------------------ what ERP knows */
+
+    /**
+     * Which of ERP's figures this reader gets, or null when the home screen
+     * shows nothing from ERP at all.
+     *
+     * Only for one outlet, and only one linked to ERP. The All-shops view
+     * has no single outlet to ask about, and an outlet with CRM alone has no
+     * ERP - neither gets a tile that says nothing.
+     *
+     * Nothing is read from ERP here. This says which panels to draw; each
+     * one is fetched after the page is up (ErpPanelController), so ERP being
+     * slow or down never holds up the screen people open first.
+     *
+     * `food_cost` is gated like the profit tile, by the same pair of checks:
+     * what the food cost against what it sold for is a profit figure, and a
+     * cashier who is not shown the margin is not shown this either.
+     *
+     * @return array{food_cost: bool}|null
+     */
+    private function erp(): ?array
+    {
+        if (! $this->erpLink->linked(CurrentShop::get())) {
+            return null;
+        }
+
+        return [
+            'food_cost' => $this->may('reports.profit_report.view'),
+        ];
     }
 
     /* -------------------------------------------------------------- sales */

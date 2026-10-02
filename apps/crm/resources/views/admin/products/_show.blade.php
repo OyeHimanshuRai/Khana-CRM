@@ -31,8 +31,15 @@
                 {{ $product->is_published ? 'In online store' : 'Not listed online' }}
             </span>
 
-            @if ($product->is_sold_out)
+            {{-- Two reasons, told apart: taken off by hand for every outlet,
+                 or this outlet's stock ran out. Staff can put either back
+                 from the list. --}}
+            @if ($product->isSoldOutByStaff())
                 <span class="badge badge-danger">Sold out</span>
+            @elseif ($product->isOutOfStock($shopId))
+                <span class="badge badge-warning">Out of stock here</span>
+            @elseif ($product->sizesOutOfStock($shopId) !== [])
+                <span class="badge badge-warning">{{ implode(', ', $product->sizesOutOfStock($shopId)) }} out of stock here</span>
             @endif
         </div>
 
@@ -108,6 +115,10 @@
                 <p class="text-sm text-muted">{{ $product->servingWindowLabel() }}</p>
             </div>
         @endif
+
+        {{-- Stock and cost from ERP for an outlet that has it, and a line
+             about what ERP adds for one that does not. --}}
+        @include('admin.products._erp')
     </div>
 </div>
 

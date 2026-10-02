@@ -22,11 +22,16 @@ use Illuminate\Support\Facades\Route;
 | existing rule that a Customer belongs to exactly one Shop, so there is no
 | redesign of tenancy to support this. See ShareStorefrontShop for the
 | inactive-shop 404 that route-model binding alone does not give.
+|
+| The whole storefront is closed while the outlet has not got CRM - suspended,
+| ended or never bought - see EnsureGuestOutletIsEntitled (`guest.entitled`).
+| It exists to take orders, and a shop window nobody can order from is not
+| one to leave open.
 */
 
 Route::prefix('shop/{shop:slug}')
     ->name('shop.')
-    ->middleware('storefront.shop')
+    ->middleware(['storefront.shop', 'guest.entitled'])
     // Product/category/order are not children of Shop through a
     // relationship Laravel could scope by (they're global catalogue rows
     // and customer-owned rows, not $shop->products()/$shop->orders()) -

@@ -42,14 +42,22 @@
                     <legend class="t-group-title">Size</legend>
 
                     @foreach ($item->variants as $variant)
-                        <label class="t-opt @unless ($variant->is_available) is-off @endunless">
+                        @php
+                            // Staff have left it on, and this outlet's stock
+                            // can cover it. A size that cannot be ordered is
+                            // never the one already picked: a disabled radio
+                            // posts nothing, and the guest would be told to
+                            // choose a size they thought they had.
+                            $onSale = $variant->isAvailableAt((int) $session->shop_id);
+                        @endphp
+                        <label class="t-opt @unless ($onSale) is-off @endunless">
                             <input type="radio" name="product_variant_id" value="{{ $variant->id }}"
-                                   @checked($variant->is_default)
-                                   @disabled(! $variant->is_available)
+                                   @checked($variant->is_default && $onSale)
+                                   @disabled(! $onSale)
                                    required>
                             <span class="t-opt-name">{{ $variant->name }}</span>
                             <span class="t-opt-price">₹{{ number_format((float) $variant->price, 0) }}</span>
-                            @unless ($variant->is_available)
+                            @unless ($onSale)
                                 <span class="t-opt-off">Not available</span>
                             @endunless
                         </label>

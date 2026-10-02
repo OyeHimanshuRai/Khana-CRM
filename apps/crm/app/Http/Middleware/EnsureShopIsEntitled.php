@@ -6,6 +6,7 @@ use App\Models\Shop;
 use App\Models\User;
 use App\Support\ApiResponse;
 use App\Support\CurrentShop;
+use App\Support\SignInMode;
 use Closure;
 use Illuminate\Http\Request;
 use Illuminate\Support\Collection;
@@ -63,11 +64,27 @@ use Symfony\Component\HttpFoundation\Response;
  *
  * Runs after `tenant.active` and before `module`, which asks what this
  * branch may reach once it may use CRM at all.
+ *
+ * ---------------------------------------------------------------------------
+ * The public API: `shop.entitled:api`
+ * ---------------------------------------------------------------------------
+ *
+ * A token belongs to a member of staff, so the API gets exactly the rule
+ * above - a suspended outlet's integration may still read, and may not take
+ * an order. Two things differ. The refusal is the API's own JSON, whatever
+ * the caller asked for. And on an install that does not sign people in
+ * through Accounts the gate steps aside: there is no Accounts there to have
+ * sold anything, and the API kept working on such an install before this
+ * gate reached it. Guests are judged by the same rule, in
+ * EnsureGuestOutletIsEntitled, through usable() below.
  */
 class EnsureShopIsEntitled
 {
     /** The product this app is, in Accounts' words. */
     public const PRODUCT = 'crm';
+
+    /** The `shop.entitled:api` surface - see the class note. */
+    public const API = 'api';
 
     /**
      * Reachable whatever the outlet holds: the way out, and the way to an
@@ -78,10 +95,14 @@ class EnsureShopIsEntitled
     public function __construct(private readonly Entitlements $entitlements) {}
 
     /**
-     * @param  \Closure(\Illuminate\Http\Request): (\Symfony\Component\HttpFoundation\Response)  $next
+     * @param  Closure(Request): (Response)  $next
      */
-    public function handle(Request $request, Closure $next): Response
+    public function handle(Request $request, Closure $next, ?string $surface = null): Response
     {
+        if ($surface === self::API && ! SignInMode::throughAccounts()) {
+            return $next($request);
+        }
+
         $user = $request->user();
 
         if (! $user instanceof User || $user->isSuperAdmin() || $request->routeIs(...self::ALWAYS)) {
@@ -101,13 +122,8 @@ class EnsureShopIsEntitled
         $held = false;
 
         foreach ($shops as $shop) {
-            // A shop Accounts has never named cannot have been sold.
-            if (blank($shop->ulid)) {
-                continue;
-            }
-
-            $usable = $usable || $this->entitlements->allows($shop->ulid, self::PRODUCT);
-            $held = $held || $this->entitlements->owns($shop->ulid, self::PRODUCT);
+            $usable = $usable || $this->usable($shop);
+            $held = $held || $this->held($shop);
         }
 
         if ($usable || ($held && $request->isMethodSafe())) {
@@ -115,6 +131,25 @@ class EnsureShopIsEntitled
         }
 
         return $this->refuse($request, $this->message($current, $held));
+    }
+
+    /**
+     * May this outlet use CRM fully: trial, active, or the grace days after
+     * a missed payment.
+     *
+     * The rule itself, for one outlet - asked here for staff and by
+     * EnsureGuestOutletIsEntitled for guests, so there is one answer to it.
+     * A shop Accounts has never named cannot have been sold.
+     */
+    public function usable(Shop $shop): bool
+    {
+        return filled($shop->ulid) && $this->entitlements->allows($shop->ulid, self::PRODUCT);
+    }
+
+    /** Does this outlet still hold CRM, suspended included (read only)? */
+    public function held(Shop $shop): bool
+    {
+        return filled($shop->ulid) && $this->entitlements->owns($shop->ulid, self::PRODUCT);
     }
 
     /**
@@ -144,6 +179,12 @@ class EnsureShopIsEntitled
      */
     private function refuse(Request $request, string $message): Response
     {
+        // The API answers in its own shape, as its 401 does - a script that
+        // did not ask for JSON would otherwise be handed an HTML page.
+        if ($request->is('api/*')) {
+            return response()->json(['message' => $message], 403);
+        }
+
         if ($request->expectsJson()) {
             return ApiResponse::error($message, [], 403);
         }

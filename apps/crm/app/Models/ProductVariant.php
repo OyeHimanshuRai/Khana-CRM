@@ -3,6 +3,8 @@
 namespace App\Models;
 
 use App\Models\Concerns\HasPublicId;
+use App\Support\CurrentShop;
+use App\Support\StockOuts;
 use Illuminate\Database\Eloquent\Builder;
 use Illuminate\Database\Eloquent\Model;
 use Illuminate\Database\Eloquent\Relations\BelongsTo;
@@ -14,6 +16,10 @@ use Illuminate\Database\Eloquent\Relations\BelongsTo;
  * product is global catalogue, and the per-shop overrides live on
  * `product_shop` exactly as they do for the base price. Adding a second
  * scoping rule here would mean two answers to "what does a Large cost".
+ *
+ * One thing about a size does differ from outlet to outlet, and it is not
+ * kept on this row: whether that outlet's stock can still cover it. That is
+ * ERP's answer, held per outlet - see isAvailableAt().
  */
 class ProductVariant extends Model
 {
@@ -53,6 +59,25 @@ class ProductVariant extends Model
     }
 
     /* --------------------------------------------------------- behaviour */
+
+    /**
+     * Whether this size can be ordered at one outlet.
+     *
+     * Two things have to agree: staff have left it on (`is_available`, for
+     * the whole business) and ERP's stock at that outlet can cover it. The
+     * outlet defaults to the shop the request is working in; with none, only
+     * the staff switch answers - as for the dish, see Product::isSoldOut().
+     */
+    public function isAvailableAt(?int $shopId = null): bool
+    {
+        return $this->is_available && ! $this->isOutOfStock($shopId);
+    }
+
+    /** Whether ERP's stock has taken this size off that outlet's menu. */
+    public function isOutOfStock(?int $shopId = null): bool
+    {
+        return StockOuts::sizeOut($shopId ?? CurrentShop::id(), (int) $this->product_id, (int) $this->id);
+    }
 
     /** "Biryani — Full", for a KOT line or a bill. */
     public function fullName(): string

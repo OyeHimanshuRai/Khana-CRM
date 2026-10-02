@@ -6,6 +6,7 @@ use App\Events\Inbound\ApplyAvailability;
 use App\Events\Inbound\ApplyCost;
 use App\Events\Outbound\MenuChanges;
 use App\Events\Outbound\MenuWatch;
+use App\Support\StockOuts;
 use Illuminate\Support\ServiceProvider;
 use Khana\Kit\Events\Inbox\Handlers;
 
@@ -34,6 +35,10 @@ final class ErpIntegrationServiceProvider extends ServiceProvider
     {
         // One request's (or one job's) notes of which dishes changed.
         $this->app->scoped(MenuChanges::class);
+
+        // And one request's reading of what stock has taken off each
+        // outlet's menu - a grid of dishes asks once, not once per dish.
+        $this->app->scoped(StockOuts::class);
     }
 
     public function boot(): void

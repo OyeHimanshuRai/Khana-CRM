@@ -59,8 +59,7 @@ class OrderController extends Controller
     public function show(Order $order): JsonResponse
     {
         return response()->json(['data' => $this->row(
-            $order->load(['items', 'statusLogs'])
-        , withTrail: true)]);
+            $order->load(['items', 'statusLogs']), withTrail: true)]);
     }
 
     /**
@@ -105,6 +104,10 @@ class OrderController extends Controller
          */
         $lines = [];
 
+        // The outlet the order will be filed at, which is the one whose
+        // stock decides whether a dish can be had.
+        $shopId = CurrentShop::idForWrite();
+
         foreach ($data['items'] as $line) {
             $product = Product::query()->sellable()->find($line['product_id']);
 
@@ -114,9 +117,24 @@ class OrderController extends Controller
                 ], 422);
             }
 
-            if ($product->is_sold_out) {
+            if ($product->isSoldOut(null, $shopId)) {
                 return response()->json([
                     'message' => $product->name.' is sold out.',
+                ], 409);
+            }
+
+            /*
+             | And the size, where one is named. A Half can be off - switched
+             | off by staff, or out of stock at this outlet - while the dish
+             | and its Full are on.
+             */
+            $variant = isset($line['variant_id'])
+                ? $product->variants()->find($line['variant_id'])
+                : null;
+
+            if ($variant !== null && ! $variant->isAvailableAt($shopId)) {
+                return response()->json([
+                    'message' => $variant->fullName().' is not available.',
                 ], 409);
             }
 

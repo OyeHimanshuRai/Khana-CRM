@@ -2,6 +2,9 @@
     $mrp = $product->mrpFor($shop->id);
     $price = $product->counterPriceFor($shop->id);
     $image = $product->images->first()?->url();
+    // At this outlet: taken off by hand, or out of stock here. A guest is
+    // not signed in, so the outlet is named rather than assumed.
+    $soldOut = $product->isSoldOut(null, $shop->id);
 @endphp
 
 <div class="shop-card">
@@ -27,7 +30,7 @@
             @endif
         </div>
 
-        @if ($product->is_sold_out)
+        @if ($soldOut)
             <div class="shop-stock-out">Out of stock</div>
         @endif
 
@@ -35,8 +38,8 @@
             @csrf
             <input type="hidden" name="product_id" value="{{ $product->id }}">
             <input type="hidden" name="quantity" value="1">
-            <button type="submit" class="shop-btn shop-btn-block shop-btn-sm" @disabled($product->is_sold_out)>
-                {{ $product->is_sold_out ? 'Out of stock' : 'Add to cart' }}
+            <button type="submit" class="shop-btn shop-btn-block shop-btn-sm" @disabled($soldOut)>
+                {{ $soldOut ? 'Out of stock' : 'Add to cart' }}
             </button>
         </form>
     </div>

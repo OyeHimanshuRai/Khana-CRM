@@ -64,7 +64,7 @@ class TableCartItem extends Model
         $ids = collect($this->option_ids ?? [])->map(fn ($id) => (int) $id)->filter();
 
         if ($ids->isEmpty()) {
-            return new Collection();
+            return new Collection;
         }
 
         return ModifierOption::query()
@@ -107,14 +107,20 @@ class TableCartItem extends Model
      * Checked when the cart is rendered and again when the order is placed:
      * a dish can sell out between a guest adding it and tapping Order, and
      * the second check is the one that matters.
+     *
+     * Asked of the line's own outlet. A guest's cart has no signed-in shop
+     * to fall back on, and the dish may be out of stock here while the
+     * outlet across town still has it.
      */
     public function isOrderable(): bool
     {
-        if ($this->product === null || ! $this->product->isOrderable()) {
+        $shopId = $this->outletId();
+
+        if ($this->product === null || ! $this->product->isOrderable(null, $shopId)) {
             return false;
         }
 
-        return $this->variant === null || $this->variant->is_available;
+        return $this->variant === null || $this->variant->isAvailableAt($shopId);
     }
 
     /** Why it cannot be sent, for a cart line that has to say something. */
@@ -124,14 +130,22 @@ class TableCartItem extends Model
             return 'No longer on the menu';
         }
 
-        if ($reason = $this->product->unavailableReason()) {
+        $shopId = $this->outletId();
+
+        if ($reason = $this->product->unavailableReason(null, $shopId)) {
             return $reason;
         }
 
-        if ($this->variant !== null && ! $this->variant->is_available) {
+        if ($this->variant !== null && ! $this->variant->isAvailableAt($shopId)) {
             return $this->variant->name.' is not available';
         }
 
         return null;
+    }
+
+    /** The outlet this line was put in a cart at. */
+    private function outletId(): ?int
+    {
+        return $this->shop_id === null ? null : (int) $this->shop_id;
     }
 }

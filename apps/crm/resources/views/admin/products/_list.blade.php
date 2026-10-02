@@ -23,6 +23,16 @@
             @forelse ($products as $product)
                 @php
                     $image = $product->imageUrl();
+
+                    // A dish is off for one of two reasons, and the list says
+                    // which: somebody took it off by hand ("Sold out", for
+                    // every outlet), or this outlet's stock ran out ("Out of
+                    // stock", here only). In All-shops mode there is no one
+                    // outlet's stock to read, so only the first can show.
+                    $byStaff = $product->isSoldOutByStaff();
+                    $byStock = ! $byStaff && $product->isOutOfStock($shopId);
+                    $off = $byStaff || $byStock;
+                    $sizesOut = $off ? [] : $product->sizesOutOfStock($shopId);
                 @endphp
                 <tr>
                     <td>
@@ -57,8 +67,14 @@
                                data-modal-size="lg">{{ $product->name }}</a>
                         </strong>
 
-                        @if ($product->is_sold_out)
+                        @if ($byStaff)
                             <span class="badge badge-danger" style="margin-left:6px">Sold out</span>
+                        @elseif ($byStock)
+                            <span class="badge badge-warning" style="margin-left:6px"
+                                  title="This outlet's stock cannot cover it. Tap the button on the right to sell it anyway.">Out of stock</span>
+                        @elseif ($sizesOut !== [])
+                            <span class="badge badge-warning" style="margin-left:6px"
+                                  title="This outlet's stock cannot cover these sizes.">{{ implode(', ', $sizesOut) }} out of stock</span>
                         @endif
 
                         <span class="text-xs text-muted" style="display:block">
@@ -133,10 +149,10 @@
                                     @csrf
                                     @method('PUT')
                                     <button type="submit"
-                                            class="btn btn-icon {{ $product->is_sold_out ? 'is-danger' : '' }}"
-                                            title="{{ $product->is_sold_out ? 'Put back on the menu' : 'Mark sold out' }}"
-                                            aria-label="{{ $product->is_sold_out ? 'Put '.$product->name.' back on the menu' : 'Mark '.$product->name.' sold out' }}">
-                                        <x-icon name="{{ $product->is_sold_out ? 'user-x' : 'user-check' }}" :size="15" />
+                                            class="btn btn-icon {{ $off ? 'is-danger' : '' }}"
+                                            title="{{ $off ? ($byStock ? 'Put back on the menu, though stock says it has run out' : 'Put back on the menu') : 'Mark sold out' }}"
+                                            aria-label="{{ $off ? 'Put '.$product->name.' back on the menu' : 'Mark '.$product->name.' sold out' }}">
+                                        <x-icon name="{{ $off ? 'user-x' : 'user-check' }}" :size="15" />
                                     </button>
                                 </form>
                             @endallows

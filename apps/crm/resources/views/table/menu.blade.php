@@ -55,8 +55,10 @@
                     @foreach ($items as $item)
                         @php
                             // Asked once per row rather than three times in
-                            // the markup below.
-                            $reason = $item->unavailableReason();
+                            // the markup below - and of the outlet this
+                            // table is in, because nobody is signed in here
+                            // and stock runs out one outlet at a time.
+                            $reason = $item->unavailableReason(null, (int) $session->shop_id);
                         @endphp
 
                         <article class="t-dish @if ($reason) is-off @endif">

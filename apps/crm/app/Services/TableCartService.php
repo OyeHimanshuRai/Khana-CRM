@@ -59,13 +59,21 @@ class TableCartService
         $variant = $this->resolveVariant($product, $variantId);
         $options = $this->resolveOptions($product, $optionIds);
 
-        if (! $product->isOrderable()) {
+        /*
+         | Asked of the outlet the table is in, by name. Nobody is signed in
+         | on a guest's phone, so there is no shop in context to fall back on
+         | - and whether stock can cover a dish is this outlet's answer, not
+         | the business's.
+         */
+        $shopId = (int) $session->shop_id;
+
+        if (! $product->isOrderable(null, $shopId)) {
             throw new RuntimeException(
-                $product->unavailableReason() ?? 'That is not available right now.'
+                $product->unavailableReason(null, $shopId) ?? 'That is not available right now.'
             );
         }
 
-        if ($variant !== null && ! $variant->is_available) {
+        if ($variant !== null && ! $variant->isAvailableAt($shopId)) {
             throw new RuntimeException("{$variant->name} is not available right now.");
         }
 

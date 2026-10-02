@@ -2,70 +2,71 @@
 
 use App\Http\Controllers\Admin\ActivityLogController;
 use App\Http\Controllers\Admin\AlertController;
-use App\Http\Controllers\Admin\BarcodeLabelController;
-use App\Http\Controllers\Admin\CashRegisterController;
 use App\Http\Controllers\Admin\ApiTokenController;
+use App\Http\Controllers\Admin\BarcodeLabelController;
 use App\Http\Controllers\Admin\BrandController;
 use App\Http\Controllers\Admin\CampaignController;
+use App\Http\Controllers\Admin\CashRegisterController;
 use App\Http\Controllers\Admin\CategoryController;
 use App\Http\Controllers\Admin\CompanySettingController;
 use App\Http\Controllers\Admin\CouponController;
 use App\Http\Controllers\Admin\CustomerController;
 use App\Http\Controllers\Admin\CustomerLedgerController;
 use App\Http\Controllers\Admin\DashboardController;
+use App\Http\Controllers\Admin\DemoRequestController as AdminDemoRequestController;
 use App\Http\Controllers\Admin\EmailLogController;
 use App\Http\Controllers\Admin\EmailTemplateController;
+use App\Http\Controllers\Admin\ErpPanelController;
+use App\Http\Controllers\Admin\FaqController;
 use App\Http\Controllers\Admin\FeedbackController;
 use App\Http\Controllers\Admin\FloorController;
-use App\Http\Controllers\Admin\LoyaltyController;
-use App\Http\Controllers\Admin\KitchenController;
-use App\Http\Controllers\Admin\LiveOrderController;
-use App\Http\Controllers\Admin\TableBillController;
-use App\Http\Controllers\Admin\KitchenStationController;
-use App\Http\Controllers\Admin\RestaurantTableController;
-use App\Http\Controllers\Admin\TableQrController;
-use App\Http\Controllers\Admin\FaqController;
+use App\Http\Controllers\Admin\IntegrationController;
 use App\Http\Controllers\Admin\InvoiceController;
-use App\Http\Controllers\Admin\ReportController;
-use App\Http\Controllers\Admin\SalesReturnController;
+use App\Http\Controllers\Admin\KitchenController;
+use App\Http\Controllers\Admin\KitchenStationController;
+use App\Http\Controllers\Admin\LandingStatController;
+use App\Http\Controllers\Admin\LiveOrderController;
 use App\Http\Controllers\Admin\LoginController;
-use App\Http\Controllers\Admin\OnlineOrderController;
+use App\Http\Controllers\Admin\LoyaltyController;
 use App\Http\Controllers\Admin\ModifierController;
+use App\Http\Controllers\Admin\OnlineOrderController;
+use App\Http\Controllers\Admin\OnlinePaymentController;
+use App\Http\Controllers\Admin\OutletTypeController;
 use App\Http\Controllers\Admin\PaymentController;
 use App\Http\Controllers\Admin\PaymentReminderController;
 use App\Http\Controllers\Admin\PosController;
-use App\Http\Controllers\Admin\ProductController;
-use App\Http\Controllers\Admin\OnlinePaymentController;
 use App\Http\Controllers\Admin\PriceListController;
 use App\Http\Controllers\Admin\PrinterController;
+use App\Http\Controllers\Admin\ProductController;
 use App\Http\Controllers\Admin\ProfileController;
+use App\Http\Controllers\Admin\ReportController;
 use App\Http\Controllers\Admin\ReservationController;
+use App\Http\Controllers\Admin\RestaurantTableController;
 use App\Http\Controllers\Admin\RoleController;
+use App\Http\Controllers\Admin\SalesReturnController;
 use App\Http\Controllers\Admin\ScannerController;
 use App\Http\Controllers\Admin\ServiceController;
 use App\Http\Controllers\Admin\ShopController;
 use App\Http\Controllers\Admin\ShopSwitchController;
-use App\Http\Controllers\Admin\SliderController;
-use App\Http\Controllers\Admin\DemoRequestController as AdminDemoRequestController;
-use App\Http\Controllers\Admin\IntegrationController;
-use App\Http\Controllers\Admin\LandingStatController;
-use App\Http\Controllers\Admin\OutletTypeController;
 use App\Http\Controllers\Admin\ShowcaseController;
+use App\Http\Controllers\Admin\SliderController;
 use App\Http\Controllers\Admin\SupportTicketController;
-use App\Http\Controllers\Admin\TestimonialController;
 use App\Http\Controllers\Admin\SystemHealthController;
+use App\Http\Controllers\Admin\TableBillController;
+use App\Http\Controllers\Admin\TableQrController;
 use App\Http\Controllers\Admin\TaxRateController;
 use App\Http\Controllers\Admin\TenantSwitchController;
-use App\Http\Controllers\PaymentWebhookController;
-use App\Http\Controllers\TableFeedbackController;
+use App\Http\Controllers\Admin\TestimonialController;
 use App\Http\Controllers\DemoRequestController;
 use App\Http\Controllers\LandingController;
+use App\Http\Controllers\PaymentWebhookController;
 use App\Http\Controllers\SeoController;
+use App\Http\Controllers\TableFeedbackController;
 use App\Http\Controllers\TableManifestController;
 use App\Http\Controllers\TableOrderController;
 use App\Http\Controllers\TablePaymentController;
-use App\Http\Controllers\TableVerifyController;
 use App\Http\Controllers\TableScanController;
+use App\Http\Controllers\TableVerifyController;
 use App\Support\Accounts;
 use Illuminate\Support\Facades\Route;
 
@@ -139,17 +140,22 @@ Route::get('signup/{plan?}', fn () => redirect()->away(Accounts::url('/signup') 
 | Throttled, because it is reachable by anyone with a camera and it writes:
 | a scan opens a session. Generous enough that a table of six all scanning at
 | once is fine, tight enough that a script cannot open ten thousand sittings.
+|
+| `guest.entitled` on every route that shows the menu or takes an order: an
+| outlet that has not got CRM - suspended, ended, never bought - takes no
+| orders from its stickers. See EnsureGuestOutletIsEntitled for the few that
+| are left open, and why.
 */
 Route::get('t/{token}', [TableScanController::class, 'scan'])
     ->where('token', '[A-Za-z0-9]{32}')
-    ->middleware('throttle:30,1')
+    ->middleware(['throttle:30,1', 'guest.entitled'])
     ->name('table.scan');
 
 /*
 | The page the guest sits on. Takes no parameter: the session lives in their
 | own cookie, so a screenshot of this URL in a group chat is worth nothing.
 */
-Route::get('t', [TableScanController::class, 'show'])->name('table.show');
+Route::get('t', [TableScanController::class, 'show'])->middleware('guest.entitled')->name('table.show');
 
 /*
 | The cart and the order (§3.5 - §3.10).
@@ -161,10 +167,10 @@ Route::get('t', [TableScanController::class, 'show'])->name('table.show');
 | Throttled together with the scan, and more tightly on the write that creates
 | work in a kitchen.
 */
-Route::get('t/cart', [TableOrderController::class, 'cart'])->name('table.cart');
-Route::get('t/orders', [TableOrderController::class, 'orders'])->name('table.orders');
+Route::get('t/cart', [TableOrderController::class, 'cart'])->middleware('guest.entitled')->name('table.cart');
+Route::get('t/orders', [TableOrderController::class, 'orders'])->middleware('guest.entitled')->name('table.orders');
 
-Route::middleware('throttle:60,1')->group(function () {
+Route::middleware(['throttle:60,1', 'guest.entitled'])->group(function () {
     Route::post('t/cart', [TableOrderController::class, 'add'])->name('table.cart.add');
     Route::put('t/cart/{item}', [TableOrderController::class, 'update'])
         ->whereNumber('item')
@@ -179,7 +185,7 @@ Route::middleware('throttle:60,1')->group(function () {
 | screen and a stuck finger should not put twenty there.
 */
 Route::post('t/order', [TableOrderController::class, 'place'])
-    ->middleware('throttle:10,1')
+    ->middleware(['throttle:10,1', 'guest.entitled'])
     ->name('table.order.place');
 
 /*
@@ -198,14 +204,14 @@ Route::post('t/order', [TableOrderController::class, 'place'])
 | what actually stops guessing.
 */
 Route::post('t/verify/send', [TableVerifyController::class, 'send'])
-    ->middleware('throttle:5,1')
+    ->middleware(['throttle:5,1', 'guest.entitled'])
     ->name('table.verify.send');
 
 Route::post('t/verify', [TableVerifyController::class, 'confirm'])
-    ->middleware('throttle:20,1')
+    ->middleware(['throttle:20,1', 'guest.entitled'])
     ->name('table.verify.confirm');
 
-Route::get('t/verify', [TableVerifyController::class, 'show'])->name('table.verify');
+Route::get('t/verify', [TableVerifyController::class, 'show'])->middleware('guest.entitled')->name('table.verify');
 
 /*
 | Paying from the table (§11).
@@ -218,7 +224,7 @@ Route::get('t/verify', [TableVerifyController::class, 'show'])->name('table.veri
 | Neither takes a session id from the request - the sitting comes from the
 | guest's own cookie, the same rule the rest of this flow follows.
 */
-Route::middleware('throttle:10,1')->group(function () {
+Route::middleware(['throttle:10,1', 'guest.entitled'])->group(function () {
     Route::post('t/pay', [TablePaymentController::class, 'start'])->name('table.pay.start');
 });
 
@@ -331,6 +337,17 @@ Route::prefix('admin')->name('admin.')->group(function () {
         Route::get('dashboard', DashboardController::class)
             ->middleware('permission:dashboard.overview.view')
             ->name('dashboard');
+
+        /*
+        | The day's food cost from ERP, for the home screen's tile. A fragment
+        | the dashboard asks for once it has drawn. Gated on the profit report
+        | - so the `module` gate and the permission together are the same pair
+        | of checks the profit tile is drawn behind - and a 404 for an outlet
+        | not linked to ERP. See ErpPanelController.
+        */
+        Route::get('dashboard/food-cost', [ErpPanelController::class, 'foodCost'])
+            ->middleware('permission:reports.profit_report.view')
+            ->name('dashboard.food-cost');
 
         /*
         | Own-account screen. Ungated on purpose - it only ever reads and
@@ -1115,6 +1132,15 @@ Route::prefix('admin')->name('admin.')->group(function () {
             Route::get('products/{product}', [ProductController::class, 'show'])
                 ->whereNumber('product')
                 ->name('products.show');
+            /*
+            | Stock and cost for one dish, from ERP. A fragment the item's
+            | page asks for after it has drawn, for whoever may see that
+            | page - it already prints the dish's cost. A 404 for an outlet
+            | not linked to ERP. See ErpPanelController.
+            */
+            Route::get('products/{product}/erp-stock', [ErpPanelController::class, 'stock'])
+                ->whereNumber('product')
+                ->name('products.erp-stock');
         });
 
         Route::middleware('permission:inventory.products.create')->group(function () {
@@ -1328,6 +1354,31 @@ Route::prefix('admin')->name('admin.')->group(function () {
                 ->middleware('permission:pos.registers.create')
                 ->name('store');
 
+            /*
+            | Cash out of the drawer.
+            |
+            | Rides on `create`, the right that opens the register, rather
+            | than on `edit`, which closes it. Paying the gas man is a
+            | cashier's job, and the Cashier preset holds `create` and not
+            | `edit` - so the closing right would have turned away the one
+            | person standing at the drawer. Every preset that may close a
+            | register may open one too, so nobody who could have paid out
+            | under `edit` is left out by this.
+            |
+            | The bill list is the same right: it exists only to be picked
+            | from on that card. It is a fragment the card asks for after the
+            | page has drawn, and the one thing here that reads ERP - see
+            | ErpPanelController.
+            */
+            Route::middleware('permission:pos.registers.create')->group(function () {
+                Route::post('{register}/paid-outs', [CashRegisterController::class, 'payOut'])
+                    ->whereNumber('register')
+                    ->name('paid-outs.store');
+                Route::get('{register}/supplier-bills', [ErpPanelController::class, 'bills'])
+                    ->whereNumber('register')
+                    ->name('supplier-bills');
+            });
+
             Route::put('{register}/close', [CashRegisterController::class, 'close'])
                 ->whereNumber('register')
                 ->middleware('permission:pos.registers.edit')
@@ -1368,7 +1419,6 @@ Route::prefix('admin')->name('admin.')->group(function () {
                 ->whereNumber('invoice')
                 ->name('invoices.cancel');
         });
-
 
         /*
         | Payments. No update route, deliberately: a recorded payment is a

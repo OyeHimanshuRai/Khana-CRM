@@ -7,6 +7,8 @@
         $mrp = $product->mrpFor($shop->id);
         $price = $product->counterPriceFor($shop->id);
         $images = $product->images;
+        // At this outlet: taken off by hand, or out of stock here.
+        $soldOut = $product->isSoldOut(null, $shop->id);
     @endphp
 
     <div class="shop-crumbs">
@@ -40,7 +42,7 @@
                 @endif
             </div>
 
-            @if ($product->is_sold_out)
+            @if ($soldOut)
                 <div class="shop-badge shop-badge-danger" style="margin-bottom:16px;">Out of stock</div>
             @else
                 <div class="shop-badge shop-badge-success" style="margin-bottom:16px;">In stock</div>
@@ -54,7 +56,7 @@
                     <input type="number" name="quantity" value="1" min="1" step="1">
                     <button type="button" onclick="this.previousElementSibling.stepUp()">+</button>
                 </div>
-                <button type="submit" class="shop-btn" @disabled($product->is_sold_out)>Add to cart</button>
+                <button type="submit" class="shop-btn" @disabled($soldOut)>Add to cart</button>
 
                 @auth('customer')
                     <button type="button" class="shop-btn shop-btn-outline"

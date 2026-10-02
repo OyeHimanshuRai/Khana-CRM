@@ -133,10 +133,12 @@ class PosController extends Controller
         return $products->map(function (Product $product) use ($shopId) {
             return [
                 'product' => $product,
-                // Why it cannot be sold right now - sold out, off the menu,
-                // outside its serving hours - or null when it can. A manual
-                // flag, not a stock count - see Product::unavailableReason().
-                'reason' => $product->unavailableReason(),
+                // Why it cannot be sold right now - sold out, out of stock at
+                // this counter's outlet, off the menu, outside its serving
+                // hours - or null when it can. "Out of stock" is ERP's word
+                // for this outlet, not a count kept here - see
+                // Product::unavailableReason().
+                'reason' => $product->unavailableReason(null, $shopId),
                 'payload' => $product->toLookupArray($shopId),
             ];
         });

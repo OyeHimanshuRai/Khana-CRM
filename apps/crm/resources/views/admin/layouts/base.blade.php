@@ -166,6 +166,15 @@
      | and a <script> that arrives with a fragment never runs.
      */
     'js/table-bill.js',
+    /*
+     | The panels that show what ERP knows - unpaid supplier bills on the
+     | paid-out card, stock and cost on a menu item, the day's food cost -
+     | each fetched after its page has drawn, so ERP being slow never holds a
+     | screen up. Global because the menu item's page is injected into a
+     | modal, and a <script> that arrives that way never runs. Does nothing on
+     | a page with no such panel, which is every page of an outlet without ERP.
+     */
+    'js/erp-panels.js',
 ] as $script)
     <script src="{{ asset('assets/'.$script) }}?v={{ filemtime(public_path('assets/'.$script)) }}"></script>
 @endforeach

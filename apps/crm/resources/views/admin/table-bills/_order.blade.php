@@ -92,8 +92,9 @@
 
             @foreach ($section['items'] as $dish)
                 @php
-                    // The same three reasons the guest's card greys a dish out.
-                    $why = $dish->unavailableReason();
+                    // The same reasons the guest's card greys a dish out, asked
+                    // of the outlet this table is in.
+                    $why = $dish->unavailableReason(null, (int) $session->shop_id);
                 @endphp
 
                 <div class="staff-dish">
@@ -119,8 +120,15 @@
                                          caller that did not say which size did
                                          not ask the guest either. --}}
                                     @foreach ($dish->variants as $variant)
-                                        <option value="{{ $variant->id }}" @selected($variant->is_default)>
-                                            {{ $variant->name }} · {{ $money($variant->price) }}
+                                        {{-- A size switched off, or one this
+                                             outlet's stock cannot cover, is
+                                             shown and cannot be picked - the
+                                             cart would refuse it anyway. --}}
+                                        @php $onSale = $variant->isAvailableAt((int) $session->shop_id); @endphp
+                                        <option value="{{ $variant->id }}"
+                                                @selected($variant->is_default && $onSale)
+                                                @disabled(! $onSale)>
+                                            {{ $variant->name }} · {{ $money($variant->price) }}@unless ($onSale) · not available @endunless
                                         </option>
                                     @endforeach
                                 </select>

@@ -11,8 +11,11 @@ use App\Models\Payment;
 use App\Models\Shop;
 use App\Support\BusinessDay;
 use Carbon\CarbonInterface;
+use Illuminate\Database\Eloquent\Builder;
+use Illuminate\Database\Eloquent\Collection;
 use Illuminate\Support\Facades\Auth;
 use Illuminate\Support\Facades\DB;
+use Khana\Kit\Support\Ulid;
 use RuntimeException;
 
 /**
@@ -216,16 +219,42 @@ class CashRegisterService
             ->where('paid_at', '<', $until)
             ->sum('amount');
 
-        $paidOut = (float) CashPaidOut::allShops()
-            ->where('shop_id', $shopId)
-            ->where('paid_at', '>=', $from)
-            ->where('paid_at', '<', $until)
-            ->sum('amount');
+        $paidOut = (float) $this->paidOutsOn($register)->sum('amount');
 
         return round((float) $register->opening_float + $in - $out - $paidOut, 2);
     }
 
     /* --------------------------------------------------------- paid-outs */
+
+    /**
+     * What left the drawer on this register's day, oldest first.
+     *
+     * The very rows expectedCash() takes off, read through the same query,
+     * so the list on the register's page and the figure above it cannot
+     * disagree about which paid-outs belong to the day.
+     *
+     * @return Collection<int, CashPaidOut>
+     */
+    public function paidOuts(CashRegister $register): Collection
+    {
+        return $this->paidOutsOn($register)->orderBy('paid_at')->orderBy('id')->get();
+    }
+
+    /**
+     * May cash be paid out against this register?
+     *
+     * Only the open register of the outlet's current day. A paid-out is
+     * stamped with the moment it happened and counted into the day that
+     * moment falls on, so one taken against a register left open from
+     * yesterday would come off today's drawer: yesterday's expected figure
+     * would not move, and the cashier would be right to think it had not
+     * been recorded.
+     */
+    public function takesPaidOuts(CashRegister $register): bool
+    {
+        return $register->isOpen()
+            && $register->business_date->toDateString() === BusinessDay::today($register->shop)->toDateString();
+    }
 
     /**
      * Hand cash out of the drawer for something that is not a Payment - an
@@ -236,6 +265,13 @@ class CashRegisterService
      * "supplier_payment"), and a paid-out that rolled back never reached it.
      * Recorded, never edited - see CashPaidOut - so a mistake is corrected by
      * a new row, and ERP hears of that one too.
+     *
+     * A paid-out may name the supplier bill it settles: ERP's id for it, and
+     * the supplier and bill number as the cashier saw them. Nothing here
+     * asks ERP whether the bill exists or what is owed on it. The drawer is
+     * short of that cash whatever ERP thinks, and a till that could not
+     * record it while ERP was down would be recording it on paper. ERP
+     * matches the id when the event arrives.
      */
     public function payOut(
         Shop $shop,
@@ -243,12 +279,38 @@ class CashRegisterService
         string $reason,
         string $category = PaidOutPayload::DEFAULT_CATEGORY,
         ?CarbonInterface $paidAt = null,
+        ?string $supplierBillId = null,
+        ?string $supplierName = null,
+        ?string $supplierBillNo = null,
     ): CashPaidOut {
         $amount = round($amount, 2);
         $reason = trim($reason);
+        $bill = null;
 
         if ($amount < 0.01) {
             throw new RuntimeException('A paid-out needs an amount.');
+        }
+
+        if (filled($supplierBillId)) {
+            if (! Ulid::isValid($supplierBillId)) {
+                throw new RuntimeException('That is not a supplier bill from the list. Pick the bill again.');
+            }
+
+            $bill = [
+                'supplier_bill_ulid' => $supplierBillId,
+                'supplier_name' => filled($supplierName) ? mb_substr(trim($supplierName), 0, 190) : null,
+                'supplier_bill_no' => filled($supplierBillNo) ? mb_substr(trim($supplierBillNo), 0, 100) : null,
+            ];
+
+            // Cash against a supplier's bill is stock bought, whatever else
+            // was ticked: ERP files it as a payment on that bill either way,
+            // and the day close should not call the same cash "Gas".
+            $category = CashPaidOut::SUPPLIER_PAYMENT;
+
+            // The bill is itself what the cash was for.
+            if ($reason === '') {
+                $reason = CashPaidOut::describeBill($bill['supplier_name'], $bill['supplier_bill_no']);
+            }
         }
 
         if ($reason === '') {
@@ -259,7 +321,7 @@ class CashRegisterService
             throw new RuntimeException('A paid-out category is a short code such as petty_cash.');
         }
 
-        return DB::transaction(function () use ($shop, $amount, $reason, $category, $paidAt) {
+        return DB::transaction(function () use ($shop, $amount, $reason, $category, $paidAt, $bill) {
             $user = Auth::user();
 
             $paidOut = CashPaidOut::allShops()->create([
@@ -270,6 +332,7 @@ class CashRegisterService
                 'paid_at' => $paidAt ?? now(),
                 'paid_by' => $user?->id,
                 'paid_by_name' => $user?->name ?? 'System',
+                ...($bill ?? []),
             ]);
 
             ActivityLog::record(
@@ -282,6 +345,22 @@ class CashRegisterService
 
             return $paidOut;
         });
+    }
+
+    /**
+     * The paid-outs that fall on a register's day, by the outlet's clock -
+     * the same half-open window expectedCash() reads its payments through.
+     *
+     * @return Builder<CashPaidOut>
+     */
+    private function paidOutsOn(CashRegister $register): Builder
+    {
+        [$from, $until] = BusinessDay::window($register->business_date->toDateString(), $register->shop);
+
+        return CashPaidOut::allShops()
+            ->where('shop_id', $register->shop_id)
+            ->where('paid_at', '>=', $from)
+            ->where('paid_at', '<', $until);
     }
 
     /*

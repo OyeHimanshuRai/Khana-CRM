@@ -3,14 +3,19 @@
 namespace App\Http\Controllers\Admin;
 
 use App\Http\Controllers\Controller;
+use App\Models\CashPaidOut;
 use App\Models\CashRegister;
 use App\Services\CashRegisterService;
+use App\Services\Erp\ErpLink;
 use App\Support\ApiResponse;
+use App\Support\BusinessDay;
 use App\Support\CurrentShop;
 use Illuminate\Database\Eloquent\Builder;
 use Illuminate\Http\JsonResponse;
 use Illuminate\Http\Request;
+use Illuminate\Validation\Rule;
 use Illuminate\View\View;
+use Khana\Kit\Support\Ulid;
 use RuntimeException;
 use Symfony\Component\HttpFoundation\StreamedResponse;
 
@@ -21,12 +26,20 @@ use Symfony\Component\HttpFoundation\StreamedResponse;
  * why. Opening declares the float; closing declares what was actually
  * counted and freezes the expected figure to compare it against; approving
  * is the manager's sign-off, variance and all.
+ *
+ * In between, cash leaves the drawer for things that are not refunds - the
+ * gas man, a supplier at the back door - and is paid out here, on the open
+ * register's own page, so the expected figure and the reason it moved are
+ * on one screen.
  */
 class CashRegisterController extends Controller
 {
     private const PAGE_SIZES = [10, 15, 25, 50];
 
-    public function __construct(private readonly CashRegisterService $registers) {}
+    public function __construct(
+        private readonly CashRegisterService $registers,
+        private readonly ErpLink $erp,
+    ) {}
 
     /* -------------------------------------------------------------- list */
 
@@ -90,9 +103,31 @@ class CashRegisterController extends Controller
 
     public function show(CashRegister $register): View
     {
+        $register->load(['shop', 'openedBy', 'closedBy', 'approvedBy']);
+
+        $paidOuts = $this->registers->paidOuts($register);
+
         return view('admin.registers.show', [
-            'register' => $register->load(['shop', 'openedBy', 'closedBy', 'approvedBy']),
+            'register' => $register,
             'expectedSoFar' => $register->isOpen() ? $this->registers->expectedCash($register) : null,
+            /*
+             | What left the drawer that day, under the figure it explains.
+             | Shown on a closed day too: it is the first thing a manager
+             | signing off a short till wants to read.
+             */
+            'paidOuts' => $paidOuts,
+            'paidOutTotal' => (float) $paidOuts->sum('amount'),
+            'takesPaidOuts' => $this->registers->takesPaidOuts($register),
+            'categories' => CashPaidOut::CATEGORIES,
+            /*
+             | Whether the paid-out card offers ERP's unpaid supplier bills.
+             | The bills are not read here: the card asks for them once the
+             | page is up (ErpPanelController::bills), so ERP being slow or
+             | down costs the cashier a line of that card and nothing else.
+             */
+            'erpLinked' => $this->erp->linked($register->shop),
+            // Stored instants are UTC; a till reads its own clock.
+            'zone' => BusinessDay::zone($register->shop),
         ]);
     }
 
@@ -149,6 +184,70 @@ class CashRegisterController extends Controller
             );
 
         return ApiResponse::success($message, [], route('admin.registers.show', $register));
+    }
+
+    /**
+     * Pay cash out of the open drawer.
+     *
+     * Nothing here calls ERP, on purpose. The bill a paid-out names was
+     * picked from a list ERP supplied when the card was drawn, and comes
+     * back as its id with the supplier and bill number as they read there;
+     * they are recorded as given and ERP matches the id when the event
+     * reaches it. Checking it here would mean a till that cannot record
+     * cash leaving the drawer because another service is slow.
+     */
+    public function payOut(Request $request, CashRegister $register): JsonResponse
+    {
+        if (! $this->registers->takesPaidOuts($register)) {
+            return ApiResponse::error(
+                $register->isOpen()
+                    ? "This register is for {$register->business_date->format('d M Y')}. Close it and open today's to pay cash out."
+                    : 'That register is no longer open, so nothing can be paid out of it.'
+            );
+        }
+
+        $data = $request->validate([
+            'amount' => ['required', 'numeric', 'between:0.01,99999999.99'],
+            'category' => ['required', 'string', Rule::in(array_keys(CashPaidOut::CATEGORIES))],
+            // A bill says what the cash was for; anything else needs a word.
+            'note' => ['nullable', 'required_without:supplier_bill_id', 'string', 'max:190'],
+            'supplier_bill_id' => ['nullable', 'string', 'regex:'.Ulid::PATTERN],
+            'supplier_name' => ['nullable', 'string', 'max:190'],
+            'supplier_bill_no' => ['nullable', 'string', 'max:100'],
+        ], [
+            'amount.between' => 'Enter how much cash is leaving the drawer.',
+            'category.in' => 'Choose what the cash was for from the list.',
+            'note.required_without' => 'Say what the cash was for - the day close will ask.',
+            'supplier_bill_id.regex' => 'That is not a supplier bill from the list. Pick the bill again.',
+        ]);
+
+        $billId = $data['supplier_bill_id'] ?? null;
+
+        // Bills are ERP's, and only an outlet linked to ERP is ever shown
+        // any. One arriving for another outlet did not come from this screen.
+        if ($billId !== null && ! $this->erp->linked($register->shop)) {
+            return ApiResponse::error('This outlet has no supplier bills to pay from here.');
+        }
+
+        try {
+            $paidOut = $this->registers->payOut(
+                $register->shop,
+                (float) $data['amount'],
+                (string) ($data['note'] ?? ''),
+                $data['category'],
+                supplierBillId: $billId,
+                supplierName: $data['supplier_name'] ?? null,
+                supplierBillNo: $data['supplier_bill_no'] ?? null,
+            );
+        } catch (RuntimeException $e) {
+            return ApiResponse::error($e->getMessage());
+        }
+
+        return ApiResponse::success(
+            sprintf('₹%s paid out of the drawer.', number_format((float) $paidOut->amount, 2)),
+            ['id' => $paidOut->id],
+            route('admin.registers.show', $register),
+        );
     }
 
     public function approve(Request $request, CashRegister $register): JsonResponse

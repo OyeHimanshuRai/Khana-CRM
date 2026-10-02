@@ -542,6 +542,11 @@
             </div>
         @endif
 
+        {{-- ---------------------------------------------- what ERP knows --}}
+        @if ($erp)
+            @include('admin.dashboard._erp')
+        @endif
+
         {{-- ----------------------------------------- money in, money owed --}}
         @if ($payments || $dues || $topProducts)
             <div class="dash-row is-split">

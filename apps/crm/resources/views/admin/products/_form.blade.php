@@ -130,12 +130,28 @@
         <div class="form-section-title">Pricing &amp; tax</div>
 
         <div class="settings-grid">
+            {{--
+                At an outlet linked to ERP this figure is ERP's: it works the
+                cost out from the recipe and sends it here, over whatever was
+                typed (App\Events\Inbound\ApplyCost). So the box is shown and
+                not offered - read-only rather than disabled, because a
+                disabled field is left out of the post and the save would
+                write the cost back as zero.
+            --}}
             <div class="field">
-                <label for="prod-purchase">Purchase price (₹)</label>
+                <label for="prod-purchase">{{ $costFromErp ? 'Cost to make (₹)' : 'Purchase price (₹)' }}</label>
                 <input id="prod-purchase" type="number" name="purchase_price" class="form-control"
                        value="{{ $product->exists ? (float) $product->purchase_price : 0 }}"
-                       min="0" step="0.01" aria-invalid="false">
-                <div class="form-hint">What one costs you to make or buy — the margin on reports is worked from it.</div>
+                       min="0" step="0.01" aria-invalid="false" @readonly($costFromErp)>
+                @if ($costFromErp)
+                    <div class="form-hint">
+                        From ERP, which works it out from the recipe and what the stock cost, and updates it
+                        here when either changes. To change it, change the recipe in ERP. A dish with sizes
+                        is costed size by size — open the dish to see each one.
+                    </div>
+                @else
+                    <div class="form-hint">What one costs you to make or buy — the margin on reports is worked from it.</div>
+                @endif
             </div>
 
             <div class="field">
@@ -220,11 +236,17 @@
             </p>
 
             <div class="settings-grid">
+                {{-- ERP keeps this outlet's own cost up to date too, where it
+                     has one - so here it is no more typed than the one above. --}}
                 <div class="field">
-                    <label for="ov-purchase">Purchase price (₹)</label>
+                    <label for="ov-purchase">{{ $costFromErp ? 'Cost to make (₹)' : 'Purchase price (₹)' }}</label>
                     <input id="ov-purchase" type="number" name="override[purchase_price]" class="form-control"
                            value="{{ $override?->purchase_price }}" min="0" step="0.01" aria-invalid="false"
-                           placeholder="{{ number_format((float) $product->purchase_price, 2) }}">
+                           placeholder="{{ number_format((float) $product->purchase_price, 2) }}"
+                           @readonly($costFromErp)>
+                    @if ($costFromErp)
+                        <div class="form-hint">From ERP, like the cost above.</div>
+                    @endif
                 </div>
 
                 <div class="field">

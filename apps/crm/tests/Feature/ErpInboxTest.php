@@ -126,24 +126,30 @@ class ErpInboxTest extends TestCase
 
     /* ------------------------------------------------------ availability */
 
+    /*
+     | The outlet is named in every read below: these tests run with nobody
+     | signed in, so there is no shop in context, and whether stock can cover
+     | a dish is one outlet's answer. Tests\Feature\OutletStockOutTest covers
+     | what a second outlet sees.
+     */
+
     public function test_a_stock_out_takes_the_dish_off_the_menu_and_a_restock_brings_it_back(): void
     {
         $dish = $this->dish('Prawn Curry');
-        $dish->forceFill(['is_sold_out' => false, 'sold_out_until' => now()->addHour()])->save();
 
         $out = $this->availability($dish, false);
         $this->deliver($out)->assertOk()->assertJson(['stored' => 1]);
 
         $this->assertSame(InboxEvent::APPLIED, $this->statusOf($out));
-        $this->assertTrue($dish->fresh()->isSoldOut());
-        $this->assertNull($dish->fresh()->sold_out_until, 'ERP says when it is back; no timer does');
-        $this->assertFalse($dish->fresh()->isOrderable());
+        $this->assertTrue($dish->fresh()->isSoldOut(null, $this->shop->id));
+        $this->assertFalse($dish->fresh()->isOrderable(null, $this->shop->id));
+        $this->assertFalse($dish->fresh()->is_sold_out, 'the hand flag is staff\'s; stock keeps its own row');
 
         $back = $this->availability($dish, true);
         $this->deliver($back)->assertOk();
 
         $this->assertSame(InboxEvent::APPLIED, $this->statusOf($back));
-        $this->assertFalse($dish->fresh()->isSoldOut());
+        $this->assertFalse($dish->fresh()->isSoldOut(null, $this->shop->id));
     }
 
     public function test_a_stock_out_for_one_size_switches_off_that_size_only(): void
@@ -154,9 +160,10 @@ class ErpInboxTest extends TestCase
 
         $this->deliver($this->availability($dish, false, $full))->assertOk();
 
-        $this->assertFalse($full->fresh()->is_available);
-        $this->assertTrue($half->fresh()->is_available);
-        $this->assertFalse($dish->fresh()->isSoldOut());
+        $this->assertFalse($full->fresh()->isAvailableAt($this->shop->id));
+        $this->assertTrue($half->fresh()->isAvailableAt($this->shop->id));
+        $this->assertTrue($full->fresh()->is_available, 'the switch staff throw for the size is left alone');
+        $this->assertFalse($dish->fresh()->isSoldOut(null, $this->shop->id));
     }
 
     public function test_erps_own_updates_are_not_echoed_back_to_it(): void
@@ -169,7 +176,7 @@ class ErpInboxTest extends TestCase
             $this->cost($dish, 9000),
         )->assertOk();
 
-        $this->assertTrue($dish->fresh()->isSoldOut());
+        $this->assertTrue($dish->fresh()->isSoldOut(null, $this->shop->id));
         $this->assertCount(0, $this->outboxSince($mark), 'sold-out and cost are not in crm.menu.item_upserted');
     }
 
@@ -239,7 +246,7 @@ class ErpInboxTest extends TestCase
         $this->assertSame(InboxEvent::APPLIED, $this->statusOf($gone));
         $this->assertSame(InboxEvent::APPLIED, $this->statusOf($goneSize));
         $this->assertSame(InboxEvent::APPLIED, $this->statusOf($after));
-        $this->assertTrue($dish->fresh()->isSoldOut());
+        $this->assertTrue($dish->fresh()->isSoldOut(null, $this->shop->id));
 
         Log::shouldHaveReceived('warning')
             ->withArgs(fn (string $message) => str_contains($message, "Skipped erp.availability.changed {$gone['id']}"))
@@ -264,5 +271,6 @@ class ErpInboxTest extends TestCase
         $this->assertStringContainsString('TenantMismatch', (string) InboxEvent::query()->where('event_id', $wrong['id'])->value('error'));
         $this->assertSame(InboxEvent::PENDING, $this->statusOf($next), 'the outlet waits until somebody looks');
         $this->assertFalse($theirs->fresh()->is_sold_out);
+        $this->assertSame(0, DB::table('product_stock_outs')->count(), 'and nothing was taken off anybody\'s menu');
     }
 }

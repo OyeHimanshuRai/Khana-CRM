@@ -7,6 +7,9 @@ use App\Http\Controllers\Api\Machine\SalesDigestController;
 use App\Http\Controllers\Api\MenuController;
 use App\Http\Controllers\Api\OrderController;
 use App\Http\Controllers\Api\TableController;
+use App\Http\Middleware\EnsureShopIsEntitled;
+use App\Support\CurrentShop;
+use Illuminate\Http\Request;
 use Illuminate\Support\Facades\Route;
 
 /*
@@ -48,20 +51,30 @@ use Illuminate\Support\Facades\Route;
 | An aggregator polling the menu every thirty seconds is normal; one polling
 | it every second is a bug on their side that becomes a bill on ours.
 |
+| ---------------------------------------------------------------------------
+| Only for an outlet that has CRM
+| ---------------------------------------------------------------------------
+|
+| A token belongs to a member of staff, so it meets the gate the back office
+| does (EnsureShopIsEntitled): an outlet whose CRM has ended - or was never
+| bought - answers 403 with a sentence saying so, and a suspended one may be
+| read but takes no orders. `:api` makes the refusal JSON however the caller
+| asked, and lets an install with no Accounts carry on as before.
+|
 */
 
-Route::middleware(['auth:sanctum', 'throttle:api'])->group(function () {
+Route::middleware(['auth:sanctum', 'throttle:api', 'shop.entitled:'.EnsureShopIsEntitled::API])->group(function () {
 
     /*
     | Who am I. The first call any integrator makes, and the one that tells
     | them whether their token works before they debug anything else.
     */
-    Route::get('me', function (\Illuminate\Http\Request $request) {
+    Route::get('me', function (Request $request) {
         $user = $request->user();
 
         return response()->json([
             'name' => $user->name,
-            'shop' => \App\Support\CurrentShop::get()?->name,
+            'shop' => CurrentShop::get()?->name,
             'abilities' => $user->currentAccessToken()?->abilities ?? [],
         ]);
     })->name('api.me');
