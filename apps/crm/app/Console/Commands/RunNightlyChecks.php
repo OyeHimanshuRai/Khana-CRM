@@ -2,8 +2,10 @@
 
 namespace App\Console\Commands;
 
+use App\Models\Alert;
 use App\Models\NightlyCheck;
 use App\Models\Shop;
+use App\Services\AlertService;
 use App\Services\NightlyChecks;
 use App\Support\BusinessDay;
 use Illuminate\Console\Command;
@@ -28,7 +30,7 @@ class RunNightlyChecks extends Command
 
     protected $description = 'Compare what CRM holds with ERP for each outlet, and put right what a lost event left out of step';
 
-    public function handle(NightlyChecks $checks): int
+    public function handle(NightlyChecks $checks, AlertService $alerts): int
     {
         $date = $this->option('date');
 
@@ -68,8 +70,25 @@ class RunNightlyChecks extends Command
                     $this->line('    <fg=gray>'.$row->detail.'</>');
                 }
 
+                // A problem rings a bell on the home screen, so a lost event
+                // that could not put itself right is seen, not just logged; a
+                // check that is no longer a problem clears its own.
                 if ($row->status === NightlyCheck::PROBLEM) {
                     $problems++;
+
+                    if ($shop !== null) {
+                        $alerts->raise(
+                            $shop,
+                            type: Alert::NIGHTLY_PROBLEM,
+                            title: 'Nightly check needs a look: '.$row->checkLabel(),
+                            dedupeKey: 'nightly:'.$check.':'.$outletId,
+                            body: $row->detail,
+                            can: 'dashboard.overview.view',
+                            level: 'warning',
+                        );
+                    }
+                } elseif ($shop !== null) {
+                    $alerts->clear($shop, 'nightly:'.$check.':'.$outletId);
                 }
             }
         }

@@ -9,6 +9,7 @@ use Illuminate\Database\Eloquent\Builder;
 use Illuminate\Database\Eloquent\Model;
 use Illuminate\Database\Eloquent\Relations\BelongsTo;
 use Illuminate\Database\Eloquent\Relations\MorphTo;
+use Illuminate\Support\Collection;
 use Illuminate\Support\Str;
 
 /**
@@ -47,6 +48,9 @@ class Alert extends Model
 
     public const SECURITY = 'security';
 
+    /** A nightly check that could not put itself right - see NightlyChecks. */
+    public const NIGHTLY_PROBLEM = 'nightly_problem';
+
     /** @var array<string, array{label: string, icon: string}> */
     public const TYPES = [
         self::PAYMENT_RECEIVED => ['label' => 'Payment received', 'icon' => 'wallet'],
@@ -54,6 +58,7 @@ class Alert extends Model
         self::DAY_CLOSE_PENDING => ['label' => 'Day close pending', 'icon' => 'wallet'],
         self::TABLE_STUCK => ['label' => 'Table still open', 'icon' => 'users'],
         self::SECURITY => ['label' => 'Security', 'icon' => 'shield'],
+        self::NIGHTLY_PROBLEM => ['label' => 'Nightly check', 'icon' => 'alert'],
     ];
 
     /* Written by AlertService alone. */
@@ -162,7 +167,7 @@ class Alert extends Model
     /**
      * Recent alerts for the bell, newest first.
      *
-     * @return \Illuminate\Support\Collection<int, self>
+     * @return Collection<int, self>
      */
     public static function recentFor(User $user, int $limit = 15)
     {

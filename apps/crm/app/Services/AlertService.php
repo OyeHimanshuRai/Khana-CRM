@@ -96,7 +96,7 @@ class AlertService
     /**
      * Everything the scheduler raises, for one branch.
      *
-     * @return array<string, int>  what was raised, by kind
+     * @return array<string, int> what was raised, by kind
      */
     public function sweep(Shop $shop): array
     {
@@ -305,7 +305,7 @@ class AlertService
     /**
      * Mark everything this user can see as read.
      *
-     * @return int  how many were marked
+     * @return int how many were marked
      */
     public function markAllRead(User $user): int
     {
@@ -335,5 +335,22 @@ class AlertService
             ->whereNotNull('expires_at')
             ->where('expires_at', '<', now())
             ->delete();
+    }
+
+    /**
+     * Drop an alert whose condition has passed, by the key it was raised under.
+     *
+     * The counterpart to raise(): something that watches a condition every run
+     * (a nightly check that was a problem and is now put right) clears its own
+     * alert, so the bell rings only while it is still true.
+     *
+     * @return bool whether a row was there to clear
+     */
+    public function clear(Shop $shop, string $dedupeKey): bool
+    {
+        return Alert::allShops()
+            ->where('shop_id', $shop->id)
+            ->where('dedupe_key', $dedupeKey)
+            ->delete() > 0;
     }
 }

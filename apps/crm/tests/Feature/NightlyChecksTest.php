@@ -2,11 +2,14 @@
 
 namespace Tests\Feature;
 
+use App\Models\Alert;
 use App\Models\NightlyCheck;
 use App\Models\Shop;
 use App\Services\NightlyChecks;
 use App\Support\CurrentShop;
 use Illuminate\Foundation\Testing\RefreshDatabase;
+use Illuminate\Http\Client\ConnectionException;
+use Illuminate\Support\Facades\Http;
 use Illuminate\Support\Facades\URL;
 use Tests\Concerns\ReadsErp;
 use Tests\Concerns\RunsTwoOutlets;
@@ -131,6 +134,54 @@ class NightlyChecksTest extends TestCase
         $this->artisan('crm:nightly', ['outlet' => $this->outlet])->assertExitCode(1);
 
         $this->assertSame(NightlyCheck::PROBLEM, $this->row()->status);
+    }
+
+    private function bells(): int
+    {
+        return Alert::allShops()
+            ->where('shop_id', $this->riverside->id)
+            ->where('type', Alert::NIGHTLY_PROBLEM)
+            ->count();
+    }
+
+    public function test_a_problem_rings_a_bell_on_the_home_screen_and_a_fix_clears_it(): void
+    {
+        $dish = $this->dishNamed('Paneer Tikka', 280);
+
+        // One fake that ERP is down tonight and up the next hour - a flag the
+        // stub reads, because a second Http::fake() would sit behind the first.
+        $this->erpIsConfigured();
+        $down = true;
+
+        Http::fake([
+            self::ACCOUNTS_URL.'/oauth/token' => Http::response(['access_token' => 'machine-token', 'expires_in' => 3600]),
+            self::ERP_URL.'/*' => function () use (&$down, $dish) {
+                if ($down) {
+                    throw new ConnectionException('Connection refused');
+                }
+
+                return Http::response([
+                    'outlet_id' => $this->outlet,
+                    'items' => [['item_id' => $dish->ulid, 'variant_id' => null, 'available' => true, 'cost_paise' => 8125]],
+                    'taken_at' => now()->utc()->format('Y-m-d\TH:i:s\Z'),
+                ]);
+            },
+        ]);
+
+        // ERP cannot be reached: the check is a problem, and a problem is not
+        // just logged - it is raised where somebody will see it.
+        $this->artisan('crm:nightly', ['outlet' => $this->outlet])->assertExitCode(1);
+
+        $this->assertSame(1, $this->bells(), 'a problem rings a bell');
+        $bell = Alert::allShops()->where('type', Alert::NIGHTLY_PROBLEM)->sole();
+        $this->assertSame('warning', $bell->level);
+        $this->assertStringContainsString('Sold-out against ERP', $bell->title);
+
+        // The next hour ERP answers and the two agree: the bell is cleared.
+        $down = false;
+        $this->artisan('crm:nightly', ['outlet' => $this->outlet])->assertExitCode(0);
+
+        $this->assertSame(0, $this->bells(), 'a fix clears the bell');
     }
 
     public function test_an_outlet_without_erp_is_skipped(): void
