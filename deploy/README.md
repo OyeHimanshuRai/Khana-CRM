@@ -55,6 +55,30 @@ if it failed - in which case the previous build stays (or is put back) live.
 If the firewall in Hostinger's panel is switched on, allow ports 22, 80 and 443
 there as well.
 
+## One domain, split by route (no subdomains)
+
+To serve all three apps from the one domain instead of three subdomains, run
+setup with `KHANA_LAYOUT=paths` and the bare domain:
+
+```bash
+sudo KHANA_LAYOUT=paths bash setup.sh accounts khana.example.com
+sudo KHANA_LAYOUT=paths bash setup.sh erp      khana.example.com
+sudo KHANA_LAYOUT=paths bash setup.sh crm      khana.example.com
+```
+
+| App | Address | Sign in |
+|---|---|---|
+| Accounts | `https://khana.example.com/accounts` | `/accounts/login` |
+| ERP | `https://khana.example.com/erp` | `/erp/login` |
+| CRM | `https://khana.example.com/` | `/admin/login` |
+
+CRM answers everything the other two do not, so today's links keep working.
+One Caddy site (`/etc/caddy/sites/khana-suite.caddy`) routes by prefix; each
+app's `APP_URL` carries its prefix, and the kit builds every link from it.
+Each app also gets its own session cookie. The choice is remembered in
+`/etc/khana/layout`. Legacy (`setup.sh legacy`) has its own site file, so do
+not run it for the same domain.
+
 ## On the server
 
 `<name>` is `khana-accounts`, `khana-crm` or `khana-erp` (and `khana` for

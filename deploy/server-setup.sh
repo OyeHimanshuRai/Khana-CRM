@@ -83,8 +83,36 @@ else
     exit 1
   fi
   echo "$BASE_DOMAIN" > "$KHANA_ETC/base-domain"
-  DOMAIN="$APP.$BASE_DOMAIN"
+
+  # KHANA_LAYOUT=paths puts all three apps on the one domain, split by route:
+  #   https://<domain>/accounts   https://<domain>/erp   https://<domain>/ (CRM)
+  # The default, subdomains, gives each app <app>.<domain>. Kept once chosen.
+  LAYOUT="${KHANA_LAYOUT:-}"
+  if [ -z "$LAYOUT" ] && [ -f "$KHANA_ETC/layout" ]; then
+    LAYOUT="$(cat "$KHANA_ETC/layout")"
+  fi
+  LAYOUT="${LAYOUT:-subdomains}"
+  case "$LAYOUT" in subdomains|paths) ;; *) echo "KHANA_LAYOUT must be subdomains or paths" >&2; exit 1 ;; esac
+  echo "$LAYOUT" > "$KHANA_ETC/layout"
+
+  if [ "$LAYOUT" = paths ]; then
+    DOMAIN="$BASE_DOMAIN"
+  else
+    DOMAIN="$APP.$BASE_DOMAIN"
+  fi
 fi
+
+# Where an app answers: its own origin plus, in the paths layout, its prefix.
+app_url() {
+  if [ "${LAYOUT:-subdomains}" = paths ]; then
+    case "$1" in
+      crm) echo "https://$BASE_DOMAIN" ;;
+      *) echo "https://$BASE_DOMAIN/$1" ;;
+    esac
+  else
+    echo "https://$1.$BASE_DOMAIN"
+  fi
+}
 
 . /etc/os-release
 if [ "${VERSION_ID:-}" != "24.04" ]; then
@@ -138,6 +166,7 @@ done
 SERVER_IP="$(ip -4 route get 1.1.1.1 | awk '{for (i = 1; i <= NF; i++) if ($i == "src") { print $(i + 1); exit }}')"
 if [ -n "$DOMAIN" ]; then
   APP_URL="https://$DOMAIN"
+  if [ "$APP" != legacy ]; then APP_URL="$(app_url "$APP")"; fi
   SECURE_COOKIE=true
 else
   APP_URL="http://$SERVER_IP"
@@ -202,6 +231,12 @@ set_env() {
 set_env APP_URL "$APP_URL"
 set_env SESSION_SECURE_COOKIE "$SECURE_COOKIE"
 
+# On one shared domain each app keeps its own cookie, scoped to its prefix.
+if [ "$APP" != legacy ] && [ "${LAYOUT:-subdomains}" = paths ]; then
+  set_env SESSION_COOKIE "khana_${APP}_session"
+  if [ "$APP" = crm ]; then set_env SESSION_PATH "/"; else set_env SESSION_PATH "/$APP"; fi
+fi
+
 if [ "$APP" != legacy ]; then
   echo "==> Event settings for $APP"
 
@@ -219,23 +254,23 @@ if [ "$APP" != legacy ]; then
   set_env KHANA_SERVICE "$APP"
   set_env KHANA_EVENTS_VALIDATE false
   if [ "$APP" != accounts ]; then
-    set_env KHANA_ACCOUNTS_URL "https://accounts.$BASE_DOMAIN"
+    set_env KHANA_ACCOUNTS_URL "$(app_url accounts)"
   fi
   case "$APP" in
     accounts)
-      set_env KHANA_CRM_URL "https://crm.$BASE_DOMAIN"
-      set_env KHANA_ERP_URL "https://erp.$BASE_DOMAIN"
+      set_env KHANA_CRM_URL "$(app_url crm)"
+      set_env KHANA_ERP_URL "$(app_url erp)"
       set_env KHANA_SECRET_ACCOUNTS_TO_CRM "$(secret ACCOUNTS_TO_CRM)"
       set_env KHANA_SECRET_ACCOUNTS_TO_ERP "$(secret ACCOUNTS_TO_ERP)"
       ;;
     crm)
-      set_env KHANA_ERP_URL "https://erp.$BASE_DOMAIN"
+      set_env KHANA_ERP_URL "$(app_url erp)"
       set_env KHANA_SECRET_CRM_TO_ERP "$(secret CRM_TO_ERP)"
       set_env KHANA_SECRET_ERP_TO_CRM "$(secret ERP_TO_CRM)"
       set_env KHANA_SECRET_ACCOUNTS_TO_CRM "$(secret ACCOUNTS_TO_CRM)"
       ;;
     erp)
-      set_env KHANA_CRM_URL "https://crm.$BASE_DOMAIN"
+      set_env KHANA_CRM_URL "$(app_url crm)"
       set_env KHANA_SECRET_CRM_TO_ERP "$(secret CRM_TO_ERP)"
       set_env KHANA_SECRET_ERP_TO_CRM "$(secret ERP_TO_CRM)"
       set_env KHANA_SECRET_ACCOUNTS_TO_ERP "$(secret ACCOUNTS_TO_ERP)"
@@ -280,6 +315,42 @@ cat > /etc/caddy/Caddyfile <<'EOF'
 # Each app on this server has its own file in /etc/caddy/sites/.
 import /etc/caddy/sites/*.caddy
 EOF
+if [ "$APP" != legacy ] && [ "${LAYOUT:-subdomains}" = paths ]; then
+  # One site for the whole domain. Every app already set up on this server
+  # gets its route; the prefix is stripped before PHP sees it, and the app
+  # builds its links from APP_URL, which carries the prefix. CRM answers
+  # everything the others do not, so it is written last.
+  rm -f "/etc/caddy/sites/$NAME.caddy"
+  {
+    echo "$DOMAIN {"
+    echo "	encode zstd gzip"
+    echo
+    for a in accounts erp crm; do
+      [ "$a" = "$APP" ] || [ -f "/etc/php/$PHP_VERSION/fpm/pool.d/khana-$a.conf" ] || continue
+      if [ "$a" = crm ]; then echo "	handle {"; else echo "	handle_path /$a/* {"; fi
+      cat <<BLOCK
+		root * /var/www/khana-$a/current/public
+
+		# Service-to-service traffic only comes from this server itself.
+		@outside_internal {
+			path /internal/*
+			not remote_ip 127.0.0.0/8 ::1 $SERVER_IP
+		}
+		respond @outside_internal 403
+
+		php_fastcgi unix//run/php/khana-$a.sock {
+			resolve_root_symlink
+		}
+		file_server {
+			hide .ht*
+		}
+	}
+
+BLOCK
+    done
+    echo "}"
+  } > /etc/caddy/sites/khana-suite.caddy
+else
 cat > "/etc/caddy/sites/$NAME.caddy" <<EOF
 ${DOMAIN:-:80} {
 	root * $WWW/current/public
@@ -301,6 +372,7 @@ ${DOMAIN:-:80} {
 	}
 }
 EOF
+fi
 caddy validate --config /etc/caddy/Caddyfile --adapter caddyfile >/dev/null
 systemctl enable caddy >/dev/null 2>&1
 systemctl reload caddy || systemctl restart caddy

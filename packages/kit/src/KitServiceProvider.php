@@ -9,6 +9,7 @@ use Illuminate\Routing\Router;
 use Illuminate\Support\Facades\Blade;
 use Illuminate\Support\Facades\Event;
 use Illuminate\Support\Facades\Route;
+use Illuminate\Support\Facades\URL;
 use Illuminate\Support\ServiceProvider;
 use Khana\Kit\Contracts\ContractValidator;
 use Khana\Kit\Events\Console\EventsPingCommand;
@@ -89,6 +90,7 @@ final class KitServiceProvider extends ServiceProvider
         $router->aliasMiddleware('machine', RequireMachineToken::class);
 
         $this->bootUi();
+        $this->bootMountPath();
 
         if (! $this->app->routesAreCached()) {
             // No middleware group: a server calls this, so there is no
@@ -172,6 +174,23 @@ final class KitServiceProvider extends ServiceProvider
      * The shared look: views as khana::, components as <x-khana::...>, and
      * the CSS and JavaScript published to public/vendor/khana.
      */
+    /**
+     * When APP_URL carries a path (https://khana.example/erp), the app lives
+     * under that prefix on a shared domain. The web server strips the prefix
+     * before PHP, so the app cannot see it on the request; generate every
+     * url(), route() and asset() with it instead.
+     */
+    private function bootMountPath(): void
+    {
+        $url = (string) config('app.url');
+        $path = trim((string) parse_url($url, PHP_URL_PATH), '/');
+
+        if ($path !== '') {
+            URL::forceScheme((string) parse_url($url, PHP_URL_SCHEME));
+            URL::forceRootUrl(rtrim($url, '/'));
+        }
+    }
+
     private function bootUi(): void
     {
         $this->loadViewsFrom(__DIR__.'/../resources/views', 'khana');
