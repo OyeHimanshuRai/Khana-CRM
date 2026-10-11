@@ -1,0 +1,107 @@
+{
+  "$schema": "https://json-schema.org/draft/2020-12/schema",
+  "$id": "https://contracts.khana.local/events/defs.json",
+  "title": "Shared definitions",
+  "description": "Building blocks every event contract uses. Money is whole paise, quantities are decimal strings, times are UTC, ids are ULIDs.",
+  "$defs": {
+    "ulid": {
+      "type": "string",
+      "pattern": "^[0-7][0-9A-HJKMNP-TV-Z]{25}$",
+      "description": "26-character ULID in canonical upper case."
+    },
+    "nullableUlid": {
+      "anyOf": [{ "$ref": "#/$defs/ulid" }, { "type": "null" }]
+    },
+    "ulidList": {
+      "type": "array",
+      "items": { "$ref": "#/$defs/ulid" },
+      "uniqueItems": true
+    },
+    "paise": {
+      "type": "integer",
+      "description": "Money in whole paise: 52500 is Rs 525.00. Never a float."
+    },
+    "nonNegativePaise": {
+      "type": "integer",
+      "minimum": 0
+    },
+    "positivePaise": {
+      "type": "integer",
+      "minimum": 1
+    },
+    "quantity": {
+      "type": "string",
+      "pattern": "^-?\\d{1,9}(\\.\\d{1,4})?$",
+      "description": "Decimal string with up to 4 places, such as \"0.2500\". Senders write exactly 4."
+    },
+    "positiveQuantity": {
+      "type": "string",
+      "pattern": "^\\d{1,9}(\\.\\d{1,4})?$",
+      "not": { "pattern": "^0+(\\.0+)?$" }
+    },
+    "percent": {
+      "type": "string",
+      "pattern": "^-?\\d{1,3}(\\.\\d{1,2})?$",
+      "description": "Percentage as a decimal string, such as \"32.50\"."
+    },
+    "businessDate": {
+      "type": "string",
+      "pattern": "^\\d{4}-\\d{2}-\\d{2}$",
+      "format": "date",
+      "description": "The outlet's trading day, worked out by the sender from the outlet's time zone and day cutoff."
+    },
+    "timestamp": {
+      "type": "string",
+      "pattern": "^\\d{4}-\\d{2}-\\d{2}T\\d{2}:\\d{2}:\\d{2}(\\.\\d{1,6})?Z$",
+      "format": "date-time",
+      "description": "UTC, ISO 8601, ending in Z."
+    },
+    "nullableTimestamp": {
+      "anyOf": [{ "$ref": "#/$defs/timestamp" }, { "type": "null" }]
+    },
+    "name": {
+      "type": "string",
+      "minLength": 1,
+      "maxLength": 200
+    },
+    "nullableText": {
+      "type": ["string", "null"],
+      "maxLength": 1000
+    },
+    "code": {
+      "type": "string",
+      "pattern": "^[a-z][a-z0-9_]{0,39}$",
+      "description": "A machine key such as a role or a plan: lower case, digits and underscores."
+    },
+    "product": {
+      "enum": ["crm", "erp"]
+    },
+    "channel": {
+      "enum": ["dine_in", "takeaway", "delivery", "online", "counter", "api", "other"]
+    },
+    "kitchenStage": {
+      "enum": ["placed", "accepted", "preparing", "ready", "served"]
+    },
+    "gstin": {
+      "anyOf": [
+        { "type": "string", "pattern": "^\\d{2}[A-Z0-9]{13}$" },
+        { "type": "null" }
+      ]
+    },
+    "stateCode": {
+      "type": "string",
+      "pattern": "^\\d{2}$",
+      "description": "GST state code, such as \"07\" for Delhi."
+    },
+    "timezone": {
+      "type": "string",
+      "pattern": "^[A-Za-z]+(/[A-Za-z0-9_+\\-]+)+$|^UTC$",
+      "description": "IANA time zone, such as Asia/Kolkata."
+    },
+    "dayCutoff": {
+      "type": "string",
+      "pattern": "^([01]\\d|2[0-3]):[0-5]\\d$",
+      "description": "Local time the trading day rolls over, HH:MM. 04:00 puts a 01:30 bill on the evening before."
+    }
+  }
+}

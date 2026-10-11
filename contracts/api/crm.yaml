@@ -1,0 +1,151 @@
+openapi: 3.1.0
+info:
+  title: Khana CRM API (for other services)
+  version: 1.0.0
+  description: |
+    What ERP and Accounts may read from CRM - never inside a save, only for a
+    screen, a first sync or the nightly check. Machine tokens are issued by
+    Accounts (client credentials) and checked locally. Money is whole paise,
+    quantities are 4-place decimal strings, ids are ULIDs, times are UTC.
+servers:
+  - url: https://crm.khana.example.com
+security:
+  - machineToken: []
+paths:
+  /api/v1/outlets/{id}/menu:
+    get:
+      operationId: outletMenu
+      summary: The outlet's full menu, for ERP's first sync
+      security: [{ machineToken: ['menu:read'] }]
+      parameters:
+        - $ref: '#/components/parameters/OutletId'
+      responses:
+        '200':
+          description: Every item, archived ones included, in the same shape as crm.menu.item_upserted.
+          content:
+            application/json:
+              schema:
+                type: object
+                required: [outlet_id, items, taken_at]
+                properties:
+                  outlet_id: { $ref: '../events/defs.json#/$defs/ulid' }
+                  items:
+                    type: array
+                    items:
+                      allOf:
+                        - $ref: '../events/crm.menu.item_upserted.v1.json#/properties/data'
+                        - type: object
+                          required: [archived]
+                          properties:
+                            archived: { type: boolean }
+                  taken_at: { $ref: '../events/defs.json#/$defs/timestamp' }
+        '403': { $ref: '#/components/responses/Forbidden' }
+        '404': { $ref: '#/components/responses/NotFound' }
+  /api/v1/outlets/{id}/sales-digest:
+    get:
+      operationId: salesDigest
+      summary: Count and total of one business day's sales, for ERP's nightly check
+      security: [{ machineToken: ['sales:read'] }]
+      parameters:
+        - $ref: '#/components/parameters/OutletId'
+        - name: date
+          in: query
+          required: true
+          schema: { $ref: '../events/defs.json#/$defs/businessDate' }
+      responses:
+        '200':
+          description: Digest. Cancelled sales are listed so ERP can check it heard about the cancellation too.
+          content:
+            application/json:
+              schema:
+                type: object
+                required: [outlet_id, business_date, count, grand_paise, sale_ids, cancelled_sale_ids]
+                properties:
+                  outlet_id: { $ref: '../events/defs.json#/$defs/ulid' }
+                  business_date: { $ref: '../events/defs.json#/$defs/businessDate' }
+                  count: { type: integer, minimum: 0 }
+                  grand_paise: { $ref: '../events/defs.json#/$defs/nonNegativePaise' }
+                  sale_ids: { $ref: '../events/defs.json#/$defs/ulidList' }
+                  cancelled_sale_ids: { $ref: '../events/defs.json#/$defs/ulidList' }
+        '403': { $ref: '#/components/responses/Forbidden' }
+        '404': { $ref: '#/components/responses/NotFound' }
+  /api/v1/sales/{id}:
+    get:
+      operationId: sale
+      summary: One sale, for anything the nightly check finds missing
+      security: [{ machineToken: ['sales:read'] }]
+      parameters:
+        - name: id
+          in: path
+          required: true
+          schema: { $ref: '../events/defs.json#/$defs/ulid' }
+      responses:
+        '200':
+          description: The sale as crm.sale.recorded carried it, with where it stands now.
+          content:
+            application/json:
+              schema:
+                allOf:
+                  - $ref: '../events/crm.sale.recorded.v1.json#/properties/data'
+                  - type: object
+                    required: [tenant_id, outlet_id, status]
+                    properties:
+                      tenant_id: { $ref: '../events/defs.json#/$defs/ulid' }
+                      outlet_id: { $ref: '../events/defs.json#/$defs/ulid' }
+                      status: { enum: [issued, cancelled] }
+        '403': { $ref: '#/components/responses/Forbidden' }
+        '404': { $ref: '#/components/responses/NotFound' }
+  /api/v1/roles:
+    get:
+      operationId: roles
+      summary: CRM's roles, custom ones included, for the team screen in Accounts
+      security: [{ machineToken: ['roles:read'] }]
+      parameters:
+        - name: tenant_id
+          in: query
+          required: true
+          schema: { $ref: '../events/defs.json#/$defs/ulid' }
+      responses:
+        '200':
+          description: Roles
+          content:
+            application/json:
+              schema: { $ref: '#/components/schemas/Roles' }
+        '403': { $ref: '#/components/responses/Forbidden' }
+components:
+  securitySchemes:
+    machineToken:
+      type: oauth2
+      flows:
+        clientCredentials:
+          tokenUrl: https://accounts.khana.example.com/oauth/token
+          scopes:
+            menu:read: Read an outlet's menu
+            sales:read: Read sales and daily digests
+            roles:read: Read the product's roles
+  parameters:
+    OutletId:
+      name: id
+      in: path
+      required: true
+      schema: { $ref: '../events/defs.json#/$defs/ulid' }
+  responses:
+    Forbidden:
+      description: The token lacks the scope, or the outlet is not one the calling service serves.
+    NotFound:
+      description: No such outlet or sale.
+  schemas:
+    Roles:
+      type: object
+      required: [product, roles]
+      properties:
+        product: { $ref: '../events/defs.json#/$defs/product' }
+        roles:
+          type: array
+          items:
+            type: object
+            required: [key, name, preset]
+            properties:
+              key: { $ref: '../events/defs.json#/$defs/code' }
+              name: { type: string }
+              preset: { type: boolean, description: False for a role the business made itself. }

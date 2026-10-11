@@ -1,0 +1,46 @@
+{
+  "id": "01M3D669WCA1PDRH0P1CY8STS2",
+  "type": "crm.sale.recorded",
+  "version": 1,
+  "source": "crm",
+  "seq": 105,
+  "occurred_at": "2026-09-26T08:15:30Z",
+  "tenant_id": "01M3D669MZPZP9EP7ND2XFY1W2",
+  "outlet_id": "01M3D669NC4JCJSRMWG4WWDRRT",
+  "data": {
+    "sale_id": "01M3D669SW4FC5J17YC290RRDV",
+    "invoice_no": "POS/HK/2026/00412",
+    "business_date": "2026-09-26",
+    "channel": "dine_in",
+    "lines": [
+      {
+        "line_id": "01M3D669SYM43EBW94WTHNG61K",
+        "item_id": "01M3D669PVQWGHHDSQ863GKRVA",
+        "variant_id": "01M3D669QB61ZY37PB44WP3AV9",
+        "option_ids": ["01M3D669S9EQV0BW1MXBXE8TSM"],
+        "name": "Paneer Tikka (Full) - Extra cheese",
+        "qty": "2.0000",
+        "net_paise": 50000,
+        "tax_paise": 2500,
+        "order_line_ids": ["01M3D669ST4F03M77CDP84RRJJ"]
+      },
+      {
+        "line_id": "01M3D669XZDEYAPQSKAHMRWCDG",
+        "item_id": "01M3D669Y1PKV4YT9X510Y63QM",
+        "variant_id": null,
+        "option_ids": [],
+        "name": "Cola 300 ml",
+        "qty": "1.0000",
+        "net_paise": 3800,
+        "tax_paise": 190,
+        "order_line_ids": []
+      }
+    ],
+    "totals": {
+      "net_paise": 53800,
+      "tax_paise": 2690,
+      "round_off_paise": 10,
+      "grand_paise": 56500
+    }
+  }
+}

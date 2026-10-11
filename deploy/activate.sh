@@ -1,9 +1,14 @@
 #!/usr/bin/env bash
 #
-# Puts an uploaded build live on the test server. GitHub Actions copies the
-# build to /var/www/khana/releases/<commit>, then runs this as the khana user:
+# Puts an uploaded build of one app live on the test server. GitHub Actions
+# copies the build to /var/www/<name>/releases/<commit>, then runs this as the
+# app's own Linux user:
 #
-#   ssh khana@<server> 'bash -s -- <commit>' < deploy/activate.sh
+#   ssh <name>@<server> 'bash -s -- <app> <commit>' < deploy/activate.sh
+#
+# <app> is accounts, crm or erp, each living as khana-<app>. "legacy" is
+# today's single app (user khana, /var/www/khana), which stays up until the
+# new CRM replaces it.
 #
 # Migrations and caches run before the switch, so a build that cannot migrate
 # or compile never goes live. A build that goes live but fails its health
@@ -12,9 +17,17 @@
 
 set -euo pipefail
 
-sha="${1:?usage: activate.sh <commit>}"
-base=/var/www/khana
-shared=/var/lib/khana
+app="${1:?usage: activate.sh <app> <commit>}"
+sha="${2:?usage: activate.sh <app> <commit>}"
+
+case "$app" in
+  legacy) name=khana ;;
+  accounts|crm|erp) name="khana-$app" ;;
+  *) echo "Unknown app \"$app\": expected accounts, crm, erp or legacy." >&2; exit 1 ;;
+esac
+
+base="/var/www/$name"
+shared="/var/lib/$name"
 release="$base/releases/$sha"
 previous="$(readlink -e "$base/current" || true)"
 
@@ -27,7 +40,7 @@ switch_to() {
   ln -sfn "$1" "$base/current.next"
   mv -Tf "$base/current.next" "$base/current"
   sudo -n /usr/bin/systemctl reload php8.3-fpm
-  sudo -n /usr/bin/systemctl restart khana-queue
+  sudo -n /usr/bin/systemctl restart "$name-queue"
 }
 
 is_healthy() {
@@ -62,7 +75,7 @@ fi
 echo "==> Caching config, routes and views"
 php artisan optimize
 
-echo "==> Switching to $sha"
+echo "==> Switching $name to $sha"
 switch_to "$release"
 
 if ! is_healthy; then
@@ -75,7 +88,7 @@ if ! is_healthy; then
   exit 1
 fi
 
-echo "==> Live: $sha"
+echo "==> Live: $name at $sha"
 
 live="$(readlink -e "$base/current")"
 ls -1dt "$base"/releases/*/ | tail -n +6 | while read -r dir; do

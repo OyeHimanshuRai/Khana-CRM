@@ -1,0 +1,16 @@
+{
+  "id": "01M3D669XHR2F2TSP8N43KY1XT",
+  "type": "erp.cost.changed",
+  "version": 1,
+  "source": "erp",
+  "seq": 52,
+  "occurred_at": "2026-09-27T02:00:00Z",
+  "tenant_id": "01M3D669MZPZP9EP7ND2XFY1W2",
+  "outlet_id": "01M3D669NC4JCJSRMWG4WWDRRT",
+  "data": {
+    "item_id": "01M3D669PVQWGHHDSQ863GKRVA",
+    "variant_id": "01M3D669QB61ZY37PB44WP3AV9",
+    "cost_paise": 8125,
+    "food_cost_percent": "32.50"
+  }
+}

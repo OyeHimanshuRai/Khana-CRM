@@ -1,0 +1,28 @@
+{
+  "$schema": "https://json-schema.org/draft/2020-12/schema",
+  "$id": "https://contracts.khana.local/events/erp.cost.changed.v1.json",
+  "title": "erp.cost.changed v1",
+  "description": "A portion's recipe cost moved by 1% or more. Cost is the weighted average of stock on hand.",
+  "allOf": [{ "$ref": "envelope.json" }],
+  "properties": {
+    "type": { "const": "erp.cost.changed" },
+    "version": { "const": 1 },
+    "source": { "const": "erp" },
+    "tenant_id": { "$ref": "defs.json#/$defs/ulid" },
+    "outlet_id": { "$ref": "defs.json#/$defs/ulid" },
+    "data": {
+      "type": "object",
+      "additionalProperties": false,
+      "required": ["item_id", "variant_id", "cost_paise", "food_cost_percent"],
+      "properties": {
+        "item_id": { "$ref": "defs.json#/$defs/ulid" },
+        "variant_id": { "$ref": "defs.json#/$defs/nullableUlid" },
+        "cost_paise": { "$ref": "defs.json#/$defs/nonNegativePaise" },
+        "food_cost_percent": {
+          "anyOf": [{ "$ref": "defs.json#/$defs/percent" }, { "type": "null" }],
+          "description": "Cost as a share of the selling price. Null when the item has no price."
+        }
+      }
+    }
+  }
+}

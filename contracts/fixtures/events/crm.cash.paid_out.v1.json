@@ -1,0 +1,18 @@
+{
+  "id": "01M3D669XCF654AR8FH0DP00W2",
+  "type": "crm.cash.paid_out",
+  "version": 1,
+  "source": "crm",
+  "seq": 108,
+  "occurred_at": "2026-09-26T10:00:00Z",
+  "tenant_id": "01M3D669MZPZP9EP7ND2XFY1W2",
+  "outlet_id": "01M3D669NC4JCJSRMWG4WWDRRT",
+  "data": {
+    "paid_out_id": "01M3D669TA85CPED1T244XJN2Q",
+    "business_date": "2026-09-26",
+    "amount_paise": 120000,
+    "category": "supplier_payment",
+    "supplier_bill_id": "01M3D669TCNVW32QSMS0FB7YT9",
+    "note": "Vegetables, morning delivery"
+  }
+}

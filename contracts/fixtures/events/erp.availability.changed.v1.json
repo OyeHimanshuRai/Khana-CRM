@@ -1,0 +1,16 @@
+{
+  "id": "01M3D669XFVX1B82FKVFPSCQN7",
+  "type": "erp.availability.changed",
+  "version": 1,
+  "source": "erp",
+  "seq": 51,
+  "occurred_at": "2026-09-26T08:16:00Z",
+  "tenant_id": "01M3D669MZPZP9EP7ND2XFY1W2",
+  "outlet_id": "01M3D669NC4JCJSRMWG4WWDRRT",
+  "data": {
+    "item_id": "01M3D669PVQWGHHDSQ863GKRVA",
+    "variant_id": "01M3D669QB61ZY37PB44WP3AV9",
+    "available": false,
+    "reason": "stock_out"
+  }
+}

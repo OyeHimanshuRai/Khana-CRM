@@ -1,0 +1,23 @@
+/*
+ | A hub's screens across the top of the page - see
+ | resources/views/admin/partials/hub-tabs.blade.php.
+ |
+ | The kit's .tabs/.tab look, as links. The strip scrolls sideways on a phone
+ | rather than wrapping, like every other tab row.
+ */
+.hub-tabs {
+    margin-bottom: 18px;
+}
+
+.hub-tabs .tabs {
+    border-radius: 10px 10px 0 0;
+}
+
+.hub-tabs .tab {
+    text-decoration: none;
+    padding: 12px 18px;
+}
+
+.hub-tabs .tab:hover {
+    text-decoration: none;
+}

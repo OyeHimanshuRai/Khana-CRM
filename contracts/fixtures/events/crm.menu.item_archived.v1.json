@@ -1,0 +1,13 @@
+{
+  "id": "01M3D669TXFWGBGQZGK0N282G4",
+  "type": "crm.menu.item_archived",
+  "version": 1,
+  "source": "crm",
+  "seq": 102,
+  "occurred_at": "2026-09-26T06:05:00Z",
+  "tenant_id": "01M3D669MZPZP9EP7ND2XFY1W2",
+  "outlet_id": "01M3D669NC4JCJSRMWG4WWDRRT",
+  "data": {
+    "item_id": "01M3D669PVQWGHHDSQ863GKRVA"
+  }
+}

@@ -1,0 +1,28 @@
+name: Deploy CRM
+
+# Runs on pushes that touch CRM or the shared kit, once the server has been
+# set up for the three apps (deploy/README.md) and the repository variable
+# KHANA_SPLIT_DEPLOYS is "on". A manual run always goes ahead.
+
+on:
+  push:
+    branches: [main]
+    paths:
+      - 'apps/crm/**'
+      - 'packages/kit/**'
+      - 'deploy/**'
+      - '.github/workflows/deploy-crm.yml'
+      - '.github/workflows/deploy-app.yml'
+  workflow_dispatch:
+
+concurrency:
+  group: khana-test-crm
+  cancel-in-progress: false
+
+jobs:
+  deploy:
+    if: github.event_name == 'workflow_dispatch' || vars.KHANA_SPLIT_DEPLOYS == 'on'
+    uses: ./.github/workflows/deploy-app.yml
+    with:
+      app: crm
+    secrets: inherit

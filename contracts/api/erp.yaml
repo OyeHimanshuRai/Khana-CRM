@@ -1,0 +1,293 @@
+openapi: 3.1.0
+info:
+  title: Khana ERP API
+  version: 1.0.0
+  description: |
+    What CRM and Accounts may read from ERP, and the sales door other billing
+    software uses to feed ERP - the same shape CRM's crm.sale.recorded event
+    has. Machine tokens are issued by Accounts. A third-party sales key is
+    bound to one outlet, so the outlet in the path must be the key's own.
+    Money is whole paise, quantities are 4-place decimal strings, ids are
+    ULIDs, times are UTC.
+servers:
+  - url: https://erp.khana.example.com
+paths:
+  /api/v1/outlets/{id}/supplier-bills:
+    get:
+      operationId: supplierBills
+      summary: The outlet's supplier bills, for CRM's paid-out screen
+      security: [{ machineToken: ['bills:read'] }]
+      parameters:
+        - $ref: '#/components/parameters/OutletId'
+        - name: status
+          in: query
+          required: false
+          schema: { enum: [open, paid, all], default: open }
+      responses:
+        '200':
+          description: Bills, oldest due first.
+          content:
+            application/json:
+              schema:
+                type: object
+                required: [bills]
+                properties:
+                  bills:
+                    type: array
+                    items:
+                      type: object
+                      required: [bill_id, supplier_name, bill_no, billed_on, due_on, total_paise, due_paise]
+                      properties:
+                        bill_id: { $ref: '../events/defs.json#/$defs/ulid' }
+                        supplier_name: { type: string }
+                        bill_no: { type: string }
+                        billed_on: { $ref: '../events/defs.json#/$defs/businessDate' }
+                        due_on:
+                          anyOf: [{ $ref: '../events/defs.json#/$defs/businessDate' }, { type: 'null' }]
+                        total_paise: { $ref: '../events/defs.json#/$defs/nonNegativePaise' }
+                        due_paise: { $ref: '../events/defs.json#/$defs/nonNegativePaise' }
+        '403': { $ref: '#/components/responses/Forbidden' }
+  /api/v1/outlets/{id}/items/{item}/stock:
+    get:
+      operationId: itemStock
+      summary: Stock on hand and recipe cost for one menu item, for the panel on CRM's menu screen
+      security: [{ machineToken: ['stock:read'] }]
+      parameters:
+        - $ref: '#/components/parameters/OutletId'
+        - name: item
+          in: path
+          required: true
+          description: CRM's menu item id.
+          schema: { $ref: '../events/defs.json#/$defs/ulid' }
+      responses:
+        '200':
+          description: One entry per size (or one with a null variant_id for an item without sizes).
+          content:
+            application/json:
+              schema:
+                type: object
+                required: [item_id, has_recipe, sizes]
+                properties:
+                  item_id: { $ref: '../events/defs.json#/$defs/ulid' }
+                  has_recipe: { type: boolean }
+                  sizes:
+                    type: array
+                    items:
+                      type: object
+                      required: [variant_id, portions_available, cost_paise, food_cost_percent, available]
+                      properties:
+                        variant_id: { $ref: '../events/defs.json#/$defs/nullableUlid' }
+                        portions_available:
+                          anyOf: [{ $ref: '../events/defs.json#/$defs/quantity' }, { type: 'null' }]
+                          description: How many portions the stock on hand covers. Null without a recipe.
+                        cost_paise:
+                          anyOf: [{ $ref: '../events/defs.json#/$defs/nonNegativePaise' }, { type: 'null' }]
+                        food_cost_percent:
+                          anyOf: [{ $ref: '../events/defs.json#/$defs/percent' }, { type: 'null' }]
+                        available: { type: boolean }
+        '403': { $ref: '#/components/responses/Forbidden' }
+        '404': { description: ERP has not heard of this item. }
+  /api/v1/outlets/{id}/food-cost:
+    get:
+      operationId: foodCost
+      summary: One business day's food cost, for the tile on CRM's home screen
+      description: |
+        What the day's sales earned before tax and what the food in them
+        cost, from the sales and kitchen lines ERP has heard about so far.
+        A dish sold with no recipe has no cost, so it is in sales_paise and
+        not in cost_paise; `uncosted` says how many such dishes there were,
+        so the reader knows how far to trust the percentage.
+      security: [{ machineToken: ['stock:read'] }]
+      parameters:
+        - $ref: '#/components/parameters/OutletId'
+        - name: date
+          in: query
+          required: false
+          description: The business day. The outlet's current one when left out.
+          schema: { $ref: '../events/defs.json#/$defs/businessDate' }
+      responses:
+        '200':
+          description: The day's figures.
+          content:
+            application/json:
+              schema:
+                type: object
+                required: [outlet_id, business_date, sales_paise, cost_paise, food_cost_percent, uncosted]
+                properties:
+                  outlet_id: { $ref: '../events/defs.json#/$defs/ulid' }
+                  business_date: { $ref: '../events/defs.json#/$defs/businessDate' }
+                  sales_paise: { $ref: '../events/defs.json#/$defs/nonNegativePaise' }
+                  cost_paise: { $ref: '../events/defs.json#/$defs/nonNegativePaise' }
+                  food_cost_percent:
+                    anyOf: [{ $ref: '../events/defs.json#/$defs/percent' }, { type: 'null' }]
+                    description: Null when nothing was sold, or nothing sold has a cost yet.
+                  uncosted: { type: integer, minimum: 0, description: Dishes sold that day with no recipe. }
+        '403': { $ref: '#/components/responses/Forbidden' }
+        '422': { description: The date is not a business day (YYYY-MM-DD). }
+  /api/v1/outlets/{id}/signals:
+    get:
+      operationId: signals
+      summary: What ERP last told CRM about each dish, for CRM's nightly check
+      description: |
+        One entry per dish (or per size of a dish with sizes) that ERP has
+        sent erp.availability.changed or erp.cost.changed for. It is what
+        CRM holds if no such event was lost, so CRM compares the two and puts
+        right whatever differs. A dish that is not listed is one ERP has
+        said nothing about: on sale, cost unknown.
+      security: [{ machineToken: ['stock:read'] }]
+      parameters:
+        - $ref: '#/components/parameters/OutletId'
+      responses:
+        '200':
+          description: The signals as they stand.
+          content:
+            application/json:
+              schema:
+                type: object
+                required: [outlet_id, items, taken_at]
+                properties:
+                  outlet_id: { $ref: '../events/defs.json#/$defs/ulid' }
+                  items:
+                    type: array
+                    items:
+                      type: object
+                      required: [item_id, variant_id, available, cost_paise]
+                      properties:
+                        item_id: { $ref: '../events/defs.json#/$defs/ulid', description: CRM's menu item id. }
+                        variant_id: { $ref: '../events/defs.json#/$defs/nullableUlid' }
+                        available: { type: boolean }
+                        cost_paise:
+                          anyOf: [{ $ref: '../events/defs.json#/$defs/nonNegativePaise' }, { type: 'null' }]
+                          description: Null until ERP has told CRM a cost for it.
+                  taken_at: { $ref: '../events/defs.json#/$defs/timestamp' }
+        '403': { $ref: '#/components/responses/Forbidden' }
+  /api/v1/sales:
+    post:
+      operationId: recordSale
+      summary: Record a sale from other billing software
+      description: |
+        Keyed by the other system's own reference, so posting the same sale
+        twice records it once. Lines name the other system's items; ERP maps
+        each to a sales item the first time and remembers the match.
+      security: [{ machineToken: ['sales:write'] }]
+      requestBody:
+        required: true
+        content:
+          application/json:
+            schema:
+              type: object
+              additionalProperties: false
+              required: [outlet_id, reference, invoice_no, business_date, channel, lines, totals]
+              properties:
+                outlet_id: { $ref: '../events/defs.json#/$defs/ulid' }
+                reference:
+                  type: string
+                  minLength: 1
+                  maxLength: 100
+                  description: The sale's id in the other system. Unique per outlet.
+                invoice_no: { type: string, minLength: 1, maxLength: 50 }
+                business_date: { $ref: '../events/defs.json#/$defs/businessDate' }
+                channel: { $ref: '../events/defs.json#/$defs/channel' }
+                lines:
+                  type: array
+                  minItems: 1
+                  items:
+                    type: object
+                    additionalProperties: false
+                    required: [item_ref, name, qty, net_paise, tax_paise]
+                    properties:
+                      item_ref: { type: string, minLength: 1, maxLength: 100, description: The item's id or code in the other system. }
+                      variant_ref: { type: [string, 'null'], maxLength: 100 }
+                      name: { $ref: '../events/defs.json#/$defs/name' }
+                      qty: { $ref: '../events/defs.json#/$defs/positiveQuantity' }
+                      net_paise: { $ref: '../events/defs.json#/$defs/nonNegativePaise' }
+                      tax_paise: { $ref: '../events/defs.json#/$defs/nonNegativePaise' }
+                totals: { $ref: '../events/crm.sale.recorded.v1.json#/properties/data/properties/totals' }
+      responses:
+        '201':
+          description: Recorded.
+          content:
+            application/json:
+              schema: { $ref: '#/components/schemas/SaleAck' }
+        '200':
+          description: Already recorded under this reference; nothing changed.
+          content:
+            application/json:
+              schema: { $ref: '#/components/schemas/SaleAck' }
+        '403': { $ref: '#/components/responses/Forbidden' }
+        '422': { description: Invalid sale }
+  /api/v1/sales/{ref}/cancel:
+    post:
+      operationId: cancelSale
+      summary: Cancel a sale recorded through the API
+      security: [{ machineToken: ['sales:write'] }]
+      parameters:
+        - name: ref
+          in: path
+          required: true
+          schema: { type: string, minLength: 1, maxLength: 100 }
+      requestBody:
+        required: true
+        content:
+          application/json:
+            schema:
+              type: object
+              additionalProperties: false
+              required: [outlet_id, reason]
+              properties:
+                outlet_id: { $ref: '../events/defs.json#/$defs/ulid' }
+                reason: { type: string, minLength: 1, maxLength: 500 }
+      responses:
+        '200':
+          description: Cancelled (or already cancelled).
+          content:
+            application/json:
+              schema: { $ref: '#/components/schemas/SaleAck' }
+        '403': { $ref: '#/components/responses/Forbidden' }
+        '404': { description: No sale with this reference at this outlet. }
+  /api/v1/roles:
+    get:
+      operationId: roles
+      summary: ERP's roles, custom ones included, for the team screen in Accounts
+      security: [{ machineToken: ['roles:read'] }]
+      parameters:
+        - name: tenant_id
+          in: query
+          required: true
+          schema: { $ref: '../events/defs.json#/$defs/ulid' }
+      responses:
+        '200':
+          description: Roles, in the same shape CRM answers with.
+          content:
+            application/json:
+              schema: { $ref: 'crm.yaml#/components/schemas/Roles' }
+        '403': { $ref: '#/components/responses/Forbidden' }
+components:
+  securitySchemes:
+    machineToken:
+      type: oauth2
+      flows:
+        clientCredentials:
+          tokenUrl: https://accounts.khana.example.com/oauth/token
+          scopes:
+            bills:read: Read supplier bills
+            stock:read: Read stock, recipe cost, the day's food cost and the sold-out signals
+            sales:write: Record and cancel sales (third-party keys are bound to one outlet)
+            roles:read: Read the product's roles
+  parameters:
+    OutletId:
+      name: id
+      in: path
+      required: true
+      schema: { $ref: '../events/defs.json#/$defs/ulid' }
+  responses:
+    Forbidden:
+      description: The token lacks the scope, or is bound to a different outlet.
+  schemas:
+    SaleAck:
+      type: object
+      required: [sale_id, reference, status]
+      properties:
+        sale_id: { $ref: '../events/defs.json#/$defs/ulid' }
+        reference: { type: string }
+        status: { enum: [recorded, cancelled] }

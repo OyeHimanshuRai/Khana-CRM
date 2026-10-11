@@ -1,0 +1,23 @@
+{
+  "$schema": "https://json-schema.org/draft/2020-12/schema",
+  "$id": "https://contracts.khana.local/events/crm.sale.cancelled.v1.json",
+  "title": "crm.sale.cancelled v1",
+  "description": "An invoice was cancelled. ERP reverses only what the invoice itself consumed; kitchen consumption stays, because the food was cooked.",
+  "allOf": [{ "$ref": "envelope.json" }],
+  "properties": {
+    "type": { "const": "crm.sale.cancelled" },
+    "version": { "const": 1 },
+    "source": { "const": "crm" },
+    "tenant_id": { "$ref": "defs.json#/$defs/ulid" },
+    "outlet_id": { "$ref": "defs.json#/$defs/ulid" },
+    "data": {
+      "type": "object",
+      "additionalProperties": false,
+      "required": ["sale_id", "reason"],
+      "properties": {
+        "sale_id": { "$ref": "defs.json#/$defs/ulid" },
+        "reason": { "type": "string", "minLength": 1, "maxLength": 500 }
+      }
+    }
+  }
+}

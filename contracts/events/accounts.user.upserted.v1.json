@@ -1,0 +1,36 @@
+{
+  "$schema": "https://json-schema.org/draft/2020-12/schema",
+  "$id": "https://contracts.khana.local/events/accounts.user.upserted.v1.json",
+  "title": "accounts.user.upserted v1",
+  "description": "A person was added or edited. tenant_id is null for platform staff, who belong to no business.",
+  "allOf": [{ "$ref": "envelope.json" }],
+  "properties": {
+    "type": { "const": "accounts.user.upserted" },
+    "version": { "const": 1 },
+    "source": { "const": "accounts" },
+    "tenant_id": { "$ref": "defs.json#/$defs/nullableUlid" },
+    "outlet_id": { "type": "null" },
+    "data": {
+      "type": "object",
+      "additionalProperties": false,
+      "required": ["user_id", "name", "email", "mobile", "status"],
+      "properties": {
+        "user_id": { "$ref": "defs.json#/$defs/ulid" },
+        "name": { "$ref": "defs.json#/$defs/name" },
+        "email": {
+          "anyOf": [
+            { "type": "string", "format": "email", "maxLength": 255 },
+            { "type": "null" }
+          ]
+        },
+        "mobile": {
+          "anyOf": [
+            { "type": "string", "pattern": "^\\+?\\d{10,15}$" },
+            { "type": "null" }
+          ]
+        },
+        "status": { "enum": ["invited", "active", "deactivated"] }
+      }
+    }
+  }
+}

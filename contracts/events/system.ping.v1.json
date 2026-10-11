@@ -1,0 +1,19 @@
+{
+  "$schema": "https://json-schema.org/draft/2020-12/schema",
+  "$id": "https://contracts.khana.local/events/system.ping.v1.json",
+  "title": "system.ping v1",
+  "description": "Diagnostic only: proves two services can hear each other, signature and all (php artisan events:ping). Stored and marked applied; changes nothing.",
+  "allOf": [{ "$ref": "envelope.json" }],
+  "properties": {
+    "type": { "const": "system.ping" },
+    "version": { "const": 1 },
+    "data": {
+      "type": "object",
+      "additionalProperties": false,
+      "required": ["note"],
+      "properties": {
+        "note": { "type": "string", "maxLength": 200 }
+      }
+    }
+  }
+}

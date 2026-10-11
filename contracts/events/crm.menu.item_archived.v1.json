@@ -1,0 +1,22 @@
+{
+  "$schema": "https://json-schema.org/draft/2020-12/schema",
+  "$id": "https://contracts.khana.local/events/crm.menu.item_archived.v1.json",
+  "title": "crm.menu.item_archived v1",
+  "description": "A menu item was archived at one outlet. ERP keeps its recipe and history; the item simply stops selling.",
+  "allOf": [{ "$ref": "envelope.json" }],
+  "properties": {
+    "type": { "const": "crm.menu.item_archived" },
+    "version": { "const": 1 },
+    "source": { "const": "crm" },
+    "tenant_id": { "$ref": "defs.json#/$defs/ulid" },
+    "outlet_id": { "$ref": "defs.json#/$defs/ulid" },
+    "data": {
+      "type": "object",
+      "additionalProperties": false,
+      "required": ["item_id"],
+      "properties": {
+        "item_id": { "$ref": "defs.json#/$defs/ulid" }
+      }
+    }
+  }
+}

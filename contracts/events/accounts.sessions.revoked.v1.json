@@ -1,0 +1,23 @@
+{
+  "$schema": "https://json-schema.org/draft/2020-12/schema",
+  "$id": "https://contracts.khana.local/events/accounts.sessions.revoked.v1.json",
+  "title": "accounts.sessions.revoked v1",
+  "description": "End every session this person has in both products and revoke their device tokens.",
+  "allOf": [{ "$ref": "envelope.json" }],
+  "properties": {
+    "type": { "const": "accounts.sessions.revoked" },
+    "version": { "const": 1 },
+    "source": { "const": "accounts" },
+    "tenant_id": { "$ref": "defs.json#/$defs/nullableUlid" },
+    "outlet_id": { "type": "null" },
+    "data": {
+      "type": "object",
+      "additionalProperties": false,
+      "required": ["user_id", "reason"],
+      "properties": {
+        "user_id": { "$ref": "defs.json#/$defs/ulid" },
+        "reason": { "enum": ["deactivated", "signed_out_everywhere", "password_changed", "security"] }
+      }
+    }
+  }
+}
