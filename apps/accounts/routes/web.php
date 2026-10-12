@@ -1,5 +1,6 @@
 <?php
 
+use App\Http\Controllers\Admin\DashboardController;
 use App\Http\Controllers\Admin\PlanController;
 use App\Http\Controllers\Admin\SecurityController;
 use App\Http\Controllers\Admin\TenantController;
@@ -83,6 +84,7 @@ Route::middleware('auth')->group(function () {
 
     // --- Platform back office ---
     Route::middleware('platform')->prefix('admin')->name('admin.')->group(function () {
+        Route::get('overview', DashboardController::class)->name('dashboard');
         Route::get('businesses', [TenantController::class, 'index'])->name('tenants.index');
         Route::get('businesses/{tenant}', [TenantController::class, 'show'])->name('tenants.show');
         Route::post('businesses/{tenant}/status', [TenantController::class, 'setStatus'])->name('tenants.status');

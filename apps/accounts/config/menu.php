@@ -29,6 +29,7 @@ return [
     [
         'heading' => 'Platform',
         'items' => [
+            ['label' => 'Overview', 'route' => 'admin.dashboard', 'icon' => 'home', 'active' => 'admin.dashboard', 'when' => WhenPlatform::class],
             ['label' => 'Businesses', 'route' => 'admin.tenants.index', 'icon' => 'layers', 'active' => 'admin.tenants.*', 'when' => WhenPlatform::class],
             ['label' => 'Plans', 'route' => 'admin.plans.index', 'icon' => 'credit-card', 'active' => 'admin.plans.*', 'when' => WhenPlatform::class],
             ['label' => 'Security', 'route' => 'admin.security.index', 'icon' => 'key', 'active' => 'admin.security.*', 'when' => WhenPlatform::class],

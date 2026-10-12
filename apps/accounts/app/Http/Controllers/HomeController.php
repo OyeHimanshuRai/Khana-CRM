@@ -20,7 +20,7 @@ final class HomeController
         $user = $request->user();
 
         if ($user->isPlatformAdmin()) {
-            return redirect()->route('admin.tenants.index');
+            return redirect()->route('admin.dashboard');
         }
 
         if ($user->isOwner()) {

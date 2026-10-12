@@ -2,7 +2,7 @@ name: Deploy Accounts
 
 # Runs on pushes that touch Accounts or the shared kit, once the server has
 # been set up for the three apps (deploy/README.md) and the repository
-# variable KHANA_SPLIT_DEPLOYS is "on". A manual run always goes ahead.
+# variable KHANA_SPLIT_DEPLOYS is not "off". A manual run always goes ahead.
 
 on:
   push:
@@ -21,7 +21,7 @@ concurrency:
 
 jobs:
   deploy:
-    if: github.event_name == 'workflow_dispatch' || vars.KHANA_SPLIT_DEPLOYS == 'on'
+    if: github.event_name == 'workflow_dispatch' || vars.KHANA_SPLIT_DEPLOYS != 'off'
     uses: ./.github/workflows/deploy-app.yml
     with:
       app: accounts
