@@ -7,6 +7,7 @@ use App\Models\CashRegister;
 use App\Models\Shop;
 use App\Models\User;
 use App\Services\AlertService;
+use App\Support\BusinessDay;
 use App\Support\CurrentShop;
 use App\Support\CurrentTenant;
 use Illuminate\Foundation\Testing\RefreshDatabase;
@@ -91,7 +92,8 @@ class AlertSweepTest extends TestCase
         $today = new CashRegister();
         $today->forceFill([
             'shop_id' => $this->shop()->id,
-            'business_date' => today(),
+            // The shop's own business date, not UTC's: they differ for 5.5 hours each night.
+            'business_date' => BusinessDay::today($this->shop()),
             'status' => CashRegister::OPEN,
             'opening_float' => 1000,
             'opened_at' => now(),
