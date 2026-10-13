@@ -120,31 +120,26 @@ class LandingPageTest extends TestCase
 
     /* -------------------------------------------------- opening an account */
 
-    /**
-     * Prices and the signup form are Khana Accounts'; the buttons go there.
-     */
-    public function test_open_an_account_goes_to_khana_accounts(): void
+    // The trial buttons go to Khana Accounts' signup form.
+    public function test_free_trial_goes_to_khana_accounts(): void
     {
         config(['khana.urls.accounts' => 'https://accounts.example.test']);
 
         $this->get('/')
             ->assertOk()
-            ->assertSee('Open an account')
+            ->assertSee('Start free trial')
             ->assertSee('href="https://accounts.example.test/signup"', false);
     }
 
-    /**
-     * With nowhere to send anybody, the buttons are left out rather than
-     * drawn as links to nothing - and the demo form becomes the way in.
-     */
-    public function test_without_an_accounts_address_the_signup_buttons_are_left_out(): void
+    // With no Accounts yet, the trial buttons still show and lead to the trial request form.
+    public function test_without_an_accounts_address_free_trial_goes_to_the_request_form(): void
     {
         config(['khana.urls.accounts' => null]);
 
         $this->get('/')
             ->assertOk()
-            ->assertDontSee('Open an account')
-            ->assertDontSee('Start free trial')
+            ->assertSee('Start free trial')
+            ->assertDontSee('/signup"', false)
             ->assertSee('Book a free demo');
     }
 

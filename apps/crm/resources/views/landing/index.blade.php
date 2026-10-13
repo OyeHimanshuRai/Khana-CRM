@@ -113,9 +113,8 @@
             {{-- The one button that opens an account, in Khana Accounts.
                  Straight to the form, because somebody who scrolled to the
                  header to click something has already decided. --}}
-            @if ($signupUrl)
-                <a class="lp-btn lp-btn-solid" href="{{ $signupUrl }}">Open an account</a>
-            @endif
+            {{-- Always shown: signup form when Accounts is set up, else the trial request form below. --}}
+            <a class="lp-btn lp-btn-solid" href="{{ $signupUrl ?: '#demo' }}">Free trial</a>
         </div>
 
         {{--
@@ -139,9 +138,7 @@
                 @if ($faqs->isNotEmpty()) <a href="#faq">FAQ</a> @endif
                 <a href="#demo">Book a demo</a>
                 <a href="{{ route('admin.login') }}">Sign in</a>
-                @if ($signupUrl)
-                    <a class="lp-menu-account" href="{{ $signupUrl }}">Open an account <span aria-hidden="true">→</span></a>
-                @endif
+                <a class="lp-menu-account" href="{{ $signupUrl ?: '#demo' }}">Start free trial <span aria-hidden="true">→</span></a>
             </nav>
         </details>
     </div>
@@ -196,10 +193,8 @@
                 an install that has no Accounts address to send people to.
             --}}
             <div class="lp-hero-cta">
-                @if ($signupUrl)
-                    <a class="lp-btn lp-btn-solid lp-btn-lg" href="{{ $signupUrl }}">Start free trial <span aria-hidden="true">→</span></a>
-                @endif
-                <a class="lp-btn {{ $signupUrl ? 'lp-btn-ghost' : 'lp-btn-solid' }} lp-btn-lg" href="#demo">Book a free demo</a>
+                <a class="lp-btn lp-btn-solid lp-btn-lg" href="{{ $signupUrl ?: '#demo' }}">Start free trial <span aria-hidden="true">→</span></a>
+                <a class="lp-btn lp-btn-ghost lp-btn-lg" href="#demo">Book a free demo</a>
             </div>
 
             <div class="lp-hero-proof"><span class="lp-proof-avatars"><i>R</i><i>A</i><i>V</i></span><span><strong>Built for busy restaurants</strong><br>Setup in days, not weeks</span></div>
