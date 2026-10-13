@@ -112,6 +112,9 @@ class AppServiceProvider extends ServiceProvider
                 $token?->id ? 'token:'.$token->id : 'ip:'.$request->ip()
             );
         });
+
+        // App sign-in: 10 tries a minute per IP.
+        RateLimiter::for('app-sign-in', fn (Request $request) => Limit::perMinute(10)->by('ip:'.$request->ip()));
     }
 
     /**

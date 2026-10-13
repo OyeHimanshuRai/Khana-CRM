@@ -1,5 +1,6 @@
 <?php
 
+use App\Http\Controllers\Api\AuthController;
 use App\Http\Controllers\Api\Machine\OutletMenuController;
 use App\Http\Controllers\Api\Machine\RoleController;
 use App\Http\Controllers\Api\Machine\SaleController;
@@ -62,6 +63,16 @@ use Illuminate\Support\Facades\Route;
 | asked, and lets an install with no Accounts carry on as before.
 |
 */
+
+// App sign-in sits outside the group below: no token yet, and logout must work for any outlet.
+Route::middleware('throttle:app-sign-in')->prefix('auth')->group(function () {
+    Route::post('exchange', [AuthController::class, 'exchange'])->name('api.auth.exchange');
+    Route::post('login', [AuthController::class, 'login'])->name('api.auth.login');
+});
+
+Route::post('auth/logout', [AuthController::class, 'logout'])
+    ->middleware('auth:sanctum')
+    ->name('api.auth.logout');
 
 Route::middleware(['auth:sanctum', 'throttle:api', 'shop.entitled:'.EnsureShopIsEntitled::API])->group(function () {
 

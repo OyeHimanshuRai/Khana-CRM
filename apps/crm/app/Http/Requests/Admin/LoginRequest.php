@@ -60,6 +60,12 @@ class LoginRequest extends FormRequest
      */
     public function authenticate(): void
     {
+        Auth::login($this->verifiedUser(), $this->boolean('remember'));
+    }
+
+    // All login checks without starting a session; the app gets a token instead.
+    public function verifiedUser(): User
+    {
         $this->ensureIsNotRateLimited();
 
         $email = $this->string('email')->lower()->toString();
@@ -94,9 +100,9 @@ class LoginRequest extends FormRequest
             $this->failed('email', 'This account does not have administrator access.', 'no_admin_access', $user);
         }
 
-        Auth::login($user, $this->boolean('remember'));
-
         RateLimiter::clear($this->throttleKey());
+
+        return $user;
     }
 
     /**

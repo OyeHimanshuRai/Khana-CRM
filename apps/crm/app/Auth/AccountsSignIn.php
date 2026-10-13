@@ -48,18 +48,10 @@ final class AccountsSignIn implements LocalSignIn
 {
     public function signIn(SignedInPerson $person, Request $request): Response
     {
-        if (! $person->canUse('crm')) {
-            return $this->failed(new SignInFailed('Your business has not given you access to CRM. Ask the owner to add you in Accounts.'), $request);
-        }
-
         try {
-            $user = DB::transaction(fn () => $this->mirror($person));
+            $user = $this->resolve($person);
         } catch (SignInFailed $reason) {
             return $this->failed($reason, $request);
-        }
-
-        if (! $user->is_active) {
-            return $this->failed(new SignInFailed('This account has been switched off in CRM.'), $request);
         }
 
         Auth::guard('web')->login($user);
@@ -83,6 +75,22 @@ final class AccountsSignIn implements LocalSignIn
         CurrentShop::forget();
 
         return redirect()->intended(route('admin.dashboard'));
+    }
+
+    // Mirrored local user for this person; used by browser and app sign-in.
+    public function resolve(SignedInPerson $person): User
+    {
+        if (! $person->canUse('crm')) {
+            throw new SignInFailed('Your business has not given you access to CRM. Ask the owner to add you in Accounts.');
+        }
+
+        $user = DB::transaction(fn () => $this->mirror($person));
+
+        if (! $user->is_active) {
+            throw new SignInFailed('This account has been switched off in CRM.');
+        }
+
+        return $user;
     }
 
     public function failed(SignInFailed $reason, Request $request): Response
