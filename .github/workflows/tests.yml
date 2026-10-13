@@ -50,4 +50,7 @@ jobs:
           coverage: none
       - run: composer install --prefer-dist --no-interaction --no-progress
       - run: cp .env.example .env && php artisan key:generate
+      # Accounts signs tokens with Passport, which needs its key pair.
+      - if: matrix.app == 'accounts'
+        run: php artisan passport:keys --force
       - run: php artisan test

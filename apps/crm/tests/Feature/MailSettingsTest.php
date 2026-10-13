@@ -18,6 +18,28 @@ class MailSettingsTest extends TestCase
 {
     use RefreshDatabase;
 
+    private ?string $pinnedMailer = null;
+
+    // phpunit.xml pins MAIL_MAILER=array, which rightly wins over the screen; unpin it so the screen decides.
+    protected function setUp(): void
+    {
+        parent::setUp();
+
+        $this->pinnedMailer = env('MAIL_MAILER');
+        putenv('MAIL_MAILER');
+        unset($_ENV['MAIL_MAILER'], $_SERVER['MAIL_MAILER']);
+    }
+
+    protected function tearDown(): void
+    {
+        if ($this->pinnedMailer !== null) {
+            putenv('MAIL_MAILER='.$this->pinnedMailer);
+            $_ENV['MAIL_MAILER'] = $_SERVER['MAIL_MAILER'] = $this->pinnedMailer;
+        }
+
+        parent::tearDown();
+    }
+
     public function test_the_saved_mail_settings_are_applied(): void
     {
         Setting::put([
