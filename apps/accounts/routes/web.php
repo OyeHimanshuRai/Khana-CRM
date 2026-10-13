@@ -88,6 +88,7 @@ Route::middleware('auth')->group(function () {
         Route::get('businesses', [TenantController::class, 'index'])->name('tenants.index');
         Route::get('businesses/{tenant}', [TenantController::class, 'show'])->name('tenants.show');
         Route::post('businesses/{tenant}/status', [TenantController::class, 'setStatus'])->name('tenants.status');
+        Route::post('businesses/{tenant}/subscriptions/{subscription}/extend', [TenantController::class, 'extend'])->name('tenants.extend');
 
         Route::get('plans', [PlanController::class, 'index'])->name('plans.index');
         Route::get('plans/new', [PlanController::class, 'create'])->name('plans.create');

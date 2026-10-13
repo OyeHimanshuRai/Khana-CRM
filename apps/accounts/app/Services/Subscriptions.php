@@ -150,4 +150,26 @@ final class Subscriptions
             return $next;
         });
     }
+
+    // Platform admin gives extra days: a trial stays a trial, a lapsed term restarts from today.
+    public function extend(Subscription $subscription, int $days, ?string $note = null): void
+    {
+        // A perpetual term has nothing to extend.
+        if ($subscription->ends_at === null) {
+            return;
+        }
+
+        DB::transaction(function () use ($subscription, $days, $note) {
+            $onTrial = $subscription->trial_ends_at !== null && $subscription->trial_ends_at->isFuture();
+            $from = $subscription->ends_at !== null && $subscription->ends_at->isFuture() ? $subscription->ends_at->copy() : now();
+
+            $subscription->forceFill([
+                'ends_at' => $from->addDays($days),
+                'trial_ends_at' => $onTrial ? $subscription->trial_ends_at->copy()->addDays($days) : $subscription->trial_ends_at,
+                'note' => $note ?? $subscription->note,
+            ])->save();
+
+            $this->entitlements->refresh($subscription->outlet);
+        });
+    }
 }

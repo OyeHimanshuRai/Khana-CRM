@@ -30,12 +30,15 @@
 
     <div style="display:grid;grid-template-columns:repeat(auto-fit,minmax(320px,1fr));gap:16px;margin-top:16px">
         <div class="card">
-            <div class="card-header"><h3>Subscriptions</h3></div>
+            <div class="card-header"><h3>Subscriptions (outlets)</h3></div>
             <div class="table-wrap">
                 <table class="table">
                     <tbody>
                         @foreach (['trial' => 'On trial', 'active' => 'Paying', 'grace' => 'Payment due', 'suspended' => 'Suspended', 'ended' => 'Ended'] as $key => $label)
-                            <tr><td>{{ $label }}</td><td style="text-align:right"><strong>{{ $states[$key] }}</strong></td></tr>
+                            <tr>
+                                <td><a href="{{ route('admin.tenants.index', ['state' => in_array($key, ['suspended', 'ended']) ? 'expired' : $key]) }}">{{ $label }}</a></td>
+                                <td style="text-align:right"><strong>{{ $states[$key] }}</strong></td>
+                            </tr>
                         @endforeach
                         <tr><td>Outlets using CRM</td><td style="text-align:right"><strong>{{ $products['crm'] }}</strong></td></tr>
                         <tr><td>Outlets using ERP</td><td style="text-align:right"><strong>{{ $products['erp'] }}</strong></td></tr>
