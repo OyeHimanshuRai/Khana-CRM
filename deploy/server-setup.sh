@@ -114,9 +114,10 @@ app_url() {
   fi
 }
 
-. /etc/os-release
-if [ "${VERSION_ID:-}" != "24.04" ]; then
-  echo "Warning: written for Ubuntu 24.04; this is ${PRETTY_NAME:-unknown}." >&2
+# Read in a subshell: os-release sets NAME="Ubuntu", which would overwrite this script's NAME.
+OS_VERSION="$(. /etc/os-release && echo "${VERSION_ID:-}")"
+if [ "$OS_VERSION" != "24.04" ]; then
+  echo "Warning: written for Ubuntu 24.04; this is $(. /etc/os-release && echo "${PRETTY_NAME:-unknown}")." >&2
 fi
 
 export DEBIAN_FRONTEND=noninteractive
