@@ -331,11 +331,12 @@ if [ "$APP" != legacy ] && [ "${LAYOUT:-subdomains}" = paths ]; then
       # The app's own home link is /<app> with no slash, which handle_path /<app>/* does not match.
       [ "$a" = crm ] || echo "	redir /$a /$a/ 308"
       if [ "$a" = crm ]; then echo "	handle {"; else echo "	handle_path /$a/* {"; fi
-      # PHP still gets the full /<app>/... URI, so tell Laravel its base path through SCRIPT_NAME.
-      script_name=""
-      [ "$a" = crm ] || script_name="env SCRIPT_NAME /$a/index.php"
+      # PHP would get the full /<app>/... URI; hand it the stripped one, as the kit expects (Laravel's route cache breaks the prefixed root otherwise).
+      keep_uri="" pass_uri=""
+      [ "$a" = crm ] || { keep_uri="vars app_uri {http.request.uri}"; pass_uri="env REQUEST_URI {http.vars.app_uri}"; }
       cat <<BLOCK
 		root * /var/www/khana-$a/current/public
+		$keep_uri
 
 		# Service-to-service traffic only comes from this server itself.
 		@outside_internal {
@@ -346,7 +347,7 @@ if [ "$APP" != legacy ] && [ "${LAYOUT:-subdomains}" = paths ]; then
 
 		php_fastcgi unix//run/php/khana-$a.sock {
 			resolve_root_symlink
-			$script_name
+			$pass_uri
 		}
 		file_server {
 			hide .ht*
