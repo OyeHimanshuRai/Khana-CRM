@@ -113,7 +113,7 @@ class CrmEntitlementTest extends TestCase
         $this->actingAs($manager)
             ->get('/admin/dashboard')
             ->assertForbidden()
-            ->assertSee('does not have Khana CRM');
+            ->assertSee('does not have Restro One CRM');
 
         $this->actingAs($manager)
             ->getJson('/admin/customers')

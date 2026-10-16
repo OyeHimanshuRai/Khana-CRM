@@ -18,7 +18,7 @@
     <meta name="csrf-token" content="{{ csrf_token() }}">
     <meta name="color-scheme" content="light dark">
 
-    <title>@yield('title', $product) &middot; Khana {{ $product }}</title>
+    <title>@yield('title', $product) &middot; Restro One {{ $product }}</title>
 
     <link rel="icon" href="{{ config('khana.ui.favicon') ?: url('favicon.ico') }}" sizes="any">
 

@@ -71,7 +71,7 @@
 
         @if ($dishes->isEmpty())
             <x-khana::empty icon="file" title="No dishes yet"
-                text="Dishes arrive here from Khana CRM's menu by themselves. With other billing software, import a sales file and each item in it appears here." />
+                text="Dishes arrive here from Restro One CRM's menu by themselves. With other billing software, import a sales file and each item in it appears here." />
         @else
             <div class="table-wrap">
                 <table class="table">

@@ -66,6 +66,6 @@ final class SignupController
         Auth::login($owner);
         $request->session()->regenerate();
 
-        return redirect()->route('home')->with('status', 'Welcome to Khana. Your trial has started.');
+        return redirect()->route('home')->with('status', 'Welcome to Restro One. Your trial has started.');
     }
 }

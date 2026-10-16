@@ -73,8 +73,8 @@
         <div>
             <div class="card-title">Your details</div>
             <div class="text-xs text-muted">
-                Your name, email and password live in your Khana account, and are
-                the same in every Khana product you use.
+                Your name, email and password live in your Restro One account, and are
+                the same in every Restro One product you use.
             </div>
         </div>
     </div>
@@ -96,7 +96,7 @@
     @if ($accountsProfile)
         <div class="card-footer" style="display:flex;gap:9px;justify-content:flex-end">
             <a class="btn" href="{{ $accountsProfile }}">
-                Change name, email or password in Khana Accounts
+                Change name, email or password in Restro One Accounts
             </a>
         </div>
     @endif
@@ -219,7 +219,7 @@
         <div>
             <div class="card-title">Account</div>
             <div class="text-xs text-muted">
-                Your role is given to you by the owner in Khana Accounts.
+                Your role is given to you by the owner in Restro One Accounts.
             </div>
         </div>
     </div>

@@ -45,7 +45,7 @@
 
                 <div class="dropdown-menu" style="width:280px">
                     <div class="dropdown-header">
-                        <strong style="font-size:13.5px">Khana</strong>
+                        <strong style="font-size:13.5px">Restro One</strong>
                         <span class="text-xs text-muted" style="display:block">Same sign-in, same outlet.</span>
                     </div>
 

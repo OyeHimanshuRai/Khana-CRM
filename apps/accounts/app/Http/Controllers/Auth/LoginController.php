@@ -58,7 +58,7 @@ final class LoginController
             $this->record($request, $user, 'blocked', 'tenant_suspended', $data['identifier']);
 
             throw ValidationException::withMessages([
-                'identifier' => 'This business is suspended. Please contact Khana support.',
+                'identifier' => 'This business is suspended. Please contact Restro One support.',
             ]);
         }
 

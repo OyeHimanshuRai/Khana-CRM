@@ -19,7 +19,7 @@
 
 @section('page')
     <x-khana::page-header title="Roles"
-        subtitle="What each job may do in ERP. Who holds a role is set on the team screen in Khana Accounts.">
+        subtitle="What each job may do in ERP. Who holds a role is set on the team screen in Restro One Accounts.">
         <x-slot:actions>
             @if ($teamUrl)
                 <a href="{{ $teamUrl }}" class="btn">Team in Accounts</a>

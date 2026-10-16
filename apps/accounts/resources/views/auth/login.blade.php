@@ -37,6 +37,6 @@
     </form>
 
     <p class="text-sm text-muted auth-foot">
-        New to Khana? <a href="{{ route('signup') }}">Start a free trial</a>.
+        New to Restro One? <a href="{{ route('signup') }}">Start a free trial</a>.
     </p>
 @endsection

@@ -52,7 +52,7 @@
         @if ($transfers->isEmpty())
             @if ($others->isEmpty())
                 <x-khana::empty icon="truck" title="Nowhere to send stock yet"
-                    text="A transfer moves stock between two outlets of your business that both use ERP. This is the only one so far - open another in Khana Accounts and it will appear here." />
+                    text="A transfer moves stock between two outlets of your business that both use ERP. This is the only one so far - open another in Restro One Accounts and it will appear here." />
             @else
                 <x-khana::empty icon="truck" title="Nothing sent or received yet"
                     text="Send stock to another outlet and it leaves your shelf now and joins theirs when they receive it.">

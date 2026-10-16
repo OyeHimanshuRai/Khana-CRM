@@ -3,7 +3,7 @@
 @section('title', 'Import sales')
 
 @section('page')
-    <x-khana::page-header title="Import sales" subtitle="For an outlet that bills with something other than Khana CRM" />
+    <x-khana::page-header title="Import sales" subtitle="For an outlet that bills with something other than Restro One CRM" />
 
     <form method="POST" action="{{ route('sales.import.upload') }}" enctype="multipart/form-data" class="card" style="max-width:760px;margin-bottom:18px">
         @csrf

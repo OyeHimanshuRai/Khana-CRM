@@ -14,11 +14,11 @@
     @endif
 
     @if ($throughAccounts)
-        <a href="{{ route('khana.sso.login') }}" class="btn btn-primary btn-block">Sign in with Khana Accounts</a>
+        <a href="{{ route('khana.sso.login') }}" class="btn btn-primary btn-block">Sign in with Restro One Accounts</a>
         <p class="text-sm text-muted auth-foot">One sign-in for CRM and ERP.</p>
     @elseif ($people->isEmpty())
         <p class="text-sm text-muted">
-            Khana Accounts is not set up on this install, so nobody can sign in yet.
+            Restro One Accounts is not set up on this install, so nobody can sign in yet.
             Set <code>KHANA_ACCOUNTS_URL</code> and <code>KHANA_SSO_CLIENT_ID</code>.
         </p>
     @endif

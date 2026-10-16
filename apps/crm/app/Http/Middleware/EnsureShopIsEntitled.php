@@ -160,16 +160,16 @@ class EnsureShopIsEntitled
     private function message(?Shop $shop, bool $held): string
     {
         if ($held) {
-            return __(':shop is on a suspended Khana CRM subscription: you can look and export, but not change anything until it is renewed in Khana Accounts.', [
+            return __(':shop is on a suspended Restro One CRM subscription: you can look and export, but not change anything until it is renewed in Restro One Accounts.', [
                 'shop' => $shop?->name ?? 'Every outlet you work in',
             ]);
         }
 
         return $shop !== null
-            ? __(':shop does not have Khana CRM, or its subscription has ended. Switch to another outlet, or ask the owner to add CRM for it in Khana Accounts.', [
+            ? __(':shop does not have Restro One CRM, or its subscription has ended. Switch to another outlet, or ask the owner to add CRM for it in Restro One Accounts.', [
                 'shop' => $shop->name,
             ])
-            : __('None of your outlets has Khana CRM at the moment. Ask the owner to add it in Khana Accounts.');
+            : __('None of your outlets has Restro One CRM at the moment. Ask the owner to add it in Restro One Accounts.');
     }
 
     /**

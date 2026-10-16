@@ -43,7 +43,7 @@ class CompanySettingSeeder extends Seeder
     {
         return [
             // Company Information
-            'company_name' => 'Tiara Softwares',
+            'company_name' => 'Restro One',
             'company_title' => 'world pvt ltd',
             'currency' => 'INR',
             'company_email' => 'info@tiarasoftwares.com',
@@ -76,7 +76,7 @@ class CompanySettingSeeder extends Seeder
             'operation_hours' => '9.30 AM - 6.30 PM',
 
             // SEO
-            'meta_title_home' => 'Tiara Softwares',
+            'meta_title_home' => 'Restro One',
             'meta_title_products' => 'Restaurant POS & ERP software',
             'topbar_offer_text' => 'Quia ipsum nihil as',
             'contact_heading' => 'See it running on your own menu',
@@ -96,7 +96,7 @@ class CompanySettingSeeder extends Seeder
             'mail_username' => 'lab@tiarasoftwares.co.in',
             'mail_encryption' => 'tls',
             'mail_from_address' => 'lab@tiarasoftwares.co.in',
-            'mail_from_name' => 'Tiara Softwares',
+            'mail_from_name' => 'Restro One',
 
             // Integrations - secrets are deliberately left unset.
             'recaptcha_key_type' => 'v3_invisible',

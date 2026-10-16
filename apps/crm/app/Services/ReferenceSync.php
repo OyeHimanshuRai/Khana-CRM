@@ -34,7 +34,7 @@ use Khana\Kit\Tenancy\ReferenceHandlers;
  */
 class ReferenceSync
 {
-    private const PRODUCTS = ['crm' => 'Khana CRM', 'erp' => 'Khana ERP'];
+    private const PRODUCTS = ['crm' => 'Restro One CRM', 'erp' => 'Restro One ERP'];
 
     public function __construct(
         private readonly AccountsClient $accounts,

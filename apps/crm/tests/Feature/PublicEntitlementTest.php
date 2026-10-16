@@ -171,7 +171,7 @@ class PublicEntitlementTest extends TestCase
 
         $this->getJson('/api/v1/menu', $api)
             ->assertForbidden()
-            ->assertJsonPath('message', fn (string $message) => str_contains($message, 'does not have Khana CRM'));
+            ->assertJsonPath('message', fn (string $message) => str_contains($message, 'does not have Restro One CRM'));
 
         // A script that did not ask for JSON is still answered in JSON.
         $this->get('/api/v1/menu', $api)

@@ -273,7 +273,7 @@ class AccountsSignInTest extends TestCase
     {
         $this->get(route('admin.login'))
             ->assertOk()
-            ->assertSee('Sign in with Khana Accounts')
+            ->assertSee('Sign in with Restro One Accounts')
             ->assertSee(route('khana.sso.login'), false)
             ->assertDontSee('name="password"', false)
             ->assertSee(self::ACCOUNTS.'/signup', false);
@@ -295,7 +295,7 @@ class AccountsSignInTest extends TestCase
 
         $this->get(route('admin.login'))
             ->assertOk()
-            ->assertDontSee('Sign in with Khana Accounts')
+            ->assertDontSee('Sign in with Restro One Accounts')
             ->assertSee('name="password"', false);
     }
 
@@ -305,7 +305,7 @@ class AccountsSignInTest extends TestCase
 
         $this->get(route('admin.login'))
             ->assertOk()
-            ->assertSee('Sign in with Khana Accounts')
+            ->assertSee('Sign in with Restro One Accounts')
             ->assertSee('name="password"', false);
     }
 }

@@ -25,7 +25,7 @@
     <div style="margin-top:16px;padding:12px 14px;border:1px dashed var(--border-strong)">
         <div class="form-label">Stock and cost</div>
         <p class="text-sm text-muted" style="margin:0">
-            CRM does not keep stock. With Khana ERP, this page shows how many portions the stock on hand
+            CRM does not keep stock. With Restro One ERP, this page shows how many portions the stock on hand
             covers and what each one costs to make, worked out from the recipe — and the dish goes off
             sale by itself when the stock runs out.
         </p>

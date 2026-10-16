@@ -40,7 +40,7 @@ class LoginController extends Controller
         // Where Accounts signs people in, a password kept here is one
         // nobody manages - see SignInMode.
         if (! SignInMode::localAllowed()) {
-            $message = 'Sign in with your Khana account.';
+            $message = 'Sign in with your Restro One account.';
 
             return $request->expectsJson()
                 ? json_error($message, [], 403)

@@ -16,7 +16,7 @@
                         <option value="{{ $key }}" @selected(old('consume_stage', $settings->consume_stage) === $key)>{{ $label }}</option>
                     @endforeach
                 </select>
-                <div class="form-hint">With Khana CRM. Something that never goes through the kitchen - a cola - is used when it is billed.</div>
+                <div class="form-hint">With Restro One CRM. Something that never goes through the kitchen - a cola - is used when it is billed.</div>
             </div>
 
             <div class="form-section">

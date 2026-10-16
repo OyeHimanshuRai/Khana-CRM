@@ -57,7 +57,7 @@ class AuthController extends Controller
     public function login(LoginRequest $request): JsonResponse
     {
         if (! SignInMode::localAllowed()) {
-            return response()->json(['message' => 'Sign in with your Khana account.'], 403);
+            return response()->json(['message' => 'Sign in with your Restro One account.'], 403);
         }
 
         $request->validate(['device_name' => ['nullable', 'string', 'max:100']]);

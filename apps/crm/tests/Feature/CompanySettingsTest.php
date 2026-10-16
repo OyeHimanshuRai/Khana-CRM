@@ -77,7 +77,7 @@ class CompanySettingsTest extends TestCase
     {
         $this->actingAs($this->actor())
             ->get('/admin/settings/company')
-            ->assertSee('Tiara Softwares')
+            ->assertSee('Restro One')
             ->assertSee('info@tiarasoftwares.com')
             ->assertSee('302004');
     }

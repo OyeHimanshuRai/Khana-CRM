@@ -34,7 +34,7 @@
 
         @if ($sales->isEmpty())
             <x-khana::empty icon="chart" title="No sales here yet"
-                text="With Khana CRM, every bill arrives by itself. With other billing software, import a sales file - or have it post sales through the API.">
+                text="With Restro One CRM, every bill arrives by itself. With other billing software, import a sales file - or have it post sales through the API.">
                 @can('sales.import')
                     <a href="{{ route('sales.import') }}" class="btn btn-primary">Import a sales file</a>
                 @endcan

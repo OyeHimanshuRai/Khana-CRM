@@ -8,7 +8,7 @@
 
             <h1>Sign in</h1>
             <p class="lede">
-                {{ $throughAccounts ? 'Use your Khana account - the same one for CRM and ERP.' : 'Use your administrator account to continue.' }}
+                {{ $throughAccounts ? 'Use your Restro One account - the same one for CRM and ERP.' : 'Use your administrator account to continue.' }}
             </p>
 
             {{-- With JavaScript on, these are delivered as toasts instead. --}}
@@ -34,7 +34,7 @@
             --}}
             @if ($throughAccounts)
                 <a href="{{ route('khana.sso.login') }}" class="btn btn-primary btn-block btn-lg">
-                    Sign in with Khana Accounts
+                    Sign in with Restro One Accounts
                 </a>
             @endif
 

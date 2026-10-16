@@ -5,7 +5,7 @@
 @php use App\Support\Units; @endphp
 
 @section('page')
-    <x-khana::page-header title="Paid-outs" subtitle="Cash that left the till in Khana CRM, waiting to be filed" />
+    <x-khana::page-header title="Paid-outs" subtitle="Cash that left the till in Restro One CRM, waiting to be filed" />
 
     <div class="card" style="margin-bottom:18px">
         <div class="card-header"><h2 class="card-title">To file <span class="badge badge-{{ $pending->isEmpty() ? 'success' : 'warning' }}">{{ $pending->count() }}</span></h2></div>

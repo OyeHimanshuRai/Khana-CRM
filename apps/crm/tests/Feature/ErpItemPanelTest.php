@@ -256,7 +256,7 @@ class ErpItemPanelTest extends TestCase
         $this->actingAs($staff)->get(route('admin.products.show', $dish))
             ->assertOk()
             ->assertSee('CRM does not keep stock')
-            ->assertSee('With Khana ERP, this page shows how many portions the stock on hand')
+            ->assertSee('With Restro One ERP, this page shows how many portions the stock on hand')
             ->assertDontSee('data-erp-panel', false);
 
         // The panel is not there to be asked for either.

@@ -34,7 +34,7 @@ final class ReferenceCheck
         // A standalone install has no Accounts to read a snapshot from - the
         // service-to-service address is where it would live. Nothing to compare.
         if (blank(config('khana.urls.accounts'))) {
-            return Finding::skipped('This install is not linked to Khana Accounts.');
+            return Finding::skipped('This install is not linked to Restro One Accounts.');
         }
 
         $tenantId = DB::table('khana_outlets')->where('id', $outletId)->value('tenant_id');
@@ -55,7 +55,7 @@ final class ReferenceCheck
         } catch (TenantMismatch $e) {
             Log::error('The nightly check found an outlet under two businesses.', ['tenant_id' => $tenantId, 'reason' => $e->getMessage()]);
 
-            return Finding::problem(1, 0, 'Accounts lists an outlet under this business that CRM holds under another. Nothing was changed; this needs Khana support.');
+            return Finding::problem(1, 0, 'Accounts lists an outlet under this business that CRM holds under another. Nothing was changed; this needs Restro One support.');
         }
 
         $changed = $result['changed'];

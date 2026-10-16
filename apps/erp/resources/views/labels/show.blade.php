@@ -21,7 +21,7 @@
 <head>
     <meta charset="utf-8">
     <meta name="viewport" content="width=device-width, initial-scale=1">
-    <title>Batch labels &middot; Khana ERP</title>
+    <title>Batch labels &middot; Restro One ERP</title>
     <style>
         * { box-sizing: border-box; }
 

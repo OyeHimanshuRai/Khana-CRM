@@ -123,8 +123,8 @@
 
             <div class="card-body">
                 <p class="text-sm text-muted" style="margin-top:0">
-                    If {{ $outlet->name }} bills on software other than Khana CRM, that software can send each sale
-                    to Khana ERP, so stock and food cost stay right. Give its vendor a key. A key works for this
+                    If {{ $outlet->name }} bills on software other than Restro One CRM, that software can send each sale
+                    to Restro One ERP, so stock and food cost stay right. Give its vendor a key. A key works for this
                     outlet only.
                 </p>
 

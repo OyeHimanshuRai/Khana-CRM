@@ -35,29 +35,29 @@ final class AccountsClient
         $accounts = rtrim((string) config('khana.urls.accounts'), '/');
 
         if ($accounts === '') {
-            throw new AccountsUnavailable('No address for Khana Accounts is set up here.');
+            throw new AccountsUnavailable('No address for Restro One Accounts is set up here.');
         }
 
         try {
             $http = $this->tokens->http(['tenants:read']);
         } catch (Throwable $e) {
-            throw new AccountsUnavailable('Khana Accounts did not give CRM a pass to read the business.', previous: $e);
+            throw new AccountsUnavailable('Restro One Accounts did not give CRM a pass to read the business.', previous: $e);
         }
 
         try {
             $response = $http->get($accounts."/api/v1/tenants/{$tenantId}/snapshot");
         } catch (Throwable $e) {
-            throw new AccountsUnavailable('Khana Accounts did not answer.', previous: $e);
+            throw new AccountsUnavailable('Restro One Accounts did not answer.', previous: $e);
         }
 
         if (! $response->successful()) {
-            throw new AccountsUnavailable('Khana Accounts answered with an error ('.$response->status().').');
+            throw new AccountsUnavailable('Restro One Accounts answered with an error ('.$response->status().').');
         }
 
         $snapshot = $response->json();
 
         if (! self::readable($snapshot, $tenantId)) {
-            throw new AccountsUnavailable('Khana Accounts sent a snapshot CRM could not read.');
+            throw new AccountsUnavailable('Restro One Accounts sent a snapshot CRM could not read.');
         }
 
         return $snapshot;

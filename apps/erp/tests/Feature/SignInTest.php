@@ -101,7 +101,7 @@ class SignInTest extends TestCase
 
         $this->get(route('login'))
             ->assertOk()
-            ->assertSee('Sign in with Khana Accounts')
+            ->assertSee('Sign in with Restro One Accounts')
             ->assertSee(route('khana.sso.login'), false)
             // No way in that skips Accounts.
             ->assertDontSee('Open ERP as');
