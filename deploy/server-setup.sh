@@ -328,6 +328,8 @@ if [ "$APP" != legacy ] && [ "${LAYOUT:-subdomains}" = paths ]; then
     echo
     for a in accounts erp crm; do
       [ "$a" = "$APP" ] || [ -f "/etc/php/$PHP_VERSION/fpm/pool.d/khana-$a.conf" ] || continue
+      # The app's own home link is /<app> with no slash, which handle_path /<app>/* does not match.
+      [ "$a" = crm ] || echo "	redir /$a /$a/ 308"
       if [ "$a" = crm ]; then echo "	handle {"; else echo "	handle_path /$a/* {"; fi
       # PHP still gets the full /<app>/... URI, so tell Laravel its base path through SCRIPT_NAME.
       script_name=""
