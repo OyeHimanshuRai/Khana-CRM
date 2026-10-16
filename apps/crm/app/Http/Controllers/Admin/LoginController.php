@@ -14,6 +14,7 @@ use Illuminate\Http\RedirectResponse;
 use Illuminate\Http\Request;
 use Illuminate\Support\Facades\Auth;
 use Illuminate\View\View;
+use Khana\Kit\Sso\SignInClient;
 
 class LoginController extends Controller
 {
@@ -104,6 +105,11 @@ class LoginController extends Controller
         $request->session()->invalidate();
         $request->session()->regenerateToken();
 
-        return redirect()->route('admin.login')->with('status', 'You have been signed out.');
+        // Signed in through Accounts: sign out there too, or its button lets anyone back in without a password.
+        $accounts = SignInMode::throughAccounts() ? SignInClient::logoutUrl(route('admin.login')) : null;
+
+        return $accounts !== null
+            ? redirect()->away($accounts)
+            : redirect()->route('admin.login')->with('status', 'You have been signed out.');
     }
 }

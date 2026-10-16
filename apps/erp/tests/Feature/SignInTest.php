@@ -130,7 +130,8 @@ class SignInTest extends TestCase
     {
         $me = $this->me();
         $this->signIn($me)->assertRedirect(route('home'));
-        $this->post(route('logout'))->assertRedirect(route('login'));
+        // Signing out of ERP signs out of Accounts too, then comes back to ERP's sign-in.
+        $this->post(route('logout'))->assertRedirect(SignInClient::logoutUrl(route('login')));
 
         $me['products']['erp']['role_key'] = 'store_manager';
         $me['name'] = 'Ravi Manager';

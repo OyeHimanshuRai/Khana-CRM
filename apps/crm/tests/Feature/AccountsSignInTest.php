@@ -108,6 +108,16 @@ class AccountsSignInTest extends TestCase
         $this->assertSame($shop->id, (int) $user->current_shop_id);
     }
 
+    public function test_signing_out_also_signs_out_of_accounts(): void
+    {
+        $this->signIn($this->me());
+
+        $this->post(route('admin.logout'))
+            ->assertRedirect(SignInClient::logoutUrl(route('admin.login')));
+
+        $this->assertGuest();
+    }
+
     public function test_signing_in_again_finds_the_same_rows_and_takes_the_new_details(): void
     {
         $me = $this->me();

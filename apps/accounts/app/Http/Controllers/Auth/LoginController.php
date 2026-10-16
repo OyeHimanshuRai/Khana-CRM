@@ -82,6 +82,42 @@ final class LoginController
         return redirect()->route('login');
     }
 
+    // GET /sso/logout - CRM and ERP send people here on sign-out, so a click on "Sign in with Khana Accounts" asks for the password again.
+    public function ssoLogout(Request $request): RedirectResponse
+    {
+        Auth::logout();
+        $request->session()->invalidate();
+        $request->session()->regenerateToken();
+
+        $back = (string) $request->query('redirect');
+
+        return $this->isOwnProduct($back) ? redirect()->away($back) : redirect()->route('login');
+    }
+
+    // Only back to one of our own apps, never to an address a link could point anywhere.
+    private function isOwnProduct(string $url): bool
+    {
+        $target = parse_url($url);
+
+        if (! isset($target['scheme'], $target['host'])) {
+            return false;
+        }
+
+        foreach ([config('app.url'), config('khana.urls.crm'), config('khana.urls.erp')] as $base) {
+            $allowed = parse_url((string) $base);
+
+            if (isset($allowed['scheme'], $allowed['host'])
+                && strcasecmp($allowed['scheme'], $target['scheme']) === 0
+                && strcasecmp($allowed['host'], $target['host']) === 0
+                && ($allowed['port'] ?? null) === ($target['port'] ?? null)
+                && str_starts_with($target['path'] ?? '/', rtrim($allowed['path'] ?? '', '/').'/')) {
+                return true;
+            }
+        }
+
+        return false;
+    }
+
     private function record(Request $request, ?User $user, string $status, ?string $reason, string $identifier): void
     {
         LoginRecord::create([

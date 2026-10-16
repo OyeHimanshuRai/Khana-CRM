@@ -45,6 +45,7 @@ Route::middleware('guest')->group(function () {
 });
 
 Route::post('logout', [LoginController::class, 'logout'])->middleware('auth')->name('logout');
+Route::get('sso/logout', [LoginController::class, 'ssoLogout'])->name('sso.logout');
 
 // --- Signed in ----------------------------------------------------------
 Route::middleware('auth')->group(function () {

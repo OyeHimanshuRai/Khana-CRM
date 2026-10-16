@@ -99,6 +99,16 @@ final class SignInClient
         return SignedInPerson::fromAccounts($profile->json(), $token->json());
     }
 
+    // Where a product sends someone after its own sign-out, so Accounts forgets them too; null without Accounts.
+    public static function logoutUrl(string $back): ?string
+    {
+        $accounts = config('khana.sso.accounts_url');
+
+        return is_string($accounts) && $accounts !== ''
+            ? rtrim($accounts, '/').'/sso/logout?'.http_build_query(['redirect' => $back])
+            : null;
+    }
+
     /** base64url(sha256(verifier)), the S256 method. */
     public static function challenge(string $verifier): string
     {

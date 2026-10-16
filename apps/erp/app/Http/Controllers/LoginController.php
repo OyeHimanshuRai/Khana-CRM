@@ -8,6 +8,7 @@ use Illuminate\Http\RedirectResponse;
 use Illuminate\Http\Request;
 use Illuminate\Support\Facades\Auth;
 use Illuminate\View\View;
+use Khana\Kit\Sso\SignInClient;
 
 /**
  * The way in, and out.
@@ -49,6 +50,9 @@ final class LoginController
         $request->session()->invalidate();
         $request->session()->regenerateToken();
 
-        return redirect()->route('login');
+        // Signed in through Accounts: sign out there too, or its button lets anyone back in without a password.
+        $accounts = SignInMode::throughAccounts() ? SignInClient::logoutUrl(route('login')) : null;
+
+        return $accounts !== null ? redirect()->away($accounts) : redirect()->route('login');
     }
 }
