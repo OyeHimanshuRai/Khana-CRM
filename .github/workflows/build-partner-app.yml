@@ -1,0 +1,72 @@
+name: Build Partner app
+
+# Builds a test APK (debug-signed) and puts it on the server, where the landing page links it as "Staff app".
+
+on:
+  push:
+    branches: [main]
+    paths:
+      - 'mobile/partner/**'
+      - '.github/workflows/build-partner-app.yml'
+  workflow_dispatch:
+
+concurrency:
+  group: build-partner-app
+  cancel-in-progress: true
+
+jobs:
+  build:
+    runs-on: ubuntu-24.04
+    timeout-minutes: 30
+    env:
+      HOST: ${{ secrets.KHANA_TEST_HOST }}
+      BASE_URL: ${{ vars.PARTNER_BASE_URL || 'https://khana.factualtechnologies.tech' }}
+      PARTNER_CLIENT_ID: ${{ vars.PARTNER_CLIENT_ID }}
+
+    steps:
+      - uses: actions/checkout@v4
+
+      - uses: actions/setup-java@v4
+        with:
+          distribution: temurin
+          java-version: '17'
+
+      - uses: subosito/flutter-action@v2
+        with:
+          channel: stable
+          cache: true
+
+      - name: Open the server connection
+        env:
+          SSH_KEY: ${{ secrets.KHANA_TEST_SSH_KEY }}
+          KNOWN_HOSTS: ${{ secrets.KHANA_TEST_KNOWN_HOSTS }}
+        run: |
+          install -m 700 -d ~/.ssh
+          printf '%s\n' "$SSH_KEY" > ~/.ssh/id_ed25519
+          chmod 600 ~/.ssh/id_ed25519
+          printf '%s\n' "$KNOWN_HOSTS" > ~/.ssh/known_hosts
+
+      # Without a PARTNER_CLIENT_ID variable the id is read from Accounts, which keeps the existing clients.
+      - name: Find the Accounts client id
+        run: |
+          if [ -z "$PARTNER_CLIENT_ID" ]; then
+            id="$(ssh "khana-accounts@$HOST" "cd /var/www/khana-accounts/current && php artisan khana:clients" | sed -n 's/^client id: *//p' | tail -1)"
+            echo "PARTNER_CLIENT_ID=$id" >> "$GITHUB_ENV"
+          fi
+
+      - name: Build the APK
+        working-directory: mobile/partner
+        run: |
+          flutter pub get
+          flutter build apk --release --dart-define=BASE_URL="$BASE_URL" --dart-define=PARTNER_CLIENT_ID="$PARTNER_CLIENT_ID"
+
+      - uses: actions/upload-artifact@v4
+        with:
+          name: restro-one-partner-apk
+          path: mobile/partner/build/app/outputs/flutter-apk/app-release.apk
+
+      - name: Put it on the server
+        run: |
+          ssh "khana-crm@$HOST" "mkdir -p /var/lib/khana-crm/storage/app/downloads"
+          rsync -z --chmod=F644 mobile/partner/build/app/outputs/flutter-apk/app-release.apk \
+            "khana-crm@$HOST:/var/lib/khana-crm/storage/app/downloads/restro-one-partner.apk"

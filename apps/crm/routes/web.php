@@ -107,6 +107,14 @@ Route::post('demo-request', [DemoRequestController::class, 'store'])
 Route::get('robots.txt', [SeoController::class, 'robots'])->name('robots');
 Route::get('sitemap.xml', [SeoController::class, 'sitemap'])->name('sitemap');
 
+// The Partner app's test APK, uploaded by the build-partner-app workflow; 404 until the first build lands.
+Route::get('download/partner-app', function () {
+    $apk = storage_path('app/downloads/restro-one-partner.apk');
+    abort_unless(is_file($apk), 404);
+
+    return response()->download($apk, 'restro-one-partner.apk', ['Content-Type' => 'application/vnd.android.package-archive']);
+})->name('partner-app.download');
+
 /*
 | Opening an account is Khana Accounts' job now (§21).
 |

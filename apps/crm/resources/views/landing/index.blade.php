@@ -106,6 +106,7 @@
             @if ($outletTypes->isNotEmpty()) <a href="#who">Who it is for</a> @endif
             @if ($faqs->isNotEmpty()) <a href="#faq">FAQ</a> @endif
             <a href="#demo">Book a demo</a>
+            @if ($partnerAppUrl) <a href="{{ $partnerAppUrl }}">Staff app</a> @endif
         </nav>
 
         <div class="lp-header-cta">
@@ -138,6 +139,7 @@
                 @if ($faqs->isNotEmpty()) <a href="#faq">FAQ</a> @endif
                 <a href="#demo">Book a demo</a>
                 <a href="{{ route('admin.login') }}">Sign in</a>
+                @if ($partnerAppUrl) <a href="{{ $partnerAppUrl }}">Staff app (Android)</a> @endif
                 <a class="lp-menu-account" href="{{ $signupUrl ?: '#demo' }}">Start free trial <span aria-hidden="true">→</span></a>
             </nav>
         </details>

@@ -68,6 +68,7 @@ class LandingController extends Controller
             // Null when this install has not been told where Accounts is;
             // the view then leaves the "open an account" buttons out.
             'signupUrl' => Accounts::url('/signup'),
+            'partnerAppUrl' => is_file(storage_path('app/downloads/restro-one-partner.apk')) ? route('partner-app.download') : null,
 
             /*
              | What a search engine reads instead of guessing from the markup.
