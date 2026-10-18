@@ -5,7 +5,7 @@ plugins {
 }
 
 android {
-    namespace = "`in`.restroone.restro_partner"
+    namespace = "com.restroone.partner"
     compileSdk = flutter.compileSdkVersion
     ndkVersion = flutter.ndkVersion
 
@@ -15,7 +15,7 @@ android {
     }
 
     defaultConfig {
-        applicationId = "`in`.restroone.partner"
+        applicationId = "in.restroone.partner"
         // Accounts sends the sign-in back to in.restroone.partner://oauth/callback.
         manifestPlaceholders["appAuthRedirectScheme"] = "in.restroone.partner"
         // You can update the following values to match your application needs.

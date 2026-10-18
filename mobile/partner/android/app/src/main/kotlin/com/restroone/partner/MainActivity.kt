@@ -1,4 +1,4 @@
-package `in`.restroone.restro_partner
+package com.restroone.partner
 
 import io.flutter.embedding.android.FlutterActivity
 
