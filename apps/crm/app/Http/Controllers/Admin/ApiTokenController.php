@@ -49,6 +49,7 @@ class ApiTokenController extends Controller
         'tables:read' => 'Read the floor and its tables',
         'orders:read' => 'Read orders and their status',
         'orders:write' => 'Create orders and move them along',
+        'dashboard:read' => 'Read the home screen figures',
     ];
 
     public function index(Request $request): View

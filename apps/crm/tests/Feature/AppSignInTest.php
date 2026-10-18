@@ -95,7 +95,7 @@ class AppSignInTest extends TestCase
         $user = User::query()->where('ulid', $me['user_id'])->firstOrFail();
 
         $this->assertSame(['Captain / Waiter'], $user->getRoleNames()->all());
-        $this->assertSame(['menu:read', 'tables:read', 'orders:read', 'orders:write'], $response->json('abilities'));
+        $this->assertSame(['menu:read', 'tables:read', 'orders:read', 'orders:write', 'dashboard:read'], $response->json('abilities'));
         $this->assertSame('Spice Garden MG Road', $response->json('shop.name'));
 
         $token = PersonalAccessToken::findToken($response->json('token'));
@@ -150,7 +150,7 @@ class AppSignInTest extends TestCase
             'password' => 'secret-pass',
         ])->assertOk();
 
-        $this->assertSame(['menu:read', 'tables:read', 'orders:read', 'orders:write'], $response->json('abilities'));
+        $this->assertSame(['menu:read', 'tables:read', 'orders:read', 'orders:write', 'dashboard:read'], $response->json('abilities'));
     }
 
     public function test_a_wrong_password_gets_no_token(): void

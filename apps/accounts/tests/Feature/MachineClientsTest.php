@@ -2,6 +2,7 @@
 
 namespace Tests\Feature;
 
+use App\Console\Commands\SeedClients;
 use App\Models\Passport\Client;
 use App\Models\Plan;
 use App\Models\User;
@@ -94,6 +95,19 @@ final class MachineClientsTest extends TestCase
             'id' => $line('KHANA_MACHINE_CLIENT_ID'),
             'secret' => $line('KHANA_MACHINE_CLIENT_SECRET'),
         ];
+    }
+
+    public function test_the_partner_app_gets_one_public_client_with_its_own_redirect(): void
+    {
+        Artisan::call('khana:clients');
+        Artisan::call('khana:clients');
+
+        $clients = Client::query()->where('name', 'Khana Partner app sign-in')->where('revoked', false)->get();
+
+        $this->assertCount(1, $clients, 'Running the command again keeps the same client.');
+        $this->assertFalse($clients->first()->confidential());
+        $this->assertSame([SeedClients::PARTNER_APP_REDIRECT], $clients->first()->redirect_uris);
+        $this->assertStringContainsString((string) $clients->first()->getKey(), Artisan::output());
     }
 
     /** What Accounts hands a product that presents its client and asks for these scopes. */
@@ -200,7 +214,7 @@ final class MachineClientsTest extends TestCase
         $this->assertSame($first['id'], $again['id'], 'the same client, so the product\'s .env still works');
         $this->assertSame($first['sign_in'], $again['sign_in']);
         $this->assertStringContainsString('unchanged', $again['secret']);
-        $this->assertSame(4, Client::query()->count(), 'two per product, however often it is run');
+        $this->assertSame(5, Client::query()->count(), 'two per product and one for the Partner app, however often it is run');
 
         // The secret the product already holds still works, and now reaches CRM's menu.
         app(MachineTokenVerifier::class)->verify($this->machineToken($first, 'menu:read'), ['menu:read']);
@@ -215,7 +229,7 @@ final class MachineClientsTest extends TestCase
         Artisan::call('khana:clients', ['--fresh' => true]);
 
         $this->assertTrue((bool) Client::query()->findOrFail($first['id'])->revoked);
-        $this->assertSame(4, Client::query()->where('revoked', false)->count());
+        $this->assertSame(5, Client::query()->where('revoked', false)->count());
 
         $this->post('/oauth/token', [
             'grant_type' => 'client_credentials',

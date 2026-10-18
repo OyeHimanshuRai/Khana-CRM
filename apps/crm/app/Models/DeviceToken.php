@@ -19,6 +19,9 @@ class DeviceToken extends Model
 
     public const WEB_PUSH = 'web_push';
 
+    // A phone running the Partner app, through Firebase Cloud Messaging.
+    public const FCM = 'fcm';
+
     protected $fillable = [
         'shop_id', 'user_id', 'kind',
         'endpoint', 'endpoint_hash', 'p256dh', 'auth',

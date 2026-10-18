@@ -1,12 +1,15 @@
 <?php
 
 use App\Http\Controllers\Api\AuthController;
+use App\Http\Controllers\Api\DashboardController;
+use App\Http\Controllers\Api\DeviceController;
 use App\Http\Controllers\Api\Machine\OutletMenuController;
 use App\Http\Controllers\Api\Machine\RoleController;
 use App\Http\Controllers\Api\Machine\SaleController;
 use App\Http\Controllers\Api\Machine\SalesDigestController;
 use App\Http\Controllers\Api\MenuController;
 use App\Http\Controllers\Api\OrderController;
+use App\Http\Controllers\Api\OutletController;
 use App\Http\Controllers\Api\TableController;
 use App\Http\Middleware\EnsureShopIsEntitled;
 use App\Support\CurrentShop;
@@ -74,6 +77,14 @@ Route::post('auth/logout', [AuthController::class, 'logout'])
     ->middleware('auth:sanctum')
     ->name('api.auth.logout');
 
+// Outside the outlet gate too: a phone must be able to leave an outlet whose CRM has ended, and to stop its notifications.
+Route::middleware(['auth:sanctum', 'throttle:api'])->group(function () {
+    Route::get('outlets', [OutletController::class, 'index'])->name('api.outlets.index');
+    Route::put('outlet', [OutletController::class, 'switch'])->name('api.outlets.switch');
+    Route::post('devices', [DeviceController::class, 'store'])->name('api.devices.store');
+    Route::delete('devices', [DeviceController::class, 'destroy'])->name('api.devices.destroy');
+});
+
 Route::middleware(['auth:sanctum', 'throttle:api', 'shop.entitled:'.EnsureShopIsEntitled::API])->group(function () {
 
     /*
@@ -111,10 +122,18 @@ Route::middleware(['auth:sanctum', 'throttle:api', 'shop.entitled:'.EnsureShopIs
         ->middleware('ability:menu:write')
         ->name('api.menu.availability');
 
+    // The owner's home screen in the Partner app.
+    Route::get('dashboard', DashboardController::class)
+        ->middleware('ability:dashboard:read')
+        ->name('api.dashboard');
+
     /* ----------------------------------------------------------- tables */
 
     Route::middleware('ability:tables:read')->group(function () {
         Route::get('tables', [TableController::class, 'index'])->name('api.tables.index');
+        Route::get('tables/{table}', [TableController::class, 'show'])
+            ->whereNumber('table')
+            ->name('api.tables.show');
     });
 
     /* ----------------------------------------------------------- orders */

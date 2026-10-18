@@ -28,6 +28,7 @@ class AuthController extends Controller
         'tables:read' => ['dining.tables.view', 'pos.tables.view'],
         'orders:read' => ['sales.orders.view', 'pos.tables.view'],
         'orders:write' => ['sales.orders.edit', 'pos.tables.order'],
+        'dashboard:read' => ['dashboard.overview.view'],
     ];
 
     // POST /api/v1/auth/exchange

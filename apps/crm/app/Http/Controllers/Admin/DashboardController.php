@@ -37,7 +37,13 @@ class DashboardController extends Controller
 
     public function __invoke(): View
     {
-        return view('admin.dashboard', [
+        return view('admin.dashboard', $this->data());
+    }
+
+    // Every tile this reader may see; the Partner app's dashboard (Api\DashboardController) reads the same.
+    public function data(): array
+    {
+        return [
             'shop' => CurrentShop::get(),
             'erp' => $this->erp(),
             'sales' => $this->when('reports.sales_report.view', fn () => $this->sales()),
@@ -51,7 +57,7 @@ class DashboardController extends Controller
             'recentInvoices' => $this->when('sales.invoices.view', fn () => $this->recentInvoices()),
 
             'alerts' => $this->alerts(),
-        ]);
+        ];
     }
 
     /**

@@ -30,6 +30,9 @@ final class SeedClients extends Command
 
     protected $description = 'Create or update the OAuth clients CRM and ERP sign in and read each other with';
 
+    // Where Accounts sends the Partner app back after sign-in; the app registers this scheme.
+    public const PARTNER_APP_REDIRECT = 'in.restroone.partner://oauth/callback';
+
     public function handle(ClientRepository $clients): int
     {
         if ($this->option('fresh')) {
@@ -86,6 +89,21 @@ final class SeedClients extends Command
             $this->line('KHANA_MACHINE_CLIENT_ID='.$machine->getKey());
             $this->line('KHANA_MACHINE_CLIENT_SECRET='.($secret ?? '(unchanged - shown only when the client was made)'));
         }
+
+        // The Restro One Partner app (Flutter): a public client, PKCE only, back to the app's own scheme.
+        $partner = $this->existing('Khana Partner app sign-in') ?? $clients->createAuthorizationCodeGrantClient(
+            name: 'Khana Partner app sign-in',
+            redirectUris: [self::PARTNER_APP_REDIRECT],
+            confidential: false,
+        );
+        $partner->forceFill(['redirect_uris' => [self::PARTNER_APP_REDIRECT], 'scopes' => []])->save();
+
+        $this->newLine();
+        $this->info('── PARTNER APP '.str_repeat('─', 34));
+        $this->line('Put into the app\'s config:');
+        $this->line('');
+        $this->line('client id:    '.$partner->getKey());
+        $this->line('redirect uri: '.self::PARTNER_APP_REDIRECT);
 
         $this->newLine();
         $this->info('Done. Each product also needs KHANA_ACCOUNTS_URL and KHANA_ACCOUNTS_PUBLIC_KEY (this app\'s storage/oauth-public.key).');
