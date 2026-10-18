@@ -33,6 +33,7 @@ On an install with no Accounts (a developer's machine), `POST /auth/login` with
 | GET | `/dashboard` | `dashboard:read` | home screen figures; a tile the role may not see is `null` |
 | GET | `/tables` | `tables:read` | the floor, status and next booking |
 | GET | `/tables/{id}` | `tables:read` | one table: session, lines ordered, unbilled, due |
+| POST | `/tables/{id}/orders` | `orders:write` | captain's order: `{ "items": [{ "product_id": 5, "variant_id": null, "quantity": 2, "options": [], "note": "less spicy" }] }`; seats a free table, all or nothing |
 | GET | `/menu`, `/menu/{id}` | `menu:read` | the menu with sizes and add-ons |
 | PUT | `/menu/{id}/availability` | `menu:write` | mark sold out |
 | GET | `/orders`, `/orders/{id}` | `orders:read` | orders and their status |
@@ -49,4 +50,4 @@ On an install with no Accounts (a developer's machine), `POST /auth/login` with
 ## Notes
 
 - The current outlet is shared with the web back office: switching in the app switches it there too.
-- Push notifications are stored now; sending them needs a Firebase project (Phase 2).
+- Push notifications are stored now; sending them needs a Firebase project (later).

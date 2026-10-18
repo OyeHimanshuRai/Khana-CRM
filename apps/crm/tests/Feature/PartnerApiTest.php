@@ -4,6 +4,7 @@ namespace Tests\Feature;
 
 use App\Models\DeviceToken;
 use App\Models\Floor;
+use App\Models\Order;
 use App\Models\Product;
 use App\Models\RestaurantTable;
 use App\Models\Shop;
@@ -190,6 +191,48 @@ class PartnerApiTest extends TestCase
 
         $this->deleteJson('/api/v1/devices', ['token' => 'fcm-token-abc'], $headers)->assertOk();
         $this->assertSame(0, DeviceToken::query()->withoutGlobalScopes()->where('endpoint_hash', DeviceToken::hashFor('fcm-token-abc'))->count());
+    }
+
+    public function test_a_captain_orders_for_a_free_table_and_it_goes_to_the_kitchen(): void
+    {
+        $floor = Floor::query()->create(['shop_id' => $this->shop()->id, 'code' => 'TR', 'name' => 'Terrace', 'is_active' => true]);
+        $table = RestaurantTable::query()->create([
+            'shop_id' => $floor->shop_id, 'floor_id' => $floor->id, 'name' => '12', 'code' => 'TR-12',
+            'capacity' => 4, 'status' => RestaurantTable::AVAILABLE, 'is_active' => true,
+        ]);
+        $dish = new Product(['name' => 'Dal Makhani', 'slug' => Product::uniqueSlug('Dal Makhani'), 'sku' => Product::generateSku('Dal Makhani'), 'selling_price' => 220, 'is_active' => true]);
+        $dish->save();
+        $captain = $this->staff(['pos.tables.order']);
+
+        $this->postJson("/api/v1/tables/{$table->id}/orders", ['items' => [['product_id' => $dish->id, 'quantity' => 2]]], $this->headers($captain, ['orders:write']))
+            ->assertCreated()
+            ->assertJsonStructure(['message', 'order' => ['id', 'number', 'status']]);
+
+        $this->assertSame(1, TableSession::allShops()->live()->where('restaurant_table_id', $table->id)->count());
+        $this->assertSame(1, Order::query()->withoutGlobalScopes()->count());
+    }
+
+    public function test_an_unknown_dish_saves_nothing(): void
+    {
+        $floor = Floor::query()->create(['shop_id' => $this->shop()->id, 'code' => 'TR', 'name' => 'Terrace', 'is_active' => true]);
+        $table = RestaurantTable::query()->create([
+            'shop_id' => $floor->shop_id, 'floor_id' => $floor->id, 'name' => '13', 'code' => 'TR-13',
+            'capacity' => 4, 'status' => RestaurantTable::AVAILABLE, 'is_active' => true,
+        ]);
+
+        $this->postJson("/api/v1/tables/{$table->id}/orders", ['items' => [['product_id' => 999999, 'quantity' => 1]]], $this->headers($this->staff(['pos.tables.order']), ['orders:write']))
+            ->assertStatus(422);
+
+        $this->assertSame(0, TableSession::allShops()->where('restaurant_table_id', $table->id)->count());
+        $this->assertSame(0, Order::query()->withoutGlobalScopes()->count());
+    }
+
+    public function test_ordering_for_a_table_needs_its_ability(): void
+    {
+        $table = $this->seatedTable();
+
+        $this->postJson("/api/v1/tables/{$table->id}/orders", ['items' => [['product_id' => 1, 'quantity' => 1]]], $this->headers($this->staff([]), ['tables:read']))
+            ->assertForbidden();
     }
 
     public function test_these_endpoints_need_a_token(): void

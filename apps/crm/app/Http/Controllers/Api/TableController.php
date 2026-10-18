@@ -4,18 +4,23 @@ namespace App\Http\Controllers\Api;
 
 use App\Http\Controllers\Controller;
 use App\Models\OrderItem;
+use App\Models\Product;
 use App\Models\RestaurantTable;
 use App\Services\ReservationService;
 use App\Services\TableBillService;
+use App\Services\TableCartService;
+use App\Services\TableOrderService;
+use App\Services\TableSessionService;
 use Illuminate\Http\JsonResponse;
+use Illuminate\Http\Request;
+use Illuminate\Support\Facades\DB;
+use RuntimeException;
 
 /**
  * The floor, for a captain's app (§12, §21).
  *
- * Read-only. Seating a party, moving an order and clearing a table all go
- * through the admin's own screens, which already carry the rules about what
- * may happen to a sitting - and an API that reimplemented them would be a
- * second set of rules to keep in step with the first.
+ * Ordering goes through the same services the QR pad uses; moving an order
+ * and clearing a table stay on the admin's own screens.
  *
  * The next booking is included because it is the one thing a captain
  * standing in front of a free table actually needs to know: free now, or free
@@ -101,5 +106,51 @@ class TableController extends Controller
                 ])->values(),
             ],
         ]);
+    }
+
+    // A captain's order for a table: seats it if nobody has, puts every dish on its pad and sends it to the kitchen, all or nothing.
+    public function order(
+        Request $request,
+        RestaurantTable $table,
+        TableSessionService $sessions,
+        TableCartService $cart,
+        TableOrderService $orders,
+    ): JsonResponse {
+        $data = $request->validate([
+            'items' => ['required', 'array', 'min:1', 'max:50'],
+            'items.*.product_id' => ['required', 'integer'],
+            'items.*.variant_id' => ['nullable', 'integer'],
+            'items.*.quantity' => ['required', 'integer', 'min:1', 'max:30'],
+            'items.*.options' => ['nullable', 'array'],
+            'items.*.options.*' => ['integer'],
+            'items.*.note' => ['nullable', 'string', 'max:190'],
+        ]);
+
+        $by = 'staff:'.$request->user()->name;
+
+        try {
+            $order = DB::transaction(function () use ($data, $table, $sessions, $cart, $orders, $by) {
+                $session = $sessions->openFor($table);
+
+                foreach ($data['items'] as $item) {
+                    $product = Product::query()->find($item['product_id']);
+
+                    if ($product === null) {
+                        throw new RuntimeException('One of those dishes is not on this branch\'s menu.');
+                    }
+
+                    $cart->add($session, $product, $item['variant_id'] ?? null, (int) $item['quantity'], $item['options'] ?? [], $item['note'] ?? null, $by);
+                }
+
+                return $orders->place($session, ['name' => $session->guest_name, 'mobile' => $session->guest_mobile]);
+            });
+        } catch (RuntimeException $e) {
+            return response()->json(['message' => $e->getMessage()], 422);
+        }
+
+        return response()->json([
+            'message' => $order->order_number.' sent to the kitchen.',
+            'order' => ['id' => $order->id, 'number' => $order->order_number, 'status' => $order->status],
+        ], 201);
     }
 }

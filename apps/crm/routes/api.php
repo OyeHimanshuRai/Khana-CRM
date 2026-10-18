@@ -147,6 +147,9 @@ Route::middleware(['auth:sanctum', 'throttle:api', 'shop.entitled:'.EnsureShopIs
 
     Route::middleware('ability:orders:write')->group(function () {
         Route::post('orders', [OrderController::class, 'store'])->name('api.orders.store');
+        Route::post('tables/{table}/orders', [TableController::class, 'order'])
+            ->whereNumber('table')
+            ->name('api.tables.order');
         Route::put('orders/{order}/status', [OrderController::class, 'status'])
             ->whereNumber('order')
             ->name('api.orders.status');
