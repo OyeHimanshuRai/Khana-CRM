@@ -1,0 +1,291 @@
+/* ---------------------------------------------------------------------------
+   The floor plan (§7).
+
+   One absolutely-positioned tile per table on a percentage grid, so the same
+   arrangement reads correctly on a counter monitor and on a tablet. Nothing
+   here is sized in pixels except the tile itself, which has to stay
+   thumb-sized whatever the canvas does.
+
+   Colour carries the status and so does the label underneath it. A plan that
+   only says "occupied" in orange is unreadable to about one man in twelve,
+   and this one is read across a room in a hurry. So the tile is neutral and
+   the status is a dot plus a word - the only colour on a tile is the one
+   thing it is telling you. (It used to wear a 4px coloured edge; a room full
+   of them read as bunting, and the strongest colour on the screen belonged
+   to the least urgent tables.)
+--------------------------------------------------------------------------- */
+
+/*
+ | The canvas is recessed - the page ground - so the tiles, which are white,
+ | sit on it rather than blend into it. The grid is a placement aid, not
+ | decoration, and is kept to a whisper.
+ */
+.floor-plan {
+    position: relative;
+    width: 100%;
+    /* Tall enough to arrange a real room in, and it grows with the viewport
+       rather than being a fixed canvas somebody has to scroll. */
+    height: clamp(360px, 58vh, 620px);
+    margin: 0;
+    padding: 0;
+    overflow: hidden;
+    background:
+        linear-gradient(var(--rule) 1px, transparent 1px) 0 0 / 40px 40px,
+        linear-gradient(90deg, var(--rule) 1px, transparent 1px) 0 0 / 40px 40px,
+        var(--bg);
+    border-top: 1px solid var(--rule);
+    border-radius: 0 0 var(--radius-lg) var(--radius-lg);
+}
+
+.floor-plan[data-plan-editable] .plan-table {
+    cursor: grab;
+}
+
+.floor-plan[data-plan-editable] .plan-table.is-dragging {
+    cursor: grabbing;
+    z-index: 20;
+    box-shadow: var(--shadow-lg);
+}
+
+.plan-table {
+    position: absolute;
+    /* --x / --y are the plan position in percent (0-100). The tile slides
+       from "left edge at the left" to "right edge at the right" as the value
+       goes 0 to 100, so a table at either edge is fully inside the canvas
+       instead of half cut off, and 50 is still dead centre. */
+    left: calc(var(--x, 0) * 1%);
+    top: calc(var(--y, 0) * 1%);
+    transform: translate(calc(var(--x, 0) * -1%), calc(var(--y, 0) * -1%));
+    width: 120px;
+    border-radius: var(--radius-lg);
+    background: var(--panel);
+    border: 1px solid var(--border);
+    overflow: hidden;
+    /* Only the lift is animated; dragging sets its own position each frame
+       and a transition on position would lag the pointer. */
+    transition: box-shadow var(--dur-fast) var(--ease-out), border-color var(--dur-fast) var(--ease-out);
+}
+
+@media (hover: hover) and (pointer: fine) {
+    .plan-table:hover { box-shadow: var(--shadow); border-color: var(--border-strong); }
+}
+
+/* The status colour, held in one place: the dot reads it, nothing else does. */
+.plan-table.is-success { --plan-mark: var(--success-mark); }
+.plan-table.is-warning { --plan-mark: var(--warning-mark); }
+.plan-table.is-info    { --plan-mark: var(--info-mark); }
+.plan-table.is-brand   { --plan-mark: var(--brand); }
+
+.plan-table-face {
+    display: block;
+    width: 100%;
+    padding: 10px 12px 8px;
+    border: 0;
+    background: transparent;
+    color: inherit;
+    font: inherit;
+    text-align: left;
+    cursor: pointer;
+    transition: background-color var(--dur-press) var(--ease-out);
+}
+
+.plan-table-face:active { background: var(--hover); }
+.plan-table-face:focus-visible { outline: none; box-shadow: inset 0 0 0 2px var(--ring); }
+
+.plan-table-name {
+    display: flex;
+    align-items: center;
+    gap: 7px;
+    font-size: 15px;
+    font-weight: 600;
+    letter-spacing: -.012em;
+    color: var(--heading);
+    line-height: 1.2;
+}
+
+.plan-table-name::before {
+    content: "";
+    flex: none;
+    width: 8px;
+    height: 8px;
+    border-radius: 50%;
+    background: var(--plan-mark, var(--faint));
+}
+
+.plan-table-seats {
+    display: block;
+    font-size: 12px;
+    color: var(--muted);
+    margin-top: 1px;
+}
+
+.plan-table-status {
+    display: block;
+    font-size: 12px;
+    font-weight: 500;
+    color: var(--text);
+    margin-top: 3px;
+}
+
+/* How long the party has been sitting. Reads as a number the eye can scan
+   for, which is why it is set apart from the status text above it. */
+.plan-table-since {
+    display: block;
+    font-size: 12px;
+    font-weight: 600;
+    color: var(--muted);
+    margin-top: 2px;
+    font-variant-numeric: tabular-nums;
+}
+
+.plan-table-set {
+    border-top: 1px solid var(--rule);
+    background: var(--panel-alt);
+}
+
+.plan-table-set select {
+    width: 100%;
+    min-height: 0;
+    height: auto;
+    border: 0;
+    border-radius: 0;
+    background-color: transparent;
+    box-shadow: none;
+    color: var(--text);
+    font-size: 12px;
+    padding: 6px 10px;
+    cursor: pointer;
+}
+
+.plan-table-set select:focus-visible { outline: none; box-shadow: inset 0 0 0 2px var(--ring); }
+
+/*
+ | The one control on a floor plan that is actually used mid-service - seat a
+ | party, mark a table for clearing - and at 27px it was the hardest thing on
+ | the screen to hit. A plan is read on a tablet at the host stand far more
+ | often than on a desktop, so the touch size is the one that matters here.
+ | 16px keeps iOS from zooming the page when the list opens.
+ */
+@media (pointer: coarse), (max-width: 767.98px) {
+    .plan-table-set select {
+        min-height: 40px;
+        font-size: 16px;
+    }
+}
+
+@media (max-width: 575.98px) {
+    /* A phone cannot show a room's worth of tiles side by side at a size
+       anybody can read or tap, so the map becomes a grid of the same tiles.
+       Status, timer, booking and Bill all still work; only rearranging the
+       layout is left to a bigger screen. */
+    .floor-plan {
+        height: auto;
+        overflow: visible;
+        display: grid;
+        grid-template-columns: repeat(2, minmax(0, 1fr));
+        gap: 10px;
+        padding: 12px;
+    }
+
+    .plan-table {
+        position: static;
+        transform: none;
+        width: auto;
+        min-width: 0;
+    }
+
+    .plan-table-face { min-height: 64px; }
+
+    /* Dragging has no meaning on a grid. */
+    [data-plan-lock-toggle] { display: none; }
+    .plan-hint { display: none; }
+}
+
+/* Tablets: the canvas keeps its map shape, tiles slightly narrower so a
+   dense room still fits without overlapping. */
+@media (min-width: 576px) and (max-width: 767.98px) {
+    .plan-table { width: 108px; }
+}
+
+/*
+ | The bill shortcut on a seated tile.
+ |
+ | Tucked under the status control rather than beside it: a floor manager
+ | scanning the room reads colour and duration, and a third control competing
+ | for the eye on every seated table would make the plan harder to skim than
+ | the list it replaced.
+ */
+.plan-table-bill {
+    display: inline-flex;
+    align-items: center;
+    gap: 4px;
+    margin-top: 5px;
+    padding: 3px 10px;
+    border-radius: var(--radius-pill);
+    border: 1px solid var(--border);
+    background: var(--panel);
+    color: var(--muted);
+    font-size: 12px;
+    font-weight: 500;
+    text-decoration: none;
+    white-space: nowrap;
+    transition: transform var(--dur-press) var(--ease-out), color var(--dur-fast) var(--ease-out), border-color var(--dur-fast) var(--ease-out);
+}
+
+.plan-table-bill:active { transform: scale(.96); }
+
+@media (hover: hover) and (pointer: fine) {
+    .plan-table-bill:hover { color: var(--brand-text); border-color: var(--brand); }
+}
+
+/* ------------------------------------------------- lock, alerts, bookings */
+
+/* Dragging is only offered while the layout is being edited. */
+.floor-plan[data-plan-editable] .plan-table { cursor: default; }
+body[data-plan-unlocked] .floor-plan[data-plan-editable] .plan-table { cursor: grab; }
+body[data-plan-unlocked] .floor-plan[data-plan-editable] .plan-table.is-dragging { cursor: grabbing; }
+body[data-plan-unlocked] .floor-plan[data-plan-editable] { outline: 2px dashed var(--brand); outline-offset: -2px; }
+
+.plan-attention {
+    margin: 0;
+    padding: 11px 20px;
+    font-size: 13.5px;
+    color: var(--muted);
+    border-top: 1px solid var(--rule);
+    display: flex;
+    align-items: center;
+    gap: 6px;
+}
+
+.plan-attention.is-active { color: var(--danger); font-weight: 500; }
+
+/* A table that needs somebody: the one place a ring is earned. */
+.plan-table.has-alert {
+    border-color: transparent;
+    box-shadow: 0 0 0 2px var(--danger-mark);
+}
+
+.plan-table-alert {
+    display: block;
+    margin-top: 3px;
+    font-size: 12px;
+    font-weight: 600;
+    color: var(--danger);
+}
+
+.plan-table-booking {
+    display: block;
+    margin-top: 3px;
+    font-size: 12px;
+    font-weight: 500;
+    color: var(--info);
+    white-space: nowrap;
+    overflow: hidden;
+    text-overflow: ellipsis;
+}
+
+.plan-table-booking.is-late { color: var(--danger); }
+
+@media (prefers-reduced-motion: reduce) {
+    .plan-table, .plan-table-face, .plan-table-bill { transition: none; }
+}

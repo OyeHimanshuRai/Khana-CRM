@@ -1,0 +1,128 @@
+<svg xmlns="http://www.w3.org/2000/svg" width="720" height="520" viewBox="0 0 720 520" font-family="'Segoe UI', 'Helvetica Neue', Arial, sans-serif">
+  <defs>
+    <linearGradient id="h-bg" x1="0" y1="0" x2="1" y2="1">
+      <stop offset="0" stop-color="#fff7ed"/>
+      <stop offset="1" stop-color="#ffedd5"/>
+    </linearGradient>
+    <linearGradient id="h-or" x1="0" y1="0" x2="1" y2="1">
+      <stop offset="0" stop-color="#fb923c"/>
+      <stop offset="1" stop-color="#c2410c"/>
+    </linearGradient>
+    <filter id="h-sh" x="-10%" y="-10%" width="120%" height="130%">
+      <feDropShadow dx="0" dy="14" stdDeviation="16" flood-color="#7c2d12" flood-opacity=".18"/>
+    </filter>
+  </defs>
+
+  <!-- backdrop blob -->
+  <rect x="30" y="40" width="660" height="440" rx="48" fill="url(#h-bg)"/>
+
+  <!-- laptop: dashboard -->
+  <g filter="url(#h-sh)">
+    <rect x="60" y="78" width="500" height="318" rx="16" fill="#1f2937"/>
+    <rect x="72" y="90" width="476" height="294" rx="8" fill="#ffffff"/>
+  </g>
+  <rect x="30" y="396" width="560" height="16" rx="8" fill="#d1d5db"/>
+  <rect x="250" y="396" width="120" height="7" rx="3.5" fill="#9ca3af"/>
+
+  <!-- dashboard sidebar -->
+  <rect x="72" y="90" width="92" height="294" rx="8" fill="#fafaf9"/>
+  <rect x="84" y="104" width="22" height="22" rx="6" fill="url(#h-or)"/>
+  <rect x="112" y="110" width="40" height="8" rx="4" fill="#1f2937"/>
+  <g fill="#e5e7eb">
+    <rect x="84" y="146" width="68" height="9" rx="4.5" fill="#fdba74"/>
+    <rect x="84" y="166" width="58" height="9" rx="4.5"/>
+    <rect x="84" y="186" width="64" height="9" rx="4.5"/>
+    <rect x="84" y="206" width="52" height="9" rx="4.5"/>
+    <rect x="84" y="226" width="60" height="9" rx="4.5"/>
+    <rect x="84" y="246" width="56" height="9" rx="4.5"/>
+  </g>
+
+  <!-- stat cards -->
+  <g>
+    <rect x="178" y="104" width="112" height="62" rx="10" fill="#ffffff" stroke="#f3f4f6"/>
+    <text x="190" y="124" font-size="10" fill="#6b7280">Sales today</text>
+    <text x="190" y="150" font-size="20" font-weight="700" fill="#111827">₹17.8K</text>
+    <rect x="300" y="104" width="112" height="62" rx="10" fill="#ffffff" stroke="#f3f4f6"/>
+    <text x="312" y="124" font-size="10" fill="#6b7280">Tables open</text>
+    <text x="312" y="150" font-size="20" font-weight="700" fill="#111827">12 / 24</text>
+    <rect x="422" y="104" width="112" height="62" rx="10" fill="#ffffff" stroke="#f3f4f6"/>
+    <text x="434" y="124" font-size="10" fill="#6b7280">In the kitchen</text>
+    <text x="434" y="150" font-size="20" font-weight="700" fill="#c2410c">7</text>
+  </g>
+
+  <!-- sales chart -->
+  <rect x="178" y="178" width="234" height="190" rx="10" fill="#ffffff" stroke="#f3f4f6"/>
+  <text x="190" y="198" font-size="10" fill="#6b7280">This week</text>
+  <g fill="#fed7aa">
+    <rect x="196" y="300" width="18" height="52" rx="4"/>
+    <rect x="224" y="278" width="18" height="74" rx="4"/>
+    <rect x="252" y="290" width="18" height="62" rx="4"/>
+    <rect x="280" y="256" width="18" height="96" rx="4"/>
+    <rect x="308" y="268" width="18" height="84" rx="4"/>
+    <rect x="336" y="232" width="18" height="120" rx="4" fill="url(#h-or)"/>
+    <rect x="364" y="246" width="18" height="106" rx="4"/>
+  </g>
+  <polyline points="205,286 233,262 261,272 289,238 317,250 345,214 373,228" fill="none" stroke="#c2410c" stroke-width="2.5" stroke-linejoin="round" stroke-linecap="round"/>
+
+  <!-- live orders list -->
+  <rect x="422" y="178" width="112" height="190" rx="10" fill="#ffffff" stroke="#f3f4f6"/>
+  <text x="434" y="198" font-size="10" fill="#6b7280">Live orders</text>
+  <g font-size="9.5">
+    <rect x="432" y="208" width="92" height="34" rx="7" fill="#fff7ed"/>
+    <text x="440" y="222" font-weight="700" fill="#111827">Table 4</text>
+    <text x="440" y="235" fill="#c2410c">Preparing</text>
+    <rect x="432" y="248" width="92" height="34" rx="7" fill="#ecfdf5"/>
+    <text x="440" y="262" font-weight="700" fill="#111827">Table 7</text>
+    <text x="440" y="275" fill="#15803d">Ready</text>
+    <rect x="432" y="288" width="92" height="34" rx="7" fill="#eff6ff"/>
+    <text x="440" y="302" font-weight="700" fill="#111827">Takeaway</text>
+    <text x="440" y="315" fill="#1d4ed8">Accepted</text>
+    <rect x="432" y="328" width="92" height="30" rx="7" fill="#f9fafb"/>
+    <text x="440" y="347" font-weight="700" fill="#111827">Table 2</text>
+  </g>
+
+  <!-- phone: QR menu -->
+  <g filter="url(#h-sh)">
+    <rect x="520" y="150" width="168" height="330" rx="26" fill="#111827"/>
+    <rect x="530" y="160" width="148" height="310" rx="18" fill="#ffffff"/>
+  </g>
+  <rect x="584" y="166" width="40" height="6" rx="3" fill="#111827"/>
+  <text x="542" y="196" font-size="11" fill="#6b7280">Table 4 · Ground floor</text>
+  <text x="542" y="216" font-size="15" font-weight="700" fill="#111827">Menu</text>
+  <g font-size="10.5">
+    <rect x="540" y="228" width="128" height="58" rx="10" fill="#fff7ed"/>
+    <rect x="548" y="236" width="42" height="42" rx="8" fill="#fdba74"/>
+    <text x="598" y="250" font-weight="700" fill="#111827">Paneer Tikka</text>
+    <text x="598" y="266" fill="#6b7280">₹280</text>
+    <rect x="632" y="258" width="28" height="18" rx="9" fill="#c2410c"/>
+    <text x="639" y="271" font-size="10" font-weight="700" fill="#fff">Add</text>
+
+    <rect x="540" y="294" width="128" height="58" rx="10" fill="#f9fafb"/>
+    <rect x="548" y="302" width="42" height="42" rx="8" fill="#fed7aa"/>
+    <text x="598" y="316" font-weight="700" fill="#111827">Dal Makhani</text>
+    <text x="598" y="332" fill="#6b7280">₹240</text>
+    <rect x="632" y="324" width="28" height="18" rx="9" fill="#c2410c"/>
+    <text x="639" y="337" font-size="10" font-weight="700" fill="#fff">Add</text>
+
+    <rect x="540" y="360" width="128" height="58" rx="10" fill="#f9fafb"/>
+    <rect x="548" y="368" width="42" height="42" rx="8" fill="#ffedd5"/>
+    <text x="598" y="382" font-weight="700" fill="#111827">Garlic Naan</text>
+    <text x="598" y="398" fill="#6b7280">₹70</text>
+  </g>
+  <rect x="540" y="428" width="128" height="30" rx="15" fill="url(#h-or)"/>
+  <text x="566" y="447" font-size="11" font-weight="700" fill="#fff">Send to kitchen</text>
+
+  <!-- QR badge -->
+  <g filter="url(#h-sh)">
+    <rect x="452" y="398" width="82" height="82" rx="14" fill="#ffffff"/>
+  </g>
+  <g fill="#111827">
+    <rect x="464" y="410" width="20" height="20" rx="3"/><rect x="469" y="415" width="10" height="10" rx="1" fill="#fff"/><rect x="472" y="418" width="4" height="4"/>
+    <rect x="502" y="410" width="20" height="20" rx="3"/><rect x="507" y="415" width="10" height="10" rx="1" fill="#fff"/><rect x="510" y="418" width="4" height="4"/>
+    <rect x="464" y="448" width="20" height="20" rx="3"/><rect x="469" y="453" width="10" height="10" rx="1" fill="#fff"/><rect x="472" y="456" width="4" height="4"/>
+    <rect x="490" y="412" width="5" height="5"/><rect x="490" y="422" width="5" height="5"/><rect x="496" y="434" width="5" height="5"/>
+    <rect x="502" y="440" width="5" height="5"/><rect x="510" y="448" width="5" height="5"/><rect x="518" y="456" width="5" height="5"/>
+    <rect x="490" y="452" width="5" height="5"/><rect x="502" y="460" width="5" height="5"/><rect x="514" y="440" width="5" height="5"/>
+    <rect x="490" y="440" width="5" height="5" fill="#c2410c"/>
+  </g>
+</svg>

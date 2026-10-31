@@ -1,0 +1,36 @@
+<svg xmlns="http://www.w3.org/2000/svg" width="400" height="280" viewBox="0 0 400 280" font-family="'Segoe UI', 'Helvetica Neue', Arial, sans-serif">
+  <rect width="400" height="280" rx="20" fill="#fff7ed"/>
+  <!-- phone -->
+  <rect x="134" y="18" width="132" height="246" rx="22" fill="#111827"/>
+  <rect x="142" y="26" width="116" height="230" rx="16" fill="#ffffff"/>
+  <text x="154" y="52" font-size="12" font-weight="700" fill="#111827">Your order</text>
+  <text x="154" y="66" font-size="9" fill="#6b7280">Table 4</text>
+  <g font-size="10">
+    <rect x="150" y="76" width="100" height="40" rx="8" fill="#f9fafb"/>
+    <text x="158" y="92" font-weight="700" fill="#111827">Paneer Tikka</text>
+    <text x="158" y="106" fill="#6b7280">Full · Extra spicy</text>
+    <text x="242" y="92" fill="#111827" text-anchor="end">×1</text>
+    <rect x="150" y="122" width="100" height="40" rx="8" fill="#f9fafb"/>
+    <text x="158" y="138" font-weight="700" fill="#111827">Garlic Naan</text>
+    <text x="158" y="152" fill="#6b7280">Butter</text>
+    <text x="242" y="138" fill="#111827" text-anchor="end">×3</text>
+    <rect x="150" y="168" width="100" height="26" rx="8" fill="#fff7ed"/>
+    <text x="158" y="185" fill="#9a3412">“Less oil, please”</text>
+  </g>
+  <line x1="150" y1="204" x2="250" y2="204" stroke="#e5e7eb"/>
+  <text x="154" y="220" font-size="10" fill="#6b7280">Total</text>
+  <text x="246" y="220" font-size="12" font-weight="700" fill="#111827" text-anchor="end">₹490</text>
+  <rect x="150" y="228" width="100" height="22" rx="11" fill="#c2410c"/>
+  <text x="200" y="243" font-size="10" font-weight="700" fill="#fff" text-anchor="middle">Place order</text>
+  <!-- floating chips -->
+  <g font-size="11" font-weight="700">
+    <rect x="22" y="70" width="98" height="30" rx="15" fill="#ffffff" stroke="#fed7aa"/>
+    <text x="71" y="90" fill="#c2410c" text-anchor="middle">Half / Full</text>
+    <rect x="22" y="112" width="98" height="30" rx="15" fill="#ffffff" stroke="#fed7aa"/>
+    <text x="71" y="132" fill="#c2410c" text-anchor="middle">+ Add-ons</text>
+    <rect x="280" y="96" width="100" height="30" rx="15" fill="#ffffff" stroke="#fed7aa"/>
+    <text x="330" y="116" fill="#c2410c" text-anchor="middle">Veg · Non-veg</text>
+    <rect x="280" y="138" width="100" height="30" rx="15" fill="#ffffff" stroke="#fed7aa"/>
+    <text x="330" y="158" fill="#c2410c" text-anchor="middle">No app needed</text>
+  </g>
+</svg>

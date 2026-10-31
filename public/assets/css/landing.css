@@ -1,0 +1,1387 @@
+/* ===========================================================================
+   Public landing page
+   ===========================================================================
+
+   Standalone on purpose. It shares no stylesheet with the admin panel or the
+   guest's table pages: those two are tools, judged on how fast somebody can
+   work in them, and this is a shop window. Sharing a file would mean every
+   change to a button on the marketing page risking the till.
+
+   Everything is prefixed `lp-` so the two can never collide if they ever do
+   end up on one page.
+
+   Light only, on purpose. The admin panel and the kitchen display both follow
+   the system theme because people sit in front of them for a whole shift; this
+   is a page somebody reads once before deciding to buy, and it should look the
+   same in the screenshot a salesperson sends as it does on the visitor's
+   laptop. `color-scheme: light` below makes the browser's own furniture -
+   scrollbars, form controls - agree with that rather than rendering dark
+   widgets on a light page.
+   ------------------------------------------------------------------------ */
+
+/* The same face as the product. Self-hosted: no request to a font CDN, and the
+   page never waits on one. Apple devices get their own system face first. */
+@font-face {
+    font-family: "Inter";
+    src: url("../fonts/InterVariable.woff2") format("woff2");
+    font-weight: 100 900;
+    font-style: normal;
+    font-display: swap;
+}
+
+:root {
+    /* Stops a dark-mode browser rendering dark scrollbars and form controls
+       against this page's light surfaces. */
+    color-scheme: light;
+
+    /* The product's own neutrals, so the page a buyer reads and the screen
+       they are sold look like one thing. */
+    --lp-bg: #ffffff;
+    --lp-bg-alt: #f5f5f7;
+    --lp-surface: #ffffff;
+    --lp-text: #1d1d1f;
+    --lp-muted: #6e6e73;
+    --lp-line: #e5e5ea;
+
+    /* Warm, because the buyer runs a restaurant - but one accent only, so the
+       page reads as a product rather than a menu. */
+    --lp-brand: #c2410c;
+    --lp-brand-ink: #ffffff;
+
+    --lp-radius: 18px;
+    /* For things that float - the open menu - and nothing else. A card has a
+       hairline; a card with a hairline AND a shadow is two borders. */
+    --lp-shadow: 0 0 0 .5px rgba(0, 0, 0, .06), 0 10px 30px rgba(0, 0, 0, .10), 0 30px 70px rgba(0, 0, 0, .08);
+    --lp-gutter: 16px;
+
+    --lp-ease: cubic-bezier(.23, 1, .32, 1);
+}
+
+*, *::before, *::after { box-sizing: border-box; }
+
+body.lp {
+    margin: 0;
+    background: var(--lp-bg);
+    color: var(--lp-text);
+    font: 16px/1.6 -apple-system, BlinkMacSystemFont, "Inter", "Segoe UI Variable Text", "Segoe UI", system-ui, Roboto, "Helvetica Neue", Arial, sans-serif;
+    letter-spacing: -.011em;
+    -webkit-font-smoothing: antialiased;
+    -moz-osx-font-smoothing: grayscale;
+    -webkit-text-size-adjust: 100%;
+    -webkit-tap-highlight-color: transparent;
+    text-rendering: optimizeLegibility;
+}
+
+.lp h1, .lp h2, .lp h3 { text-wrap: balance; }
+.lp p { text-wrap: pretty; }
+
+.lp img { max-width: 100%; display: block; }
+.lp a { color: inherit; }
+
+/* A 16px gutter at phone width, per the house rule, and never a horizontal
+   scrollbar. */
+.lp-wrap {
+    width: min(1180px, 100%);
+    margin-inline: auto;
+    padding-inline: max(var(--lp-gutter), env(safe-area-inset-left)) max(var(--lp-gutter), env(safe-area-inset-right));
+}
+
+.lp-narrow { width: min(760px, 100%); }
+
+/* ------------------------------------------------------------------ strip */
+
+.lp-strip {
+    background: var(--lp-brand);
+    color: var(--lp-brand-ink);
+    text-align: center;
+    font-size: 14px;
+    font-weight: 500;
+    padding: 9px 16px;
+}
+
+.lp-strip a { text-decoration: underline; }
+
+/* ----------------------------------------------------------------- header */
+
+.lp-header {
+    position: sticky;
+    top: 0;
+    z-index: 20;
+    background: rgba(255, 255, 255, .78);
+    -webkit-backdrop-filter: saturate(180%) blur(20px);
+    backdrop-filter: saturate(180%) blur(20px);
+    border-bottom: 1px solid var(--lp-line);
+}
+
+.lp-header-row {
+    display: flex;
+    align-items: center;
+    gap: 20px;
+    min-height: 64px;
+}
+
+.lp-brand { text-decoration: none; }
+.lp-brand-text { font-weight: 650; font-size: 19px; letter-spacing: -.025em; }
+
+.lp-nav {
+    display: flex;
+    gap: 22px;
+    margin-inline: auto;
+    font-size: 14.5px;
+}
+
+.lp-nav a { display: inline-flex; align-items: center; gap: 7px; min-height: 44px; text-decoration: none; color: var(--lp-muted); transition: color .15s var(--lp-ease); }
+.lp-nav a i { color: var(--lp-brand); font-size: 12px; }
+@media (hover: hover) and (pointer: fine) { .lp-nav a:hover { color: var(--lp-text); } }
+
+.lp-header-cta { display: flex; gap: 10px; align-items: center; }
+.lp-header a:focus-visible,
+.lp-menu summary:focus-visible,
+.lp-footer a:focus-visible { outline: 2px solid var(--lp-brand); outline-offset: 3px; }
+
+/* A page with no section links (sign-in, sign-up) still puts its buttons on the right. */
+.lp-brand + .lp-header-cta { margin-left: auto; }
+
+/* ------------------------------------------------------------ small menu */
+
+/*
+| The phone's way into the page.
+|
+| A <details>, so it opens with no script at all. It is absent on a wide
+| screen, where the real nav is doing the job.
+*/
+.lp-menu { display: none; position: relative; }
+
+.lp-menu summary {
+    list-style: none;
+    display: grid;
+    place-items: center;
+    width: 44px;
+    height: 44px;
+    border: 1px solid var(--lp-line);
+    border-radius: 12px;
+    cursor: pointer;
+    background: var(--lp-surface);
+    transition: transform .11s var(--lp-ease);
+}
+
+.lp-menu summary:active { transform: scale(.94); }
+
+.lp-menu summary::-webkit-details-marker { display: none; }
+.lp-menu summary:focus-visible { outline: 2px solid var(--lp-brand); outline-offset: 2px; }
+
+.lp-menu-open,
+.lp-menu-close { font-size: 17px; }
+.lp-menu-close { display: none; }
+.lp-menu[open] .lp-menu-open { display: none; }
+.lp-menu[open] .lp-menu-close { display: inline; }
+
+.lp-menu-panel {
+    position: absolute;
+    right: 0;
+    top: calc(100% + 10px);
+    z-index: 30;
+    width: max-content;
+    min-width: min(210px, calc(100vw - 24px));
+    max-width: calc(100vw - 24px);
+    display: flex;
+    flex-direction: column;
+    padding: 8px;
+    background: rgba(255, 255, 255, .88);
+    -webkit-backdrop-filter: saturate(180%) blur(24px);
+    backdrop-filter: saturate(180%) blur(24px);
+    border-radius: var(--lp-radius);
+    box-shadow: var(--lp-shadow);
+    transform-origin: top right;
+    animation: lp-pop .16s var(--lp-ease);
+}
+
+@keyframes lp-pop {
+    from { opacity: 0; transform: scale(.97) translateY(-4px); }
+    to   { opacity: 1; transform: none; }
+}
+
+.lp-menu-panel a {
+    display: flex;
+    align-items: center;
+    gap: 10px;
+    padding: 11px 12px;
+    border-radius: 10px;
+    text-decoration: none;
+    font-size: 15px;
+    color: var(--lp-text);
+}
+
+.lp-menu-panel a i { width: 16px; color: var(--lp-brand); text-align: center; }
+@media (hover: hover) and (pointer: fine) { .lp-menu-panel a:hover { background: var(--lp-bg-alt); } }
+
+/* The nav collapses before the buttons do: on a phone "See pricing" is the
+   only thing on this bar anybody taps. */
+@media (max-width: 860px) {
+    .lp-nav { display: none; }
+    .lp-menu { display: block; }
+    .lp-header-row { justify-content: space-between; gap: 12px; }
+}
+
+@media (max-width: 520px) {
+    .lp-header-cta { margin-left: auto; gap: 0; }
+    .lp-header-cta .lp-btn-ghost { display: none; }
+    .lp-header-cta .lp-btn-solid { padding: 9px 12px; font-size: 13px; }
+    .lp-header-row { gap: 10px; min-height: 58px; }
+    .lp-menu summary { width: 38px; height: 38px; }
+    .lp-brand img { max-width: 118px; height: auto; }
+    .lp-brand-text { font-size: 17px; }
+}
+
+@media (max-width: 360px) {
+    .lp-wrap { --lp-gutter: 12px; }
+    .lp-header-cta .lp-btn { padding-inline: 9px; font-size: 12px; }
+}
+
+/* ---------------------------------------------------------------- buttons */
+
+.lp-btn {
+    display: inline-flex;
+    align-items: center;
+    justify-content: center;
+    gap: 8px;
+    min-height: 44px;
+    padding: 10px 20px;
+    border-radius: 999px;
+    font-size: 15px;
+    font-weight: 600;
+    letter-spacing: -.012em;
+    text-decoration: none;
+    border: 1px solid transparent;
+    white-space: nowrap;
+    transition: transform .11s var(--lp-ease), background-color .15s var(--lp-ease), border-color .15s var(--lp-ease), color .15s var(--lp-ease);
+}
+
+.lp-btn:active { transform: scale(.97); }
+.lp-btn:focus-visible { outline: 2px solid var(--lp-brand); outline-offset: 3px; }
+
+/*
+| `.lp a { color: inherit }` above is more specific than a lone class, so
+| without the second selector every solid button's text inherited the page's
+| near-black and read as black on orange.
+*/
+.lp-btn-solid,
+.lp a.lp-btn-solid { background: var(--lp-brand); color: var(--lp-brand-ink); }
+@media (hover: hover) and (pointer: fine) { .lp-btn-solid:hover, .lp a.lp-btn-solid:hover { background: #a8360a; } }
+
+.lp-btn-ghost { border-color: #d2d2d7; color: var(--lp-text); }
+@media (hover: hover) and (pointer: fine) { .lp-btn-ghost:hover { background: var(--lp-bg-alt); } }
+
+.lp-btn-lg { min-height: 52px; padding: 13px 28px; font-size: 16px; }
+
+/* ------------------------------------------------------------------- hero */
+
+/*
+| The pitch, and the first thing on the page.
+|
+| Copy on the left, the product picture on the right; stacked on a phone,
+| copy first. The picture is always there - Settings > Landing Page, else the
+| built-in illustration - so the layout never has to cope with a gap.
+|
+| Two looks. Without background slides: a light wash of the brand and dark
+| text. With them (.has-photo): the photographs crossfade behind a dark scrim
+| and the text turns white, because no wash keeps dark type readable over a
+| photograph somebody else chose.
+*/
+.lp-hero {
+    position: relative;
+    overflow: hidden;
+    isolation: isolate;
+    /* Flat. The product picture is the colour on this screen; a wash of
+       orange behind it only competes with it. */
+    background: var(--lp-bg);
+    border-bottom: 1px solid var(--lp-line);
+}
+
+.lp-hero-inner {
+    display: grid;
+    grid-template-columns: minmax(0, 1fr) minmax(0, 1.05fr);
+    align-items: center;
+    gap: clamp(28px, 5vw, 64px);
+    padding-block: clamp(40px, 7vw, 88px) clamp(40px, 6vw, 76px);
+}
+
+.lp-hero-media img {
+    width: 100%;
+    height: auto;
+    filter: drop-shadow(0 24px 40px rgba(31, 27, 23, .14));
+}
+
+@media (max-width: 900px) {
+    .lp-hero-inner { grid-template-columns: 1fr; text-align: center; }
+    .lp-hero-media { max-width: 560px; margin-inline: auto; }
+}
+
+/* The background slides: stacked, one visible, crossfading. */
+.lp-hero-bg { position: absolute; inset: 0; z-index: -1; background: #1c1917; }
+
+.lp-hero-slide {
+    position: absolute;
+    inset: 0;
+    opacity: 0;
+    transition: opacity 1.2s ease;
+}
+
+.lp-hero-slide.is-on { opacity: 1; }
+.lp-hero-slide img { width: 100%; height: 100%; object-fit: cover; }
+
+.lp-hero-bg::after {
+    content: "";
+    position: absolute;
+    inset: 0;
+    background: linear-gradient(100deg, rgba(12, 10, 9, .86) 0%, rgba(12, 10, 9, .62) 55%, rgba(12, 10, 9, .35) 100%);
+}
+
+@media (max-width: 900px) {
+    .lp-hero-bg::after { background: rgba(12, 10, 9, .72); }
+}
+
+.lp-hero.has-photo { border-bottom: 0; }
+.lp-hero.has-photo .lp-hero-inner h1 { color: #fff; }
+.lp-hero.has-photo .lp-hero-text { color: rgba(255, 255, 255, .84); }
+.lp-hero.has-photo .lp-hero-eyebrow { color: #fdba74; }
+.lp-hero.has-photo .lp-btn-ghost { color: #fff; border-color: rgba(255, 255, 255, .5); }
+@media (hover: hover) and (pointer: fine) { .lp-hero.has-photo .lp-btn-ghost:hover { border-color: #fff; background: rgba(255, 255, 255, .12); color: #fff; } }
+.lp-hero.has-photo .lp-hero-flow a { background: rgba(255, 255, 255, .12); border-color: rgba(255, 255, 255, .22); color: #fff; }
+
+@media (prefers-reduced-motion: reduce) {
+    .lp-hero-slide { transition: none; }
+}
+
+.lp-hero-eyebrow,
+.lp-eyebrow {
+    margin: 0 0 14px;
+    font-size: 15px;
+    font-weight: 600;
+    letter-spacing: -.01em;
+    color: var(--lp-brand);
+}
+
+.lp-eyebrow { margin-bottom: 8px; }
+
+/* Scan -> Order -> Kitchen -> Bill, as four linked chips with arrows between. */
+.lp-hero-flow {
+    display: flex;
+    flex-wrap: wrap;
+    gap: 8px 22px;
+    margin: 26px 0 0;
+    padding: 0;
+    list-style: none;
+}
+
+.lp-hero-flow li { position: relative; }
+
+.lp-hero-flow li + li::before {
+    content: "\2192";
+    position: absolute;
+    left: -17px;
+    top: 50%;
+    transform: translateY(-50%);
+    color: var(--lp-brand);
+    font-weight: 700;
+}
+
+.lp-hero.has-photo .lp-hero-flow li + li::before { color: #fdba74; }
+
+.lp-hero-flow a {
+    display: inline-flex;
+    align-items: center;
+    gap: 6px;
+    padding: 6px 12px;
+    border: 1px solid var(--lp-line);
+    border-radius: 999px;
+    background: var(--lp-surface);
+    font-size: 14px;
+    font-weight: 500;
+    text-decoration: none;
+}
+
+.lp-hero-flow svg { color: var(--lp-brand); }
+.lp-hero.has-photo .lp-hero-flow svg { color: #fdba74; }
+
+@media (max-width: 900px) {
+    .lp-hero-flow { justify-content: center; }
+}
+
+/* Small enough that all four fit one line on a 360px phone. */
+@media (max-width: 520px) {
+    .lp-hero-flow { gap: 8px 14px; }
+    .lp-hero-flow li + li::before { left: -11px; font-size: 11px; }
+    .lp-hero-flow a { padding: 4px 7px; font-size: 12px; gap: 4px; }
+    .lp-hero-flow svg { width: 13px; height: 13px; }
+}
+
+@media (max-width: 360px) {
+    .lp-hero-flow { gap: 8px 7px; }
+    .lp-hero-flow li + li::before { left: -6px; font-size: 10px; }
+    .lp-hero-flow a { padding: 4px 5px; font-size: 11px; gap: 3px; }
+    .lp-hero-flow svg { width: 12px; height: 12px; }
+}
+
+/*
+| clamp() rather than a breakpoint, so the headline is sized by the space it
+| has instead of by which of three buckets the screen falls into. The line
+| length is capped in ch: a headline that runs the full 1180px reads as a
+| paragraph, whatever size the type is.
+*/
+/*
+| The headline carries no class: the page's own test asserts a bare <h1> with
+| this exact sentence in it, because the headline is the product's claim and
+| not something a settings screen should be able to replace with an SEO title.
+| Scoped through .lp-hero-inner rather than given a hook of its own.
+*/
+.lp-hero-inner h1 {
+    margin: 0 0 18px;
+    max-width: 16ch;
+    font-size: clamp(34px, 5.2vw, 64px);
+    line-height: 1.05;
+    letter-spacing: -.032em;
+    font-weight: 650;
+}
+
+.lp-hero-text {
+    margin: 0;
+    max-width: 52ch;
+    font-size: clamp(16px, 1.5vw, 19px);
+    line-height: 1.5;
+    letter-spacing: -.014em;
+    color: var(--lp-muted);
+}
+
+.lp-hero-cta {
+    display: flex;
+    flex-wrap: wrap;
+    gap: 12px;
+    margin-top: 28px;
+}
+
+@media (max-width: 900px) {
+    .lp-hero-inner h1,
+    .lp-hero-text { margin-inline: auto; }
+    .lp-hero-cta { justify-content: center; }
+}
+
+/* ------------------------------------------------------------ highlights */
+
+.lp-highlights { border-bottom: 1px solid var(--lp-line); background: var(--lp-surface); }
+
+.lp-highlights-row {
+    display: grid;
+    grid-template-columns: repeat(4, minmax(0, 1fr));
+    gap: 16px 24px;
+    padding-block: 22px;
+}
+
+.lp-highlights p {
+    display: flex;
+    align-items: center;
+    gap: 12px;
+    margin: 0;
+    font-size: 13.5px;
+    color: var(--lp-muted);
+    line-height: 1.35;
+}
+
+.lp-highlights svg {
+    flex: none;
+    box-sizing: content-box;
+    padding: 9px;
+    border-radius: 12px;
+    background: var(--lp-bg-alt);
+    color: var(--lp-text);
+}
+
+.lp-highlights strong { display: block; color: var(--lp-text); font-size: 15px; font-weight: 600; }
+
+@media (max-width: 900px) { .lp-highlights-row { grid-template-columns: repeat(2, minmax(0, 1fr)); } }
+@media (max-width: 420px) { .lp-highlights-row { grid-template-columns: 1fr; } }
+
+/* ----------------------------------------------------------------- banner */
+
+/*
+| The carousel's rules lived here - .lp-banner, its track, slides, media,
+| copy, dots and arrows - and went with the section itself.
+|
+| The Sliders module and assets/js/landing.js are untouched. If the banner
+| comes back, its styles come back with it; leaving ~160 lines of CSS on every
+| visitor for markup no page emits is the one thing worth not doing.
+*/
+
+/* --------------------------------------------------------------- sections */
+
+.lp-section { padding: 80px 0; }
+.lp-section-alt { background: var(--lp-bg-alt); }
+
+.lp-head { margin-bottom: 34px; max-width: 62ch; }
+.lp-head-center { margin-inline: auto; text-align: center; }
+.lp-head h2 { margin: 0 0 10px; font-size: clamp(26px, 3.8vw, 40px); font-weight: 650; letter-spacing: -.034em; line-height: 1.1; }
+.lp-head p { margin: 0; color: var(--lp-muted); font-size: 17px; line-height: 1.5; }
+
+.lp-meta { color: var(--lp-muted); font-size: 13.5px; }
+.lp-price { color: var(--lp-text); font-weight: 700; }
+
+/* ----------------------------------------------------------------- grids */
+
+.lp-grid { display: grid; gap: 20px; }
+.lp-grid-3 { grid-template-columns: repeat(3, 1fr); }
+
+@media (max-width: 900px) { .lp-grid-3 { grid-template-columns: repeat(2, 1fr); } }
+@media (max-width: 600px) {
+    .lp-grid-3 { grid-template-columns: 1fr; }
+    .lp-section { padding: 52px 0; }
+}
+
+/* -------------------------------------------------------------- features */
+
+.lp-feature {
+    background: var(--lp-surface);
+    border: 1px solid var(--lp-line);
+    border-radius: var(--lp-radius);
+    padding: 22px 22px 24px;
+}
+
+.lp-feature-icon {
+    display: grid;
+    place-items: center;
+    width: 40px;
+    height: 40px;
+    border-radius: 12px;
+    margin-bottom: 14px;
+    background: var(--lp-bg-alt);
+    color: var(--lp-brand);
+}
+
+.lp-feature h3 { margin: 0 0 6px; font-size: 17px; font-weight: 600; letter-spacing: -.018em; }
+.lp-feature p { margin: 0; color: var(--lp-muted); font-size: 15px; }
+
+/* ----------------------------------------------------------------- steps */
+
+.lp-steps {
+    display: grid;
+    grid-template-columns: repeat(4, 1fr);
+    gap: 22px;
+    margin: 0;
+    padding: 0;
+    list-style: none;
+    counter-reset: none;
+}
+
+@media (max-width: 950px) { .lp-steps { grid-template-columns: repeat(2, 1fr); } }
+@media (max-width: 560px) { .lp-steps { grid-template-columns: 1fr; } }
+
+/* A picture card per step, joined by an arrow on a wide screen. */
+.lp-step {
+    position: relative;
+    display: flex;
+    flex-direction: column;
+    background: var(--lp-surface);
+    border: 1px solid var(--lp-line);
+    border-radius: var(--lp-radius);
+}
+
+.lp-step-img {
+    width: 100%;
+    height: auto;
+    aspect-ratio: 10 / 7;
+    object-fit: cover;
+    border-radius: var(--lp-radius) var(--lp-radius) 0 0;
+    border-bottom: 1px solid var(--lp-line);
+}
+
+.lp-step-body { padding: 16px 18px 20px; }
+
+@media (min-width: 951px) {
+    .lp-step + .lp-step::before {
+        content: "\2192";
+        position: absolute;
+        left: -19px;
+        top: 34%;
+        z-index: 1;
+        display: grid;
+        place-items: center;
+        width: 26px;
+        height: 26px;
+        border-radius: 50%;
+        background: var(--lp-brand);
+        color: var(--lp-brand-ink);
+        font-size: 14px;
+        font-weight: 700;
+        transform: translateX(-50%) translateX(8px);
+    }
+}
+
+.lp-step-n {
+    display: inline-block;
+    padding: 2px 9px;
+    border-radius: 999px;
+    background: var(--lp-bg-alt);
+    font-size: 13px;
+    font-weight: 600;
+    color: var(--lp-brand);
+}
+
+.lp-step h3 { margin: 10px 0 6px; font-size: 17px; font-weight: 600; letter-spacing: -.018em; line-height: 1.3; }
+.lp-step p { margin: 0; color: var(--lp-muted); font-size: 15px; }
+
+/* ------------------------------------------------------------------ tour */
+
+.lp-tour { display: grid; gap: clamp(48px, 7vw, 88px); }
+
+.lp-spot {
+    display: grid;
+    grid-template-columns: minmax(0, 1.1fr) minmax(0, 1fr);
+    align-items: center;
+    gap: clamp(28px, 5vw, 64px);
+}
+
+.lp-spot-flip .lp-spot-media { order: 2; }
+
+.lp-spot-media {
+    padding: clamp(14px, 2.4vw, 26px);
+    border-radius: 24px;
+    background: var(--lp-bg-alt);
+}
+
+.lp-spot-media img {
+    width: 100%;
+    height: auto;
+    border-radius: 14px;
+    box-shadow: 0 0 0 .5px rgba(0, 0, 0, .08), 0 12px 32px rgba(0, 0, 0, .10);
+}
+
+.lp-spot-copy h2 {
+    margin: 0 0 18px;
+    font-size: clamp(25px, 3.4vw, 36px);
+    font-weight: 650;
+    letter-spacing: -.034em;
+    line-height: 1.1;
+}
+
+.lp-ticks { margin: 0; padding: 0; list-style: none; display: grid; gap: 12px; }
+
+.lp-ticks li {
+    position: relative;
+    padding-left: 32px;
+    font-size: 16px;
+    color: var(--lp-text);
+}
+
+/* A drawn tick in a tinted disc, matching the pricing list's tick. */
+.lp-ticks li::before {
+    content: "";
+    position: absolute;
+    left: 0;
+    top: 2px;
+    width: 22px;
+    height: 22px;
+    border-radius: 50%;
+    background: color-mix(in srgb, var(--lp-brand) 14%, transparent);
+}
+
+.lp-ticks li::after {
+    content: "";
+    position: absolute;
+    left: 7px;
+    top: 9px;
+    width: 8px;
+    height: 4px;
+    border-left: 2px solid var(--lp-brand);
+    border-bottom: 2px solid var(--lp-brand);
+    transform: rotate(-45deg);
+}
+
+@media (max-width: 860px) {
+    .lp-spot { grid-template-columns: 1fr; }
+    .lp-spot-flip .lp-spot-media { order: 0; }
+}
+
+/* ----------------------------------------------------------------- cards */
+
+.lp-card {
+    background: var(--lp-surface);
+    border: 1px solid var(--lp-line);
+    border-radius: var(--lp-radius);
+    overflow: hidden;
+}
+
+.lp-card-img { width: 100%; aspect-ratio: 16 / 10; object-fit: cover; }
+.lp-card-body { padding: 18px 20px 22px; }
+.lp-card-body h3 { margin: 0 0 6px; font-size: 17px; font-weight: 600; letter-spacing: -.018em; }
+.lp-card-body p { margin: 0 0 6px; color: var(--lp-muted); font-size: 15px; }
+
+/* --------------------------------------------------------------- pricing */
+
+/*
+ | auto-fit rather than a fixed column count, because the number of plans is
+ | data: Super Admin can sell two or five, and the grid has to hold either
+ | without this file knowing which.
+ */
+.lp-plans {
+    display: grid;
+    grid-template-columns: repeat(auto-fit, minmax(280px, 1fr));
+    gap: 22px;
+    align-items: start;
+}
+
+.lp-plan {
+    position: relative;
+    background: var(--lp-surface);
+    border: 1px solid var(--lp-line);
+    border-radius: 20px;
+    padding: 28px 24px 26px;
+}
+
+/* The featured plan is marked by its ring, not by a fill or a shadow, so the
+   prices stay comparable at a glance. The 1px of border it already has plus
+   one drawn outside keeps the box the same size as its neighbours. */
+.lp-plan.is-featured {
+    border-color: var(--lp-brand);
+    box-shadow: 0 0 0 1px var(--lp-brand);
+}
+
+.lp-plan-flag {
+    position: absolute;
+    top: -11px;
+    left: 24px;
+    background: var(--lp-brand);
+    color: var(--lp-brand-ink);
+    font-size: 12.5px;
+    font-weight: 600;
+    padding: 3px 11px;
+    border-radius: 999px;
+}
+
+.lp-plan h3 { margin: 0 0 4px; font-size: 20px; font-weight: 600; letter-spacing: -.022em; }
+.lp-plan-blurb { margin: 0 0 16px; color: var(--lp-muted); font-size: 14px; }
+
+.lp-plan-price { margin: 14px 0 2px; display: flex; align-items: baseline; gap: 6px; }
+.lp-plan-amount { font-size: 42px; font-weight: 650; letter-spacing: -.04em; font-variant-numeric: tabular-nums; }
+
+.lp-plan-yearly { margin: 0 0 10px; }
+
+.lp-plan-trial {
+    margin: 0 0 18px;
+    font-size: 14px;
+    font-weight: 600;
+    color: var(--lp-brand);
+}
+
+.lp-plan-cta { display: block; text-align: center; margin-bottom: 22px; }
+
+.lp-plan-list {
+    margin: 0 0 18px;
+    padding: 0;
+    list-style: none;
+    font-size: 14.5px;
+}
+
+.lp-plan-list li {
+    padding: 6px 0 6px 24px;
+    position: relative;
+    color: var(--lp-text);
+}
+
+/* A drawn tick rather than an emoji: it inherits the accent colour and does
+   not change shape between platforms. */
+.lp-plan-list li::before {
+    content: "";
+    position: absolute;
+    left: 4px;
+    top: 13px;
+    width: 10px;
+    height: 5px;
+    border-left: 2px solid var(--lp-brand);
+    border-bottom: 2px solid var(--lp-brand);
+    transform: rotate(-45deg);
+}
+
+.lp-plan-modhead {
+    margin: 0 0 6px;
+    font-size: 13px;
+    font-weight: 600;
+    color: var(--lp-muted);
+    border-top: 1px solid var(--lp-line);
+    padding-top: 16px;
+}
+
+.lp-plan-mods li { color: var(--lp-muted); font-size: 14px; }
+
+/* ------------------------------------------------------------------- faq */
+
+.lp-faq { border-bottom: 1px solid var(--lp-line); padding: 4px 0; }
+
+.lp-faq summary {
+    cursor: pointer;
+    padding: 18px 0;
+    font-weight: 600;
+    font-size: 17px;
+    letter-spacing: -.016em;
+    list-style: none;
+    display: flex;
+    justify-content: space-between;
+    gap: 16px;
+}
+
+.lp-faq summary::-webkit-details-marker { display: none; }
+.lp-faq summary::after { content: "+"; color: var(--lp-muted); font-size: 22px; font-weight: 300; line-height: 1; }
+.lp-faq[open] summary::after { content: "\2212"; }
+
+.lp-faq-body { padding: 0 0 18px; color: var(--lp-muted); }
+
+/* ------------------------------------------------------------------- cta */
+
+.lp-cta { text-align: center; }
+.lp-cta h2 { margin: 0 0 10px; font-size: clamp(26px, 4vw, 40px); font-weight: 650; letter-spacing: -.034em; line-height: 1.1; }
+.lp-cta > p { margin: 0 auto 24px; max-width: 58ch; color: var(--lp-muted); font-size: 17px; }
+.lp-cta-row { display: flex; gap: 12px; justify-content: center; flex-wrap: wrap; margin-bottom: 18px; }
+
+/* ---------------------------------------------------------------- footer */
+
+.lp-footer { border-top: 1px solid var(--lp-line); padding: 46px 0 20px; background: var(--lp-bg-alt); }
+
+.lp-footer-row {
+    display: flex;
+    flex-wrap: wrap;
+    gap: 16px 28px;
+    align-items: center;
+    justify-content: space-between;
+}
+
+.lp-footer-row p { margin: 0; }
+
+.lp-social { display: flex; gap: 18px; font-size: 14px; }
+.lp-social a { color: var(--lp-muted); text-decoration: none; }
+@media (hover: hover) and (pointer: fine) { .lp-social a:hover { color: var(--lp-text); } }
+
+/* The shared footer (resources/views/site/_footer): brand, contact, links. */
+.lp-footer-grid {
+    display: grid;
+    grid-template-columns: repeat(4, minmax(0, 1fr));
+    gap: 32px;
+    align-items: start;
+}
+
+@media (max-width: 860px) {
+    .lp-footer-grid { grid-template-columns: repeat(2, minmax(0, 1fr)); }
+}
+
+@media (max-width: 520px) {
+    .lp-footer-grid { grid-template-columns: 1fr; }
+}
+
+.lp-footer-brand,
+.lp-footer-contact,
+.lp-footer-links { display: grid; gap: 8px; align-content: start; min-width: 0; }
+
+.lp-footer-brand p { margin: 0; }
+.lp-footer-brand img { max-width: 180px; height: auto; max-height: 48px; }
+
+.lp-footer-title { margin-bottom: 4px; font-size: 13px; font-weight: 600; color: var(--lp-text); }
+
+.lp-footer-contact a,
+.lp-footer-contact span,
+.lp-footer-links a {
+    display: inline-flex;
+    align-items: flex-start;
+    gap: 8px;
+    font-size: 14px;
+    color: var(--lp-muted);
+    text-decoration: none;
+    overflow-wrap: anywhere;
+    transition: color .15s var(--lp-ease);
+}
+
+.lp-footer-contact svg { flex: none; margin-top: 2px; }
+@media (hover: hover) and (pointer: fine) {
+    .lp-footer-contact a:hover,
+    .lp-footer-links a:hover { color: var(--lp-text); }
+}
+
+.lp-footer-copy { margin: 32px 0 0; padding-top: 16px; border-top: 1px solid var(--lp-line); }
+
+@media (max-width: 520px) {
+    .lp-footer { padding-top: 34px; }
+    .lp-footer-grid { gap: 26px; }
+    .lp-footer-copy { margin-top: 26px; }
+}
+
+.lp-demo-thanks[hidden] { display: none; }
+
+/* The demo form's field errors, painted by app.js / demo-form.js. */
+.lp-field input.is-invalid,
+.lp-field textarea.is-invalid { border-color: #c4262e; }
+.lp-field input.is-valid,
+.lp-field textarea.is-valid { border-color: #30a46c; }
+
+/* ------------------------------------------------------------------ a11y */
+
+.lp a:focus-visible,
+.lp summary:focus-visible {
+    outline: 2px solid var(--lp-brand);
+    outline-offset: 3px;
+    border-radius: 4px;
+}
+
+html { scroll-behavior: smooth; }
+
+@media (prefers-reduced-motion: reduce) {
+    html { scroll-behavior: auto; }
+}
+
+/* The sticky header would otherwise sit on top of the heading somebody just
+   jumped to. */
+[id] { scroll-margin-top: 80px; }
+
+/* ----------------------------------------------------------- screenshots */
+
+/*
+ | Two up on a wide screen, one on a phone.
+ |
+ | Bigger than the feature cards on purpose: the point of a screenshot is that
+ | somebody can read the screen in it, and a screenshot scaled to a third of a
+ | column is decoration rather than evidence.
+ */
+.lp-shots {
+    display: grid;
+    grid-template-columns: repeat(2, 1fr);
+    gap: 24px;
+}
+
+@media (max-width: 800px) { .lp-shots { grid-template-columns: 1fr; } }
+
+.lp-shot {
+    margin: 0;
+    background: var(--lp-surface);
+    border: 1px solid var(--lp-line);
+    border-radius: var(--lp-radius);
+    overflow: hidden;
+    box-shadow: var(--lp-shadow);
+}
+
+.lp-shot img {
+    width: 100%;
+    /* Not a fixed aspect ratio: screenshots arrive at whatever shape the
+       screen was, and cropping one to 16:9 cuts the row somebody wanted
+       looked at. */
+    height: auto;
+    border-bottom: 1px solid var(--lp-line);
+}
+
+.lp-shot figcaption { padding: 16px 18px 18px; }
+.lp-shot figcaption strong { display: block; font-size: 16px; letter-spacing: -.01em; }
+.lp-shot figcaption span { display: block; margin-top: 4px; color: var(--lp-muted); font-size: 14.5px; }
+
+/* ---------------------------------------------------------- outlet types */
+
+.lp-types {
+    display: grid;
+    /* 170px, so six fit one row at full width rather than five and an orphan. */
+    grid-template-columns: repeat(auto-fit, minmax(170px, 1fr));
+    gap: 16px;
+}
+
+.lp-type {
+    background: var(--lp-surface);
+    border: 1px solid var(--lp-line);
+    border-radius: var(--lp-radius);
+    padding: 20px 18px;
+    color: var(--lp-brand);
+}
+
+.lp-type h3 { margin: 10px 0 4px; font-size: 15.5px; color: var(--lp-text); letter-spacing: -.01em; }
+.lp-type p { margin: 0; font-size: 14px; color: var(--lp-muted); }
+
+/* --------------------------------------------------------- testimonials */
+
+.lp-quote {
+    margin: 0;
+    background: var(--lp-surface);
+    border: 1px solid var(--lp-line);
+    border-radius: var(--lp-radius);
+    padding: 24px 22px 20px;
+    display: flex;
+    flex-direction: column;
+    gap: 14px;
+}
+
+.lp-stars { font-size: 15px; letter-spacing: 2px; color: var(--lp-brand); line-height: 1; }
+
+/* The unearned stars stay in place but recede, so five glyphs always occupy
+   the same width and a four-star quote is not mistaken for a five. */
+.lp-stars-off { color: var(--lp-line); }
+
+.lp-quote blockquote {
+    margin: 0;
+    font-size: 15.5px;
+    line-height: 1.6;
+    color: var(--lp-text);
+}
+
+.lp-quote blockquote::before { content: "\201C"; }
+.lp-quote blockquote::after { content: "\201D"; }
+
+.lp-quote figcaption {
+    display: flex;
+    align-items: center;
+    gap: 12px;
+    margin-top: auto;
+    padding-top: 14px;
+    border-top: 1px solid var(--lp-line);
+    font-size: 14px;
+}
+
+.lp-quote figcaption img,
+.lp-avatar {
+    flex: 0 0 auto;
+    width: 38px;
+    height: 38px;
+    border-radius: 50%;
+    object-fit: cover;
+}
+
+.lp-avatar {
+    display: grid;
+    place-items: center;
+    background: color-mix(in srgb, var(--lp-brand) 14%, transparent);
+    color: var(--lp-brand);
+    font-size: 13px;
+    font-weight: 750;
+    letter-spacing: .03em;
+}
+
+.lp-quote figcaption strong { display: block; }
+.lp-quote figcaption .lp-meta { display: block; }
+
+/* ---------------------------------------------------------- integrations */
+
+.lp-logos {
+    display: grid;
+    grid-template-columns: repeat(auto-fit, minmax(140px, 1fr));
+    gap: 14px;
+}
+
+.lp-logo {
+    display: grid;
+    place-items: center;
+    min-height: 74px;
+    padding: 14px;
+    background: var(--lp-surface);
+    border: 1px solid var(--lp-line);
+    border-radius: 12px;
+    text-decoration: none;
+}
+
+/*
+ | Logos arrive at wildly different shapes and weights. Capping the height and
+ | letting the width follow keeps a row of them looking like a set, which is
+ | the whole reason this section works.
+ */
+.lp-logo img {
+    max-height: 34px;
+    width: auto;
+    object-fit: contain;
+}
+
+.lp-logo-word {
+    font-size: 14.5px;
+    font-weight: 650;
+    color: var(--lp-muted);
+    text-align: center;
+}
+
+@media (hover: hover) and (pointer: fine) {
+    a.lp-logo:hover { border-color: var(--lp-brand); }
+}
+
+/* ------------------------------------------------------------ demo form */
+
+.lp-demo {
+    display: grid;
+    grid-template-columns: 1fr 1.15fr;
+    gap: 40px;
+    align-items: start;
+}
+
+@media (max-width: 900px) { .lp-demo { grid-template-columns: 1fr; gap: 28px; } }
+
+.lp-demo-copy h2 { margin: 0 0 10px; font-size: clamp(24px, 3.6vw, 34px); letter-spacing: -.025em; }
+.lp-demo-copy > p { margin: 0 0 20px; color: var(--lp-muted); font-size: 16px; max-width: 46ch; }
+
+.lp-demo-contacts { display: grid; gap: 10px; margin-bottom: 16px; }
+
+.lp-demo-contacts a {
+    display: inline-flex;
+    align-items: center;
+    gap: 9px;
+    text-decoration: none;
+    font-weight: 600;
+    font-size: 15px;
+    color: var(--lp-text);
+    width: fit-content;
+}
+
+@media (hover: hover) and (pointer: fine) {
+    .lp-demo-contacts a:hover { color: var(--lp-brand); }
+}
+
+.lp-demo-form {
+    background: var(--lp-surface);
+    border: 1px solid var(--lp-line);
+    padding: 26px 24px;
+    box-shadow: var(--lp-shadow);
+}
+
+.lp-demo-grid {
+    display: grid;
+    grid-template-columns: repeat(2, 1fr);
+    gap: 14px;
+}
+
+@media (max-width: 520px) { .lp-demo-grid { grid-template-columns: 1fr; } }
+
+.lp-field { margin: 0; }
+.lp-field-full { grid-column: 1 / -1; }
+
+.lp-field label {
+    display: block;
+    margin-bottom: 6px;
+    font-size: 13.5px;
+    font-weight: 500;
+    color: var(--lp-text);
+}
+
+.lp-field input,
+.lp-field textarea {
+    width: 100%;
+    min-height: 48px;
+    padding: 11px 14px;
+    border: 1px solid #d2d2d7;
+    border-radius: 12px;
+    background: var(--lp-bg);
+    color: var(--lp-text);
+    /* 16px, so iOS does not zoom the page when the field is focused. */
+    font: inherit;
+    font-size: 16px;
+    transition: border-color .15s var(--lp-ease), box-shadow .15s var(--lp-ease);
+}
+
+.lp-field input::placeholder,
+.lp-field textarea::placeholder { color: #8e8e93; }
+
+.lp-field textarea { resize: vertical; min-height: 76px; }
+
+/* ---------------------------------------------------- customer sign-in */
+
+.lp-auth { display: grid; place-items: center; }
+
+/* A hairline, not a hairline and a shadow: the page behind it is flat white, and
+   a card that has to be lifted off a flat page is a card with too little in it. */
+.lp-auth-card {
+    width: min(440px, 100%);
+    padding: 36px 32px 32px;
+    background: var(--lp-surface);
+    border: 1px solid var(--lp-line);
+    /* border-radius: 24px; */
+}
+
+.lp-auth-brand {
+    display: inline-flex;
+    align-items: center;
+    min-height: 44px;
+    margin-bottom: 20px;
+    color: var(--lp-text);
+    font-size: 20px;
+    font-weight: 650;
+    text-decoration: none;
+}
+
+.lp-auth-brand img { display: block; width: auto; max-width: min(100%, 220px); max-height: 44px; object-fit: contain; object-position: left center; }
+.lp-auth-card h1 { margin: 0 0 6px; font-size: clamp(26px, 3.6vw, 32px); font-weight: 650; letter-spacing: -.03em; line-height: 1.12; }
+.lp-auth-card > .lp-meta { margin: 0 0 20px; }
+.lp-auth-card form { display: grid; gap: 14px; }
+.lp-auth-check { display: flex; align-items: center; gap: 10px; min-height: 44px; font-size: 14.5px; cursor: pointer; }
+.lp-auth-check input { width: 18px; height: 18px; accent-color: var(--lp-brand); }
+.lp-auth-submit { width: 100%; text-align: center; }
+.lp-auth-card > .lp-auth-foot { margin: 20px 0 0; color: var(--lp-muted); }
+.lp-auth-foot a { color: var(--lp-brand); font-weight: 600; }
+.lp-auth-password { position: relative; display: block; }
+.lp-auth-password input { padding-right: 64px; }
+
+.lp-auth-reveal {
+    position: absolute;
+    right: 6px;
+    top: 50%;
+    transform: translateY(-50%);
+    padding: 8px 12px;
+    border: 0;
+    border-radius: 8px;
+    background: transparent;
+    color: var(--lp-muted);
+    font: inherit;
+    font-size: 14px;
+    font-weight: 500;
+    cursor: pointer;
+}
+
+@media (hover: hover) and (pointer: fine) { .lp-auth-reveal:hover { color: var(--lp-text); } }
+.lp-auth-reveal:focus-visible { color: var(--lp-brand); outline: none; }
+
+/* The ring is a soft halo of the accent, not an outline: it follows the field's
+   own corners and does not shove the layout by a pixel. */
+.lp-field input:focus-visible,
+.lp-field textarea:focus-visible {
+    outline: none;
+    border-color: #6e6e73;
+    box-shadow: 0 0 0 4px rgba(0, 0, 0, .07);
+}
+
+.lp-demo-note { margin: 14px 0 16px; font-size: 13px; color: var(--lp-muted); }
+
+.lp-demo-form button { width: 100%; text-align: center; }
+
+.lp-demo-thanks {
+    margin: 0 0 16px;
+    padding: 12px 14px;
+    border-radius: 12px;
+    background: rgba(19, 108, 62, .10);
+    color: #136c3e;
+    font-size: 14.5px;
+    font-weight: 600;
+}
+
+.lp-demo-errors {
+    margin: 0 0 16px;
+    padding: 12px 14px 12px 32px;
+    border-radius: 12px;
+    background: rgba(196, 38, 46, .09);
+    color: #c4262e;
+    font-size: 14px;
+}
+
+/*
+ | The honeypot.
+ |
+ | Moved off-screen rather than `display:none`: some bots skip anything that is
+ | display-none, and a field they skip is a field that catches nothing. It is
+ | also aria-hidden and tabindex="-1" in the markup, so nobody using a screen
+ | reader or a keyboard ever meets it.
+ */
+.lp-hp {
+    position: absolute;
+    left: -9999px;
+    width: 1px;
+    height: 1px;
+    overflow: hidden;
+}
+
+/* ------------------------------------------------------------- info tip */
+/* The same "i" as the product's (see theme.css), in this page's own tokens.
+   Long hints under a field fold into one beside its label. */
+.lp .info { position: relative; display: inline-flex; align-items: center; vertical-align: middle; margin-left: 4px; }
+
+.lp .info-btn {
+    position: relative;
+    display: grid;
+    place-items: center;
+    width: 18px;
+    height: 18px;
+    padding: 0;
+    border: 0;
+    border-radius: 50%;
+    background: transparent;
+    color: #8e8e93;
+    cursor: help;
+    transition: color .15s var(--lp-ease), transform .11s var(--lp-ease);
+}
+
+.lp .info-btn::before { content: ""; position: absolute; inset: -11px; }
+.lp .info-btn:active { transform: scale(.9); }
+.lp .info-btn:focus-visible { outline: none; box-shadow: 0 0 0 3px rgba(194, 65, 12, .25); }
+.lp .info.is-open .info-btn { color: var(--lp-text); }
+@media (hover: hover) and (pointer: fine) { .lp .info-btn:hover { color: var(--lp-text); } }
+
+.lp .info-pop {
+    position: fixed;
+    top: 0;
+    left: 0;
+    z-index: 1100;
+    width: max-content;
+    max-width: min(280px, calc(100vw - 16px));
+    padding: 10px 12px;
+    border-radius: 12px;
+    background: rgba(255, 255, 255, .92);
+    -webkit-backdrop-filter: saturate(180%) blur(24px);
+    backdrop-filter: saturate(180%) blur(24px);
+    box-shadow: var(--lp-shadow);
+    color: var(--lp-text);
+    font-size: 13.5px;
+    font-weight: 400;
+    letter-spacing: 0;
+    line-height: 1.45;
+    text-align: left;
+    white-space: normal;
+    opacity: 0;
+    visibility: hidden;
+    pointer-events: none;
+    transform: scale(.97);
+    transform-origin: top left;
+    transition: opacity .11s var(--lp-ease), transform .11s var(--lp-ease), visibility 0s linear .11s;
+}
+
+.lp .info.is-open .info-pop { opacity: 1; visibility: visible; pointer-events: auto; transform: none; transition: opacity .14s var(--lp-ease), transform .14s var(--lp-ease), visibility 0s; }
+
+/* The bar along the top while the browser moves to another page
+   (public/assets/js/topbar.js): two pixels of this page's accent. */
+.topbar {
+    position: fixed;
+    top: 0;
+    left: 0;
+    right: 0;
+    height: 2px;
+    z-index: 1200;
+    background: var(--lp-brand);
+    pointer-events: none;
+    opacity: 0;
+    transform: scaleX(0);
+    transform-origin: left center;
+}
+
+.topbar.is-active {
+    opacity: 1;
+    transform: scaleX(.82);
+    transition: transform 9s cubic-bezier(.08, .7, .2, 1), opacity .15s var(--lp-ease);
+}
+
+.topbar.is-done {
+    transform: scaleX(1);
+    transition: transform .2s var(--lp-ease), opacity .3s .15s var(--lp-ease);
+}
+
+@media (prefers-reduced-motion: reduce) {
+    .topbar.is-active { transition: opacity .15s linear; transform: scaleX(.5); }
+}
+
+/* Moving between the public pages crossfades the content in ~140ms (the header
+   is named, so it stays put). Cross-document, no script; a browser without it
+   navigates as before, and nobody who asked for less motion gets it. */
+@view-transition { navigation: auto; }
+
+.lp-header { view-transition-name: lp-header; }
+::view-transition-group(lp-header) { animation: none; }
+
+::view-transition-old(root),
+::view-transition-new(root) {
+    animation-duration: 140ms;
+    animation-timing-function: cubic-bezier(.23, 1, .32, 1);
+}
+
+@media (prefers-reduced-motion: reduce) {
+    ::view-transition-group(*),
+    ::view-transition-old(*),
+    ::view-transition-new(*) { animation: none !important; }
+}

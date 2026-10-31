@@ -1,0 +1,174 @@
+/* ---------------------------------------------------------------------------
+   The printable sheet of table QR stickers.
+
+   Standalone: this page does not load the admin theme, so everything it needs
+   is here and nothing depends on a CSS variable defined elsewhere. `--card` is
+   written into the page by the view and is the sticker's edge in millimetres.
+
+   Millimetres throughout, because the output is paper. A sticker specified in
+   pixels comes out a different size on every printer, and the whole point of
+   choosing "60mm" is that it fits the die-cut sheet already in the drawer.
+--------------------------------------------------------------------------- */
+
+:root {
+    --card: 60mm;
+    --ink: #111827;
+    --muted: #6b7280;
+    --line: #d1d5db;
+}
+
+* { box-sizing: border-box; }
+
+.qr-body {
+    margin: 0;
+    padding: 0;
+    background: #f3f4f6;
+    color: var(--ink);
+    font: 13px/1.4 system-ui, -apple-system, "Segoe UI", Roboto, Arial, sans-serif;
+}
+
+/* ------------------------------------------------------------- the screen */
+
+.qr-toolbar {
+    display: flex;
+    flex-wrap: wrap;
+    gap: 12px;
+    align-items: center;
+    justify-content: space-between;
+    padding: 12px 16px;
+    background: #fff;
+    border-bottom: 1px solid var(--line);
+}
+
+.qr-toolbar-actions {
+    display: flex;
+    flex-wrap: wrap;
+    gap: 6px;
+    align-items: center;
+}
+
+.qr-size,
+.qr-toolbar button {
+    padding: 6px 11px;
+    border: 1px solid var(--line);
+    border-radius: 6px;
+    background: #fff;
+    color: var(--ink);
+    font: inherit;
+    text-decoration: none;
+    cursor: pointer;
+}
+
+.qr-size.is-on {
+    border-color: var(--ink);
+    background: var(--ink);
+    color: #fff;
+}
+
+.qr-empty {
+    max-width: 460px;
+    margin: 64px auto;
+    padding: 24px;
+    background: #fff;
+    border: 1px solid var(--line);
+    border-radius: 8px;
+    text-align: center;
+}
+
+.qr-empty h1 { margin: 0 0 6px; font-size: 18px; }
+.qr-empty p { margin: 0; color: var(--muted); }
+
+/* -------------------------------------------------------------- the sheet */
+
+.qr-sheet {
+    display: flex;
+    flex-wrap: wrap;
+    gap: 4mm;
+    padding: 8mm;
+}
+
+.qr-card {
+    width: var(--card);
+    /* Not a fixed height: a long restaurant name wraps, and a card that
+       clipped it would print a sticker with half a name on it. */
+    min-height: var(--card);
+    display: flex;
+    flex-direction: column;
+    align-items: center;
+    justify-content: space-between;
+    gap: 2mm;
+    padding: 3mm;
+    background: #fff;
+    border: 1px dashed var(--line);
+    border-radius: 2mm;
+    text-align: center;
+    /* Never split a sticker across two sheets. */
+    break-inside: avoid;
+    page-break-inside: avoid;
+}
+
+.qr-card-head { width: 100%; }
+
+.qr-card-shop {
+    font-size: 8pt;
+    color: var(--muted);
+    text-transform: uppercase;
+    letter-spacing: .04em;
+    overflow-wrap: anywhere;
+}
+
+.qr-card-table {
+    font-size: 13pt;
+    font-weight: 700;
+    line-height: 1.15;
+    margin-top: .5mm;
+}
+
+.qr-card-area {
+    font-size: 8pt;
+    color: var(--muted);
+}
+
+/* White ground under the code, always. A QR printed on a tint is a QR that
+   fails on a phone camera in a dim dining room. */
+.qr-card-code {
+    background: #fff;
+    line-height: 0;
+}
+
+.qr-card-code svg {
+    display: block;
+    width: 100%;
+    height: auto;
+}
+
+.qr-card-foot { width: 100% }
+
+.qr-card-call {
+    font-size: 8pt;
+    font-weight: 600;
+}
+
+.qr-card-ref {
+    font-size: 7pt;
+    color: var(--muted);
+    letter-spacing: .06em;
+}
+
+/* -------------------------------------------------------------- the paper */
+
+@media print {
+    /* The toolbar is a screen control and has no business on paper. */
+    .qr-toolbar { display: none !important; }
+
+    .qr-body { background: #fff; }
+
+    .qr-sheet { padding: 0; gap: 3mm; }
+
+    /* The dashed rule is the cut line; it has to survive the browser's
+       "background graphics off" default, which is why it is a border and not
+       a background image. */
+    .qr-card { border-color: #9ca3af; }
+
+    @page { margin: 8mm; }
+}

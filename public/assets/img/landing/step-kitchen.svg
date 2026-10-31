@@ -1,0 +1,41 @@
+<svg xmlns="http://www.w3.org/2000/svg" width="400" height="280" viewBox="0 0 400 280" font-family="'Segoe UI', 'Helvetica Neue', Arial, sans-serif">
+  <rect width="400" height="280" rx="20" fill="#fff7ed"/>
+  <!-- wall screen -->
+  <rect x="24" y="26" width="352" height="214" rx="14" fill="#111827"/>
+  <rect x="34" y="36" width="332" height="194" rx="8" fill="#1f2937"/>
+  <text x="46" y="56" font-size="11" font-weight="700" fill="#f9fafb">Kitchen · Tandoor</text>
+  <circle cx="352" cy="52" r="5" fill="#22c55e"/>
+  <!-- tickets -->
+  <g font-size="10">
+    <rect x="44" y="66" width="98" height="152" rx="8" fill="#ffffff"/>
+    <rect x="44" y="66" width="98" height="26" rx="8" fill="#fef3c7"/>
+    <text x="52" y="83" font-weight="700" fill="#111827">Table 4</text>
+    <text x="134" y="83" fill="#b45309" text-anchor="end">3m</text>
+    <text x="52" y="108" fill="#111827">1 × Paneer Tikka</text>
+    <text x="52" y="124" fill="#111827">3 × Garlic Naan</text>
+    <text x="52" y="140" fill="#9a3412">“Less oil”</text>
+    <rect x="52" y="190" width="82" height="20" rx="10" fill="#2563eb"/>
+    <text x="93" y="204" font-weight="700" fill="#fff" text-anchor="middle">Start cooking</text>
+
+    <rect x="151" y="66" width="98" height="152" rx="8" fill="#ffffff"/>
+    <rect x="151" y="66" width="98" height="26" rx="8" fill="#ffedd5"/>
+    <text x="159" y="83" font-weight="700" fill="#111827">Table 7</text>
+    <text x="241" y="83" fill="#c2410c" text-anchor="end">9m</text>
+    <text x="159" y="108" fill="#111827">2 × Chicken Tikka</text>
+    <text x="159" y="124" fill="#111827">1 × Tandoori Roti</text>
+    <rect x="159" y="190" width="82" height="20" rx="10" fill="#16a34a"/>
+    <text x="200" y="204" font-weight="700" fill="#fff" text-anchor="middle">Ready</text>
+
+    <rect x="258" y="66" width="98" height="152" rx="8" fill="#ffffff"/>
+    <rect x="258" y="66" width="98" height="26" rx="8" fill="#fee2e2"/>
+    <text x="266" y="83" font-weight="700" fill="#111827">Takeaway</text>
+    <text x="348" y="83" fill="#dc2626" text-anchor="end">16m</text>
+    <text x="266" y="108" fill="#111827">1 × Seekh Kebab</text>
+    <text x="266" y="124" fill="#111827">2 × Butter Naan</text>
+    <rect x="266" y="190" width="82" height="20" rx="10" fill="#16a34a"/>
+    <text x="307" y="204" font-weight="700" fill="#fff" text-anchor="middle">Ready</text>
+  </g>
+  <!-- stand -->
+  <rect x="180" y="240" width="40" height="14" fill="#374151"/>
+  <rect x="140" y="252" width="120" height="10" rx="5" fill="#4b5563"/>
+</svg>

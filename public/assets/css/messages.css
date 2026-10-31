@@ -1,0 +1,218 @@
+/*
+| Direct messages (public/assets/js/messages.js).
+|
+| Two panes - who, and what was said - that fill the height of the window so the
+| composer is always on screen and only the thread scrolls. The JS builds the
+| list rows and bubbles; every class it uses is styled here and nothing else.
+*/
+
+.msg {
+    display: grid;
+    grid-template-columns: 320px minmax(0, 1fr);
+    gap: 16px;
+    height: calc(100vh - 230px);
+    height: calc(100dvh - 230px);
+    min-height: 460px;
+}
+
+.msg-side,
+.msg-main {
+    display: flex;
+    flex-direction: column;
+    min-height: 0;
+    overflow: hidden;
+    background: var(--panel);
+    border: 1px solid var(--border);
+    border-radius: var(--radius-lg);
+}
+
+/* ------------------------------------------------------------- people */
+.msg-side > header {
+    padding: 16px 18px 8px;
+    font-size: 15px;
+    font-weight: 600;
+    letter-spacing: -.012em;
+    color: var(--heading);
+}
+
+.msg-search { padding: 4px 12px 10px; }
+
+.msg-search input {
+    width: 100%;
+    padding-left: 38px;
+    background-image: url("data:image/svg+xml,%3Csvg xmlns='http://www.w3.org/2000/svg' width='18' height='18' viewBox='0 0 24 24' fill='none' stroke='%238e8e93' stroke-width='1.8' stroke-linecap='round' stroke-linejoin='round'%3E%3Ccircle cx='11' cy='11' r='7'/%3E%3Cpath d='m20 20-3.5-3.5'/%3E%3C/svg%3E");
+    background-repeat: no-repeat;
+    background-position: 12px center;
+    background-size: 17px;
+}
+
+.msg-list {
+    flex: 1;
+    margin: 0;
+    padding: 2px 8px 8px;
+    overflow-y: auto;
+    list-style: none;
+}
+
+.msg-list button {
+    display: block;
+    width: 100%;
+    margin: 0;
+    padding: 10px 12px;
+    border: 0;
+    border-radius: var(--radius);
+    background: transparent;
+    font: inherit;
+    text-align: left;
+    color: var(--text);
+    cursor: pointer;
+    transition: background-color var(--dur-fast) var(--ease-out), transform var(--dur-press) var(--ease-out);
+}
+
+.msg-list button:active { transform: scale(.985); }
+.msg-list button:focus-visible { outline: none; box-shadow: 0 0 0 3px var(--ring); }
+.msg-list button[aria-current="true"] { background: var(--active); }
+@media (hover: hover) and (pointer: fine) { .msg-list button:hover { background: var(--hover); } .msg-list button[aria-current="true"]:hover { background: var(--active); } }
+
+.msg-list strong { display: block; font-size: 14px; font-weight: 500; color: var(--heading); }
+
+.msg-list small {
+    display: block;
+    margin-top: 1px;
+    font-size: 12.5px;
+    color: var(--muted);
+    white-space: nowrap;
+    overflow: hidden;
+    text-overflow: ellipsis;
+}
+
+/* Unread: the one place on this screen that earns the brand colour. */
+.msg-badge {
+    float: right;
+    min-width: 20px;
+    margin-left: 8px;
+    padding: 0 6px;
+    border-radius: var(--radius-pill);
+    background: var(--brand);
+    color: var(--on-brand);
+    font-size: 12px;
+    font-weight: 600;
+    line-height: 20px;
+    text-align: center;
+    font-variant-numeric: tabular-nums;
+}
+
+/* -------------------------------------------------------------- thread */
+.msg-main > header {
+    display: flex;
+    align-items: center;
+    gap: 8px;
+    padding: 12px 18px;
+    border-bottom: 1px solid var(--rule);
+    font-size: 15px;
+    font-weight: 600;
+    letter-spacing: -.012em;
+    color: var(--heading);
+}
+
+.msg-main > header .info { margin-left: auto; }
+
+.msg-thread {
+    flex: 1;
+    min-height: 0;
+    overflow-y: auto;
+    padding: 18px;
+    display: flex;
+    flex-direction: column;
+    gap: 6px;
+}
+
+.msg-bubble {
+    max-width: min(75%, 520px);
+    padding: 8px 14px;
+    border-radius: 18px 18px 18px 6px;
+    background: var(--active);
+    color: var(--heading);
+    font-size: 14.5px;
+    line-height: 1.4;
+    white-space: pre-wrap;
+    overflow-wrap: anywhere;
+}
+
+/* Yours: ink on the surface colour - neutral, and it inverts by itself in dark
+   mode - rather than a second accent colour competing with the brand. */
+.msg-bubble.mine {
+    align-self: flex-end;
+    border-radius: 18px 18px 6px 18px;
+    background: var(--heading);
+    color: var(--panel);
+}
+
+.msg-bubble.failed { box-shadow: 0 0 0 2px var(--danger-mark); }
+.msg-bubble small { display: block; margin-top: 2px; font-size: 12px; opacity: .65; }
+
+.msg-empty {
+    margin: auto;
+    padding: 2rem;
+    font-size: 14px;
+    color: var(--muted);
+    text-align: center;
+}
+
+li.msg-empty { padding: 24px 12px; font-size: 13.5px; }
+
+/* ------------------------------------------------------------ composer */
+/*
+| One rounded field with the send control beside it, the way a messaging app
+| does it: the text box grows from a single line, and sending is a round arrow
+| rather than a labelled block three times the height of the text.
+*/
+.msg-form {
+    display: flex;
+    align-items: flex-end;
+    gap: 8px;
+    padding: 12px 14px 14px;
+    border-top: 1px solid var(--rule);
+}
+
+.msg-form[hidden] { display: none; }
+
+.msg-form textarea {
+    flex: 1;
+    min-height: 44px;
+    max-height: 140px;
+    padding: 11px 16px;
+    border-radius: 22px;
+    resize: none;
+    line-height: 1.35;
+}
+
+.msg-send {
+    flex: none;
+    display: grid;
+    place-items: center;
+    width: 44px;
+    height: 44px;
+    padding: 0;
+    border: 0;
+    border-radius: 50%;
+    background: var(--brand-strong);
+    color: var(--on-brand);
+    cursor: pointer;
+    transition: transform var(--dur-press) var(--ease-out), background-color var(--dur-fast) var(--ease-out), opacity var(--dur-fast) var(--ease-out);
+}
+
+.msg-send:active { transform: scale(.92); }
+.msg-send:disabled { opacity: .45; cursor: default; }
+.msg-send:focus-visible { outline: none; box-shadow: 0 0 0 3px var(--ring); }
+@media (hover: hover) and (pointer: fine) { .msg-send:hover:not(:disabled) { background: var(--brand-press); } }
+
+@media (max-width: 760px) {
+    .msg { grid-template-columns: 1fr; height: calc(100dvh - 190px); }
+    .msg.is-open .msg-side { display: none; }
+    .msg:not(.is-open) .msg-main { display: none; }
+}
+
+/* Two panes side by side need no way back; the arrow is for the phone, where
+   one pane replaces the other. */
+@media (min-width: 761px) { .msg-main > header #msg-back { display: none !important; } }
