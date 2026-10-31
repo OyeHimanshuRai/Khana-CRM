@@ -1,0 +1,145 @@
+/*
+|------------------------------------------------------------------------------
+| KOT slip (§9)
+|------------------------------------------------------------------------------
+| Sized for an 80mm thermal roll, which is what a restaurant already owns.
+| Monospace and heavy, because it is read under a heat lamp by somebody who is
+| not going to hold it up to the light.
+|
+| No prices, no tax, no totals. A KOT is a work order; a slip that carried them
+| would be handed to a guest by accident about once a month.
+*/
+
+@page {
+    size: 80mm auto;
+    margin: 3mm;
+}
+
+.kot-body {
+    margin: 0;
+    padding: 6px;
+    background: #fff;
+    color: #000;
+    font-family: "DejaVu Sans Mono", "Consolas", "Courier New", monospace;
+    font-size: 13px;
+    line-height: 1.35;
+}
+
+.kot {
+    width: 74mm;
+    margin: 0 auto;
+}
+
+/* ---------------------------------------------------------------- the head */
+
+.kot-head {
+    text-align: center;
+    border-bottom: 2px dashed #000;
+    padding-bottom: 6px;
+    margin-bottom: 6px;
+}
+
+.kot-head h1 {
+    margin: 0;
+    font-size: 26px;
+    font-weight: 800;
+    letter-spacing: .02em;
+}
+
+.kot-where {
+    margin: 2px 0 0;
+    font-size: 15px;
+    font-weight: 700;
+}
+
+.kot-station {
+    margin: 2px 0 0;
+    font-size: 14px;
+    font-weight: 700;
+    text-transform: uppercase;
+}
+
+.kot-when,
+.kot-guest {
+    margin: 2px 0 0;
+    font-size: 12px;
+}
+
+/* --------------------------------------------------------------- the lines */
+
+.kot-lines {
+    width: 100%;
+    border-collapse: collapse;
+}
+
+.kot-lines td {
+    vertical-align: top;
+    padding: 4px 0;
+    border-bottom: 1px dotted #999;
+}
+
+/* The quantity is the first thing read and the thing most often misread, so
+   it gets a column of its own and the largest type on the slip. */
+.kot-qty {
+    width: 26px;
+    font-size: 20px;
+    font-weight: 800;
+    text-align: right;
+    padding-right: 8px !important;
+}
+
+.kot-dish {
+    display: block;
+    font-size: 15px;
+    font-weight: 700;
+    text-transform: uppercase;
+}
+
+.kot-mods {
+    display: block;
+    font-size: 12px;
+    padding-left: 6px;
+}
+
+.kot-note {
+    display: block;
+    font-size: 13px;
+    font-weight: 800;
+    padding-left: 6px;
+}
+
+.kot-at {
+    display: block;
+    font-size: 11px;
+    letter-spacing: .08em;
+}
+
+.kot-order-note {
+    margin: 6px 0 0;
+    font-size: 13px;
+    font-weight: 700;
+    border: 1px solid #000;
+    padding: 4px 6px;
+}
+
+/* ---------------------------------------------------------------- the foot */
+
+.kot-foot {
+    margin: 8px 0 0;
+    padding-top: 6px;
+    border-top: 2px dashed #000;
+    text-align: center;
+    font-size: 12px;
+}
+
+@media screen {
+    /* On screen it sits on a grey field so the slip's edges are visible while
+       somebody checks it before sending it to the roll. */
+    .kot-body { background: #e9ecef; padding: 20px 0; }
+
+    .kot {
+        background: #fff;
+        padding: 10px 12px;
+        box-shadow: 0 2px 10px rgba(0, 0, 0, .18);
+    }
+}

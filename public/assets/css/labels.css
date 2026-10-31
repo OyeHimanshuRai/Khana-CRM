@@ -1,0 +1,99 @@
+/*
+| Barcode/price sticker sheet.
+|
+| A grid of repeated labels sized to whichever preset was chosen
+| (BarcodeLabelController::SIZES), meant for a sticker-roll printer or a
+| sheet of pre-cut labels rather than the .doc/print-a4 single-document
+| layout the rest of print.css covers - a label sheet is many small,
+| identical cards, not one document with a header and totals.
+*/
+
+@page {
+    size: auto;
+    margin: 4mm;
+}
+
+* {
+    box-sizing: border-box;
+}
+
+body.labels-body {
+    margin: 0;
+    padding: 0;
+    background: #fff;
+    font-family: -apple-system, BlinkMacSystemFont, 'Segoe UI', Roboto, Helvetica, Arial, sans-serif;
+    color: #000;
+}
+
+.labels-sheet {
+    display: flex;
+    flex-wrap: wrap;
+    gap: 2mm;
+}
+
+.label {
+    width: var(--label-w, 50mm);
+    height: var(--label-h, 30mm);
+    border: 1px dashed #bbb;
+    padding: 1.5mm 2mm;
+    display: flex;
+    flex-direction: column;
+    align-items: center;
+    justify-content: center;
+    text-align: center;
+    overflow: hidden;
+    page-break-inside: avoid;
+}
+
+.label-shop {
+    font-size: 2.4mm;
+    font-weight: 600;
+    letter-spacing: .02em;
+    text-transform: uppercase;
+    line-height: 1.2;
+}
+
+.label-name {
+    font-size: 2.8mm;
+    font-weight: 700;
+    line-height: 1.15;
+    max-height: 8mm;
+    overflow: hidden;
+    width: 100%;
+}
+
+.label-prices {
+    display: flex;
+    gap: 2mm;
+    align-items: baseline;
+    font-size: 2.6mm;
+}
+
+.label-price {
+    font-weight: 700;
+}
+
+.label-mrp {
+    text-decoration: line-through;
+    color: #555;
+}
+
+.label-barcode {
+    width: 100%;
+    display: flex;
+    justify-content: center;
+}
+
+.label-barcode svg {
+    max-width: 100%;
+    height: auto;
+}
+
+.label-code {
+    font-size: 2.4mm;
+    letter-spacing: .04em;
+}
+
+@media print {
+    .label { border-color: #eee; }
+}

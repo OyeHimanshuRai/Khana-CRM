@@ -1,0 +1,742 @@
+/*
+|------------------------------------------------------------------------------
+| Dashboard
+|------------------------------------------------------------------------------
+| Everything here is scoped under .dash, which only the dashboard wears. It is
+| the one screen people read from a step back, so it gets more air and real
+| charts - but it speaks the same language as every other screen: flat
+| surfaces with a hairline, colour only where it carries data, figures as the
+| loudest thing on a tile.
+|
+| Colour: surfaces and text come from the theme tokens, so the theme toggle
+| and the OS setting both keep working. The series hues are a separate,
+| validated set - both modes chosen rather than flipped - declared once here
+| and referenced by role everywhere else.
+*/
+
+.dash {
+    /* Categorical series - identity. Assigned in fixed order, never cycled. */
+    --s1: #2a78d6;
+    --s2: #eb6834;
+    --s3: #1baf7a;
+    --s4: #eda100;
+    --s5: #e87ba4;
+    --s6: #008300;
+
+    /* Ordinal ramp - one hue, light to dark, for ordered stages. */
+    --o1: #86b6ef;
+    --o2: #5598e7;
+    --o3: #2a78d6;
+    --o4: #1c5cab;
+    --o5: #104281;
+
+    /* Unfilled track and chart gridlines come from the theme, so they follow
+       the colour scheme without a second set of dark overrides. */
+    --track: var(--active);
+    --grid: var(--rule);
+
+    --pill-radius: 999px;
+}
+
+@media (prefers-color-scheme: dark) {
+    :root:where(:not([data-theme="light"])) .dash {
+        --s1: #3987e5; --s2: #d95926; --s3: #199e70;
+        --s4: #c98500; --s5: #d55181; --s6: #008300;
+        --o1: #9ec5f4; --o2: #6da7ec; --o3: #3987e5; --o4: #256abf; --o5: #184f95;
+    }
+}
+
+:root[data-theme="dark"] .dash {
+    --s1: #3987e5; --s2: #d95926; --s3: #199e70;
+    --s4: #c98500; --s5: #d55181; --s6: #008300;
+    --o1: #9ec5f4; --o2: #6da7ec; --o3: #3987e5; --o4: #256abf; --o5: #184f95;
+}
+
+/* ============================================================== the panel */
+
+.dash-card {
+    background: var(--panel);
+    border: 1px solid var(--border);
+    border-radius: var(--radius-lg);
+    display: flex;
+    flex-direction: column;
+    min-width: 0;
+    overflow: hidden;
+    transition: box-shadow 0.18s ease;
+}
+
+@media (hover: hover) and (pointer: fine) {
+    .dash-card:hover {
+        box-shadow: 0 4px 20px rgba(0,0,0,.07);
+    }
+}
+
+.dash-card-head {
+    display: flex;
+    align-items: flex-start;
+    justify-content: space-between;
+    gap: 14px;
+    padding: 18px 20px 12px;
+}
+
+.dash-card-title {
+    font-size: 15px;
+    font-weight: 600;
+    letter-spacing: -.012em;
+    color: var(--heading);
+    line-height: 1.3;
+}
+
+.dash-card-sub {
+    margin-top: 2px;
+    font-size: 13px;
+    color: var(--muted);
+    line-height: 1.4;
+}
+
+.dash-card-body { padding: 4px 20px 20px; flex: 1 1 auto; min-width: 0; }
+/*
+ | The two tables on this page sit flush against the card's edges, and both
+ | are wider than a phone: on a 320px screen the last 147px of columns - the
+ | amount column on the best sellers, the status on recent invoices - simply
+ | could not be reached. Nothing clipped them visibly either, so the page
+ | looked complete while hiding the figure somebody opened it for.
+ |
+ | The listing screens solve this with .table-wrap; this is the same answer in
+ | the one place that does not use it. `is-flush` is only ever these two
+ | tables - see dashboard.blade.php - so scrolling it sideways cannot catch
+ | anything else.
+ */
+.dash-card-body.is-flush {
+    padding: 0;
+    overflow-x: auto;
+}
+
+.dash-card-foot {
+    margin: 0 20px 20px;
+    padding: 10px 12px;
+    border-radius: var(--radius);
+    background: var(--panel-alt);
+    border: 1px solid var(--rule);
+    font-size: 13px;
+    color: var(--muted);
+    display: flex;
+    align-items: center;
+    gap: 8px;
+}
+
+.dash-card-foot svg { flex: none; }
+
+/*
+| Rows are auto-fit rather than fixed columns: a cashier sees three cards and
+| an owner sees nine, and neither should get a hole in the grid where a
+| widget their role cannot see used to be.
+*/
+.dash-row {
+    display: grid;
+    gap: 16px;
+    margin-bottom: 16px;
+    align-items: stretch;
+    grid-template-columns: repeat(auto-fit, minmax(310px, 1fr));
+}
+
+.dash-row.is-wide { grid-template-columns: repeat(auto-fit, minmax(420px, 1fr)); }
+
+@media (min-width: 1180px) {
+    .dash-row.is-split { grid-template-columns: minmax(0, 1fr) minmax(0, 1.75fr); }
+}
+
+/* ================================================================ alerts */
+/*
+| A notice is a row with one thing to do. Neutral surface, hairline; the
+| severity is carried by the icon and the action's colour, not by a painted
+| stripe down the edge of the card.
+*/
+
+.dash-alerts {
+    display: grid;
+    grid-template-columns: repeat(auto-fit, minmax(300px, 1fr));
+    gap: 10px;
+    margin-bottom: 16px;
+}
+
+.dash .dash-alert {
+    display: flex;
+    align-items: center;
+    gap: 10px;
+    min-height: 44px;
+    padding: 10px 14px 10px 16px;
+    border: 1px solid var(--border);
+    border-left-width: 3px;
+    border-left-color: var(--muted);
+    border-radius: var(--radius-lg);
+    background: var(--panel);
+    color: var(--text);
+    font-size: 13.5px;
+    text-decoration: none;
+    transition: transform var(--dur-press) var(--ease-out), background-color var(--dur-fast) var(--ease-out);
+}
+
+.dash .dash-alert.is-danger  { border-left-color: var(--danger); }
+.dash .dash-alert.is-warning { border-left-color: var(--warning); }
+.dash .dash-alert.is-info    { border-left-color: var(--info); }
+
+.dash .dash-alert:active { transform: scale(.985); }
+
+@media (hover: hover) and (pointer: fine) {
+    .dash .dash-alert:hover { background: var(--panel-alt); }
+}
+
+.dash .dash-alert:focus-visible { outline: none; box-shadow: 0 0 0 3px var(--ring); }
+
+.dash .dash-alert svg { flex: none; }
+
+.dash .dash-alert.is-danger  { color: var(--danger); }
+.dash .dash-alert.is-warning { color: var(--warning); }
+.dash .dash-alert.is-info    { color: var(--info); }
+
+.dash .dash-alert-text { flex: 1 1 auto; min-width: 0; color: var(--text); }
+
+.dash .dash-alert-action {
+    flex: none;
+    font-size: 13px;
+    font-weight: 600;
+    white-space: nowrap;
+}
+
+/* ============================================================ stat tiles */
+/*
+| The figure is the tile. A neutral icon and a quiet label sit above it, and
+| the only colour on a tile is the change underneath - which is data. (Each
+| tile used to carry its own colour strip and tinted icon square; six of them
+| in a row read as a paintbox, and the colours meant nothing.)
+|
+| The grid follows the number of tiles so the last row is never half empty:
+| the role that sees six gets 3x2, four gets 4x1, five gets 3 over 2.
+*/
+
+.kpi-grid {
+    display: grid;
+    grid-template-columns: repeat(auto-fit, minmax(232px, 1fr));
+    gap: 14px;
+    margin-bottom: 16px;
+}
+
+@media (min-width: 900px) {
+    .kpi-grid:has(> .kpi:nth-child(6):last-child) { grid-template-columns: repeat(3, minmax(0, 1fr)); }
+    .kpi-grid:has(> .kpi:nth-child(4):last-child) { grid-template-columns: repeat(4, minmax(0, 1fr)); }
+    .kpi-grid:has(> .kpi:nth-child(3):last-child) { grid-template-columns: repeat(3, minmax(0, 1fr)); }
+    .kpi-grid:has(> .kpi:nth-child(2):last-child) { grid-template-columns: repeat(2, minmax(0, 1fr)); }
+
+    .kpi-grid:has(> .kpi:nth-child(5):last-child) { grid-template-columns: repeat(6, minmax(0, 1fr)); }
+    .kpi-grid:has(> .kpi:nth-child(5):last-child) > .kpi { grid-column: span 3; }
+    .kpi-grid:has(> .kpi:nth-child(5):last-child) > .kpi:nth-child(-n+3) { grid-column: span 2; }
+}
+
+.kpi {
+    position: relative;
+    display: flex;
+    flex-direction: column;
+    gap: 12px;
+    padding: 16px 18px 15px;
+    background: var(--panel);
+    border: 1px solid var(--border);
+    border-radius: var(--radius-lg);
+    min-width: 0;
+    overflow: hidden;
+    transition: box-shadow 0.18s ease, transform 0.12s ease;
+}
+
+/* Colored accent line on top using the per-tile --kpi-accent */
+.kpi::before {
+    content: '';
+    position: absolute;
+    top: 0; left: 0; right: 0;
+    height: 3px;
+    background: var(--kpi-accent, var(--brand));
+    border-radius: var(--radius-lg) var(--radius-lg) 0 0;
+}
+
+@media (hover: hover) and (pointer: fine) {
+    .kpi:hover {
+        box-shadow: 0 4px 16px rgba(0,0,0,.08);
+        transform: translateY(-1px);
+    }
+}
+
+.kpi-top { display: flex; align-items: center; gap: 8px; min-width: 0; }
+
+/* Tinted icon chip using the per-tile --kpi-accent */
+.kpi-chip {
+    flex: none;
+    display: grid;
+    place-items: center;
+    width: 32px;
+    height: 32px;
+    border-radius: var(--radius);
+    background: var(--kpi-soft, var(--hover));
+    color: var(--kpi-accent, var(--muted));
+}
+
+.kpi-label {
+    font-size: 13px;
+    font-weight: 500;
+    color: var(--muted);
+    white-space: nowrap;
+    overflow: hidden;
+    text-overflow: ellipsis;
+}
+
+.kpi-main {
+    display: flex;
+    align-items: flex-end;
+    justify-content: space-between;
+    gap: 10px;
+    min-width: 0;
+}
+
+/*
+| Proportional figures on purpose: tabular-nums gives every digit the width
+| of a zero, which reads loose at this size. The table columns further down
+| get them instead, where the alignment is the point.
+*/
+.kpi-value {
+    font-size: 30px;
+    font-weight: 700;
+    color: var(--heading);
+    line-height: 1.1;
+    letter-spacing: -.03em;
+    min-width: 0;
+    overflow-wrap: anywhere;
+}
+
+.kpi-spark { flex: none; display: block; }
+
+/* What changed - text, not a badge. Colour only when it is a movement. */
+.kpi-foot {
+    display: inline-flex;
+    align-items: center;
+    gap: 5px;
+    align-self: flex-start;
+    max-width: 100%;
+    color: var(--muted);
+    font-size: 13px;
+    font-weight: 500;
+    line-height: 1.4;
+}
+
+.kpi-foot svg { flex: none; }
+.kpi-foot.is-up   { color: var(--success); }
+.kpi-foot.is-down { color: var(--danger); }
+.kpi-foot.is-warn { color: var(--warning); }
+.kpi-foot.is-info { color: var(--info); }
+
+/* ================================================================= gauge */
+
+.gauge {
+    display: flex;
+    flex-direction: column;
+    align-items: center;
+    padding-top: 4px;
+}
+
+.gauge svg { display: block; width: 100%; max-width: 280px; height: auto; }
+
+.gauge-figure { text-align: center; margin-top: -44px; }
+
+.gauge-value {
+    font-size: 32px;
+    font-weight: 600;
+    color: var(--heading);
+    line-height: 1.1;
+    letter-spacing: -.03em;
+}
+
+.gauge-caption {
+    margin-top: 3px;
+    font-size: 13px;
+    font-weight: 500;
+    color: var(--muted);
+}
+
+.gauge-scale {
+    display: flex;
+    justify-content: space-between;
+    width: 100%;
+    max-width: 280px;
+    margin-top: 12px;
+    font-size: 12px;
+    color: var(--muted);
+    font-variant-numeric: tabular-nums;
+}
+
+.gauge-stats {
+    display: grid;
+    grid-template-columns: repeat(auto-fit, minmax(84px, 1fr));
+    gap: 8px;
+    width: 100%;
+    margin: 14px 0 0;
+}
+
+.gauge-stat {
+    padding: 10px 12px;
+    border-radius: var(--radius);
+    background: var(--panel-alt);
+    border: 1px solid var(--rule);
+    min-width: 0;
+}
+
+.gauge-stat dt { font-size: 12px; color: var(--muted); margin-bottom: 2px; }
+
+.gauge-stat dd {
+    margin: 0;
+    font-size: 15px;
+    font-weight: 600;
+    letter-spacing: -.01em;
+    color: var(--heading);
+    overflow-wrap: anywhere;
+}
+
+/* ============================================================ stage flow */
+
+.flow { display: flex; flex-direction: column; gap: 11px; }
+
+.flow-row {
+    display: grid;
+    grid-template-columns: minmax(96px, auto) minmax(0, 1fr) auto;
+    align-items: center;
+    gap: 12px;
+    min-width: 0;
+}
+
+.flow-name {
+    display: flex;
+    align-items: center;
+    gap: 8px;
+    font-size: 13px;
+    color: var(--text);
+    white-space: nowrap;
+}
+
+.flow-dot {
+    width: 8px;
+    height: 8px;
+    border-radius: 50%;
+    flex: none;
+    background: var(--flow-color, var(--s1));
+}
+
+.flow-track {
+    height: 8px;
+    border-radius: var(--radius-pill);
+    background: var(--track);
+    overflow: hidden;
+}
+
+/* No floor on the width: a stage holding nothing draws nothing, and the
+   template already gives a non-zero count a visible minimum. */
+.flow-bar {
+    display: block;
+    height: 100%;
+    border-radius: var(--radius-pill);
+    background: var(--flow-color, var(--s1));
+}
+
+.flow-value {
+    font-size: 13px;
+    font-weight: 600;
+    color: var(--heading);
+    font-variant-numeric: tabular-nums;
+    white-space: nowrap;
+    text-align: right;
+}
+
+/* =========================================================== area chart */
+
+.area-wrap { width: 100%; }
+.area-wrap svg { display: block; width: 100%; height: auto; overflow: visible; }
+
+/*
+| Sized in the viewBox's user units, not screen pixels. The viewBox is kept
+| near the width the card gets, so 12 units draws at roughly 9-12px - the
+| 11 it was came out at 8px, below what a person can read at arm's length.
+*/
+.area-axis { font-size: 12px; fill: var(--muted); }
+.area-grid { stroke: var(--grid); stroke-width: 1; }
+.area-line { fill: none; stroke: var(--brand); stroke-width: 2; stroke-linejoin: round; stroke-linecap: round; }
+.area-dot  { fill: var(--brand); stroke: var(--panel); stroke-width: 2; }
+.area-hit  { fill: transparent; cursor: crosshair; }
+
+/* The crosshair rides the hit target, so the whole column is the hover. */
+.area-hover { opacity: 0; pointer-events: none; transition: opacity var(--dur-press) var(--ease-out); }
+@media (hover: hover) and (pointer: fine) { .area-hit:hover + .area-hover { opacity: 1; } }
+.area-hover line { stroke: var(--border-strong); stroke-width: 1; }
+.area-hover circle { fill: var(--brand); stroke: var(--panel); stroke-width: 2; }
+
+/* =================================================== proportional mix */
+
+.mix { display: flex; flex-direction: column; gap: 14px; }
+
+.mix-head {
+    display: flex;
+    align-items: baseline;
+    justify-content: space-between;
+    gap: 10px;
+    font-size: 13px;
+    color: var(--muted);
+}
+
+.mix-head strong { font-size: 17px; font-weight: 600; letter-spacing: -.015em; color: var(--heading); font-variant-numeric: tabular-nums; }
+
+/*
+| The 2px separator is the surface showing through, not a stroke around each
+| segment - a border there would add ink that is not data.
+*/
+.mix-bar {
+    display: flex;
+    gap: 2px;
+    height: 12px;
+    border-radius: var(--radius-pill);
+    overflow: hidden;
+    background: var(--track);
+}
+
+.mix-seg { min-width: 3px; background: var(--seg-color, var(--s1)); }
+
+.mix-list { display: flex; flex-direction: column; gap: 9px; }
+
+.mix-item {
+    display: grid;
+    grid-template-columns: 10px minmax(0, 1fr) auto;
+    align-items: center;
+    gap: 9px;
+    font-size: 13px;
+    color: var(--text);
+}
+
+.mix-item span { min-width: 0; overflow: hidden; text-overflow: ellipsis; white-space: nowrap; }
+
+.mix-item b {
+    font-weight: 600;
+    color: var(--heading);
+    font-variant-numeric: tabular-nums;
+    white-space: nowrap;
+}
+
+.mix-empty { font-size: 13px; color: var(--muted); }
+
+/* ================================================================ legend */
+
+.legend {
+    display: flex;
+    flex-wrap: wrap;
+    align-items: center;
+    gap: 6px 14px;
+    font-size: 12.5px;
+    color: var(--muted);
+}
+
+.legend-item { display: inline-flex; align-items: center; gap: 6px; white-space: nowrap; }
+
+.legend-dot {
+    width: 9px;
+    height: 9px;
+    border-radius: 3px;
+    flex: none;
+    background: var(--legend-color, var(--s1));
+}
+
+/* ========================================================= metric lists */
+
+.metrics { display: flex; flex-direction: column; margin: 0; }
+
+.metrics > div {
+    display: flex;
+    align-items: baseline;
+    justify-content: space-between;
+    gap: 12px;
+    padding: 10px 0;
+    border-bottom: 1px solid var(--rule);
+}
+
+.metrics > div:last-child { border-bottom: 0; }
+
+.metrics dt { font-size: 13px; color: var(--muted); min-width: 0; }
+
+.metrics dd {
+    margin: 0;
+    font-size: 14px;
+    font-weight: 600;
+    letter-spacing: -.006em;
+    color: var(--heading);
+    font-variant-numeric: tabular-nums;
+    white-space: nowrap;
+}
+
+.metrics .is-total {
+    margin-top: 4px;
+    padding-top: 12px;
+    border-top: 1px solid var(--border);
+    border-bottom: 0;
+}
+
+.metrics .is-total dt { color: var(--text); font-weight: 500; }
+.metrics .is-total dd { font-size: 17px; letter-spacing: -.014em; }
+
+.metrics dd.is-good  { color: var(--success); }
+.metrics dd.is-warn  { color: var(--warning); }
+.metrics dd.is-bad   { color: var(--danger); }
+.metrics dd.is-brand { color: var(--brand-text); }
+.metrics dd.is-muted { color: var(--muted); }
+.metrics dd small { font-weight: 400; font-size: 12px; color: var(--muted); }
+
+/* ================================================================ tables */
+/*
+| Same rules as the listing tables: column heads in sentence case, nothing
+| shouted, a hairline between rows and no fill behind the header.
+*/
+
+.dash-table { width: 100%; border-collapse: collapse; font-size: 13.5px; }
+
+.dash-table th {
+    padding: 10px 20px;
+    text-align: left;
+    font-size: 12.5px;
+    font-weight: 500;
+    color: var(--muted);
+    border-top: 1px solid var(--rule);
+    border-bottom: 1px solid var(--rule);
+    white-space: nowrap;
+}
+
+.dash-table td {
+    padding: 12px 20px;
+    border-bottom: 1px solid var(--rule);
+    vertical-align: middle;
+}
+
+.dash-table tbody tr:last-child td { border-bottom: 0; }
+@media (hover: hover) and (pointer: fine) { .dash-table tbody tr:hover td { background: var(--hover); } }
+.dash-table .num { text-align: right; font-variant-numeric: tabular-nums; white-space: nowrap; }
+
+.cell-lead { display: flex; align-items: center; gap: 10px; min-width: 0; }
+
+.cell-rank {
+    flex: none;
+    width: 24px;
+    height: 24px;
+    border-radius: 50%;
+    display: grid;
+    place-items: center;
+    font-size: 12px;
+    font-weight: 600;
+    background: var(--rank-soft, var(--hover));
+    color: var(--rank-color, var(--muted));
+    font-variant-numeric: tabular-nums;
+}
+
+.cell-name { min-width: 0; }
+.cell-name strong { display: block; font-weight: 500; color: var(--heading); overflow-wrap: anywhere; }
+.cell-name small { display: block; font-size: 12px; color: var(--muted); }
+.cell-name a { color: var(--brand-text); text-decoration: none; font-weight: 500; }
+@media (hover: hover) and (pointer: fine) { .cell-name a:hover { text-decoration: underline; text-underline-offset: 2px; } }
+
+/*
+| Share of the month's best-selling value: a short track beside the figure
+| rather than a table column pretending to be a bar chart.
+*/
+.share { display: flex; align-items: center; gap: 8px; justify-content: flex-end; }
+
+.share-track {
+    width: 54px;
+    height: 6px;
+    border-radius: var(--radius-pill);
+    background: var(--track);
+    overflow: hidden;
+    flex: none;
+}
+
+.share-fill {
+    display: block;
+    height: 100%;
+    border-radius: var(--radius-pill);
+    background: var(--s1);
+    min-width: 2px;
+}
+
+.pill {
+    display: inline-flex;
+    align-items: center;
+    gap: 5px;
+    padding: 2px 9px;
+    border-radius: var(--pill-radius);
+    font-size: 12px;
+    font-weight: 500;
+    background: var(--hover);
+    color: var(--muted);
+    white-space: nowrap;
+}
+
+.pill.is-success { background: var(--success-soft); color: var(--success); }
+.pill.is-warning { background: var(--warning-soft); color: var(--warning); }
+.pill.is-danger  { background: var(--danger-soft);  color: var(--danger); }
+.pill.is-info    { background: var(--info-soft);    color: var(--info); }
+.pill.is-brand   { background: var(--brand-soft);   color: var(--brand-text); }
+
+.dash-empty { text-align: center; padding: 36px 20px; color: var(--muted); }
+.dash-empty svg { color: var(--faint); margin-bottom: 8px; }
+.dash-empty h3 { font-size: 14px; font-weight: 600; color: var(--heading); margin: 0 0 3px; }
+.dash-empty p { font-size: 13px; margin: 0; }
+
+/* =========================================================== narrow view */
+
+@media (max-width: 899.98px) {
+    /* Two across, and an odd last tile takes the full row rather than leave a hole. */
+    .kpi-grid { grid-template-columns: repeat(2, minmax(0, 1fr)); }
+    .kpi-grid > .kpi:last-child:nth-child(odd) { grid-column: 1 / -1; }
+}
+
+@media (max-width: 640px) {
+    .kpi-grid { gap: 10px; }
+    .kpi { padding: 14px; gap: 10px; }
+    .kpi-value { font-size: 23px; }
+    .kpi-spark { display: none; }
+    .dash-row { gap: 12px; grid-template-columns: minmax(0, 1fr); }
+    .dash-row.is-wide { grid-template-columns: minmax(0, 1fr); }
+    .dash-card-head { padding: 16px 16px 10px; }
+    .dash-card-body { padding: 4px 16px 16px; }
+    .dash-card-foot { margin: 0 16px 16px; }
+    .dash-table th, .dash-table td { padding: 10px 14px; }
+    .flow-row { grid-template-columns: minmax(78px, auto) minmax(0, 1fr) auto; }
+}
+
+@media (prefers-reduced-motion: reduce) {
+    .dash .dash-alert,
+    .area-hover { transition: none; }
+    .dash .dash-alert:active { transform: none; }
+}
+
+/* ------------------------------------------------------- refinements */
+
+/*
+ | A card body takes the room its content needs, not the room left over.
+ | Cards in a row are stretched to the tallest, and a growing body pushed
+ | the footer ("Nothing waiting on the pass") or the second section of a
+ | split card ("Money owed") down, leaving a hole in the middle; now any
+ | spare height falls below everything, where it reads as the end.
+ */
+.dash-card-body { flex: none; }
+
+/*
+ | The three figures under the margin gauge line up whatever their labels
+ | do: "Cost of goods" wraps where "Revenue" does not, and the values used to
+ | sit at different heights.
+ */
+.gauge-stat { display: flex; flex-direction: column; justify-content: space-between; gap: 4px; }
+.gauge-stat dt { margin-bottom: 0; line-height: 1.3; }
+
+@media (max-width: 767.98px) {
+    /* The alert's action drops under its sentence instead of squeezing it to a ragged column. */
+    .dash .dash-alert { flex-wrap: wrap; row-gap: 4px; }
+    .dash .dash-alert-text { flex-basis: calc(100% - 30px); }
+}

@@ -1,0 +1,676 @@
+/*
+|------------------------------------------------------------------------------
+| Application shell
+|------------------------------------------------------------------------------
+| Header + sidebar + content + footer, and how they respond.
+|
+| Two independent states, both driven by classes on <body> (see layout.js):
+|   .sidebar-collapsed  desktop  - rail mode, icons only
+|   .sidebar-open       mobile   - off-canvas drawer slid into view
+|
+| Breakpoint: 992px. Above it the sidebar is docked and the content is
+| offset; below it the sidebar becomes an overlay drawer and the content
+| takes the full width.
+|
+| The shell recedes. The sidebar sits on the page ground (the cards are the
+| lighter surfaces), the selected item is a neutral tint with the accent on
+| its icon alone, and the header is a translucent material so content scrolls
+| under it instead of being cut off by an opaque strip.
+*/
+
+/* ------------------------------------------------------------- sidebar */
+.sidebar {
+    position: fixed;
+    top: 0;
+    left: 0;
+    bottom: 0;
+    z-index: 1030;
+    width: var(--sidebar-w);
+    display: flex;
+    flex-direction: column;
+    background: var(--bg);
+    border-right: 1px solid var(--border);
+    transition: width var(--dur-slow) var(--ease-in-out), transform 320ms var(--ease-drawer);
+}
+
+.sidebar-head {
+    height: var(--header-h);
+    flex: none;
+    display: flex;
+    align-items: center;
+    gap: 11px;
+    padding: 0 18px;
+    overflow: hidden;
+}
+
+/*
+| Scrolls, but without the bar. A long menu still runs under the wheel, the
+| trackpad and the keyboard - the 6px gutter is simply not drawn, because on
+| a rail this narrow it sat on top of the labels.
+*/
+.sidebar-nav {
+    flex: 1 1 auto;
+    overflow-y: auto;
+    overflow-x: hidden;
+    padding: 6px 12px 22px;
+    scrollbar-width: none;
+    -ms-overflow-style: none;
+    overscroll-behavior: contain;
+}
+
+.sidebar-nav::-webkit-scrollbar { width: 0; height: 0; }
+
+/* Group names: sentence case at a size that can be read, not tracked capitals. */
+.nav-heading {
+    padding: 18px 12px 6px;
+    font-size: 12px;
+    font-weight: 600;
+    letter-spacing: 0;
+    color: var(--muted);
+    white-space: nowrap;
+}
+
+.sidebar-nav > .nav-heading:first-child { padding-top: 6px; }
+
+.nav-list { list-style: none; margin: 0; padding: 0; }
+
+.nav-link {
+    position: relative;
+    display: flex;
+    align-items: center;
+    gap: 11px;
+    width: 100%;
+    min-height: 34px;
+    padding: 6px 12px;
+    margin-bottom: 1px;
+    border: 0;
+    border-radius: var(--radius-sm);
+    background: transparent;
+    font: inherit;
+    font-size: 13.5px;
+    font-weight: 500;
+    letter-spacing: -.006em;
+    color: var(--text);
+    text-align: left;
+    cursor: pointer;
+    white-space: nowrap;
+    transition: transform var(--dur-press) var(--ease-out), background-color var(--dur-fast) var(--ease-out), color var(--dur-fast) var(--ease-out);
+}
+
+.nav-link:active { transform: scale(.98); }
+
+@media (hover: hover) and (pointer: fine) {
+    .nav-link:hover { background: var(--hover); color: var(--heading); }
+    .nav-link:hover svg { color: var(--heading); }
+}
+
+.nav-link svg { width: 18px; height: 18px; color: var(--muted); transition: color var(--dur-fast) var(--ease-out); }
+.nav-link:focus-visible { outline: none; box-shadow: inset 0 0 0 2px var(--ring); }
+
+/* Selected: a neutral tint, ink text, and the accent on the icon only. */
+.nav-link.is-active {
+    background: var(--active);
+    color: var(--heading);
+    font-weight: 600;
+}
+
+.nav-link.is-active svg { color: var(--brand); }
+.nav-link.is-active svg.nav-caret { color: var(--faint); }
+
+/* A section that is open because one of its pages is selected does not also
+   light up; the page inside it carries the selection. */
+.nav-item.is-expanded > .nav-link.is-active { background: transparent; }
+@media (hover: hover) and (pointer: fine) {
+    .nav-item.is-expanded > .nav-link.is-active:hover { background: var(--hover); }
+}
+
+.nav-text { flex: 1 1 auto; overflow: hidden; text-overflow: ellipsis; }
+
+.nav-caret {
+    flex: none;
+    color: var(--faint);
+    transition: transform var(--dur) var(--ease-out);
+}
+
+.nav-item.is-expanded > .nav-link > .nav-caret { transform: rotate(90deg); }
+
+.nav-badge {
+    flex: none;
+    min-width: 20px;
+    padding: 0 7px;
+    border-radius: var(--radius-pill);
+    background: var(--active);
+    color: var(--muted);
+    font-size: 12px;
+    font-weight: 600;
+    line-height: 20px;
+    text-align: center;
+    font-variant-numeric: tabular-nums;
+}
+
+.nav-link.is-active .nav-badge { background: var(--panel); color: var(--heading); }
+
+/* submenu - height animated by layout.js */
+.nav-sub {
+    list-style: none;
+    margin: 0 0 4px;
+    padding: 0;
+    overflow: hidden;
+    height: 0;
+    transition: height var(--dur-slow) var(--ease-in-out);
+}
+
+.nav-sub .nav-link {
+    padding-left: 41px;
+    font-size: 13px;
+    font-weight: 400;
+    color: var(--muted);
+}
+
+.nav-sub .nav-link::before {
+    content: "";
+    position: absolute;
+    left: 22px;
+    width: 5px;
+    height: 5px;
+    border-radius: 50%;
+    background: var(--border-strong);
+    transition: background-color var(--dur-fast) var(--ease-out), transform var(--dur-fast) var(--ease-out);
+}
+
+@media (hover: hover) and (pointer: fine) {
+    .nav-sub .nav-link:hover { background: var(--hover); color: var(--heading); }
+    .nav-sub .nav-link:hover::before { background: var(--muted); }
+}
+
+.nav-sub .nav-link.is-active {
+    background: var(--active);
+    color: var(--heading);
+    font-weight: 600;
+}
+
+.nav-sub .nav-link.is-active::before { background: var(--brand); transform: scale(1.2); }
+
+.sidebar-foot {
+    flex: none;
+    padding: 10px 12px 12px;
+    border-top: 1px solid var(--rule);
+}
+
+.nav-switch {
+    position: relative;
+    flex: none;
+    width: 28px;
+    height: 16px;
+    margin-left: auto;
+    border-radius: 999px;
+    background: var(--muted);
+    transition: background var(--dur-fast) var(--ease-out);
+}
+
+.nav-switch::after {
+    content: "";
+    position: absolute;
+    top: 2px;
+    left: 2px;
+    width: 12px;
+    height: 12px;
+    border-radius: 50%;
+    background: var(--panel);
+    transition: transform var(--dur-fast) var(--ease-out);
+}
+
+[aria-checked="true"] > .nav-switch { background: var(--brand); }
+[aria-checked="true"] > .nav-switch::after { transform: translateX(12px); }
+
+/* -------------------------------------------------------------- header */
+/*
+| A translucent material: the page scrolls beneath it and shows through,
+| softened. The hairline only separates it from what is behind.
+*/
+.header {
+    position: fixed;
+    top: 0;
+    right: 0;
+    left: var(--sidebar-w);
+    z-index: 1020;
+    height: var(--header-h);
+    display: flex;
+    align-items: center;
+    gap: 12px;
+    padding: 0 24px;
+    background: var(--panel);
+    background: var(--glass);
+    -webkit-backdrop-filter: var(--glass-blur);
+    backdrop-filter: var(--glass-blur);
+    border-bottom: 1px solid var(--rule);
+    transition: left var(--dur-slow) var(--ease-in-out);
+}
+
+/* ----------------------------------------------------------- shop switcher */
+/*
+| Which tenant the admin is working in. Sits immediately left of the search
+| because it qualifies everything to its right - the numbers on the page are
+| this shop's numbers, and the control that says so should be read first.
+*/
+.shop-switcher,
+.tenant-switcher { flex: none; }
+
+/*
+| Both classes, on purpose. The switcher's button is also a .header-btn, and
+| .header-btn is declared further down this file - so at equal specificity
+| its square and grid layout won, the icon stacked above the name and
+| the name spilled over the next switcher. Two classes outrank one.
+*/
+.header-btn.header-shop,
+.header-shop {
+    width: auto;
+    height: 36px;
+    display: inline-flex;
+    align-items: center;
+    gap: 7px;
+    padding: 0 11px;
+    max-width: 240px;
+    font-size: 13.5px;
+    font-weight: 500;
+    color: var(--heading);
+    background: var(--hover);
+}
+
+.header-shop-name {
+    min-width: 0;
+    overflow: hidden;
+    text-overflow: ellipsis;
+    white-space: nowrap;
+}
+
+/* The one-shop case: same shape, but nothing to press. */
+.header-shop.is-static {
+    background: transparent;
+    color: var(--muted);
+    font-weight: 500;
+    cursor: default;
+}
+
+/*
+| The switchers sit on the left of the header, so their menus open to the
+| right. The default (right: 0, for the user menu on the far right) sent a
+| 280px menu off the left edge of the screen.
+*/
+.shop-switcher > .dropdown-menu,
+.tenant-switcher > .dropdown-menu {
+    left: 0;
+    right: auto;
+    max-width: calc(100vw - 24px);
+    transform-origin: top left;
+}
+
+/* Where the switcher would crowd the search box, keep the icon only. */
+@media (max-width: 720px) {
+    .header-btn.header-shop,
+    .header-shop { max-width: 44px; padding: 0 8px; }
+    .header-shop .header-shop-name,
+    .header-shop > svg:last-child { display: none; }
+}
+
+.header-search {
+    position: relative;
+    flex: 0 1 360px;
+    min-width: 0;
+}
+
+.header-search svg {
+    position: absolute;
+    top: 50%;
+    left: 12px;
+    transform: translateY(-50%);
+    color: var(--faint);
+    pointer-events: none;
+}
+
+/* A soft filled field with no outline until it is used. */
+.header-search input {
+    height: 36px;
+    padding-left: 36px;
+    background-color: var(--hover);
+    border-color: transparent;
+}
+
+.header-search input:focus { background-color: var(--panel); }
+
+.header-spacer { flex: 1 1 auto; }
+
+.header-actions {
+    display: flex;
+    align-items: center;
+    gap: 2px;
+}
+
+.header-btn {
+    position: relative;
+    width: 36px;
+    height: 36px;
+    display: grid;
+    place-items: center;
+    border: 0;
+    border-radius: var(--radius);
+    background: transparent;
+    color: var(--muted);
+    cursor: pointer;
+    transition: transform var(--dur-press) var(--ease-out), background-color var(--dur-fast) var(--ease-out), color var(--dur-fast) var(--ease-out);
+}
+
+.header-btn:active { transform: scale(.94); }
+
+@media (hover: hover) and (pointer: fine) {
+    .header-btn:hover { background: var(--active); color: var(--heading); }
+}
+
+.header-btn:focus-visible { outline: none; box-shadow: 0 0 0 3px var(--ring); }
+
+.header-btn .dot {
+    position: absolute;
+    top: 7px;
+    right: 8px;
+    width: 8px;
+    height: 8px;
+    border-radius: 50%;
+    background: var(--danger-mark);
+    border: 2px solid var(--panel);
+}
+
+/* The bell's unread count: the dot grown into a number (alerts-live.js). */
+.header-btn .dot-count {
+    top: 2px;
+    right: 0;
+    width: auto;
+    height: auto;
+    min-width: 17px;
+    padding: 0 4px;
+    color: #fff;
+    font-size: 11px;
+    font-weight: 600;
+    line-height: 15px;
+    text-align: center;
+    border-radius: 9px;
+    font-variant-numeric: tabular-nums;
+}
+
+.header-btn .dot-count[hidden] { display: none; }
+
+.header-user {
+    display: flex;
+    align-items: center;
+    gap: 9px;
+    padding: 3px 10px 3px 3px;
+    margin-left: 6px;
+    border: 0;
+    border-radius: var(--radius-pill);
+    background: transparent;
+    font: inherit;
+    color: var(--text);
+    cursor: pointer;
+    transition: background-color var(--dur-fast) var(--ease-out), transform var(--dur-press) var(--ease-out);
+}
+
+.header-user:active { transform: scale(.98); }
+@media (hover: hover) and (pointer: fine) { .header-user:hover { background: var(--active); } }
+.header-user:focus-visible { outline: none; box-shadow: 0 0 0 3px var(--ring); }
+.header-user-meta { text-align: left; line-height: 1.25; }
+.header-user-meta strong { display: block; font-size: 13px; font-weight: 600; color: var(--heading); letter-spacing: -.006em; }
+.header-user-meta span { font-size: 12px; color: var(--muted); }
+
+/* ------------------------------------------------------- notification bell */
+/*
+| The bell dropdown (SRS 15). Injected on first open by layout.js, so these
+| rules have to stand on their own - nothing here may depend on markup that
+| is only present after the fetch.
+|
+| Capped and scrolled rather than unbounded: ten rows is what the endpoint
+| returns, and the full list is its own page.
+*/
+.alert-drop-head {
+    display: flex;
+    align-items: center;
+    justify-content: space-between;
+    gap: 8px;
+    padding: 12px 14px;
+    border-bottom: 1px solid var(--rule);
+}
+
+.alert-list {
+    max-height: 360px;
+    overflow-y: auto;
+    margin: 0;
+    padding: 0;
+    list-style: none;
+}
+
+.alert-item {
+    display: flex;
+    align-items: flex-start;
+    gap: 10px;
+    padding: 11px 14px;
+    border-bottom: 1px solid var(--rule);
+}
+
+.alert-item:last-child { border-bottom: 0; }
+
+/* Read rows stay legible but stop competing with the ones that matter. */
+.alert-item.is-read { opacity: .6; }
+
+.alert-body { min-width: 0; }
+
+.alert-title {
+    display: block;
+    font-size: 13px;
+    font-weight: 600;
+    color: var(--heading);
+    text-decoration: none;
+}
+
+@media (hover: hover) and (pointer: fine) { a.alert-title:hover { color: var(--brand-text); } }
+
+.alert-drop-foot {
+    padding: 10px 14px;
+    border-top: 1px solid var(--rule);
+    text-align: center;
+}
+
+.alert-drop-foot a { font-size: 13px; font-weight: 500; }
+
+/* only rendered below the breakpoint */
+.sidebar-toggle-mobile { display: none; }
+
+/* ------------------------------------------------------------- content */
+.app-main {
+    min-height: 100vh;
+    min-height: 100dvh;
+    display: flex;
+    flex-direction: column;
+    margin-left: var(--sidebar-w);
+    padding-top: var(--header-h);
+    transition: margin-left var(--dur-slow) var(--ease-in-out);
+}
+
+/*
+| One gutter, left and right, from the sidebar to the edge. On a very wide
+| screen the content stops at a readable width and centres, rather than
+| stretching every table across 2000 pixels.
+*/
+.app-content {
+    flex: 1 1 auto;
+    width: 100%;
+    max-width: 1680px;
+    margin: 0 auto;
+    padding: 28px 32px 48px;
+}
+
+.app-footer {
+    flex: none;
+    padding: 18px 32px 22px;
+    color: var(--muted);
+    font-size: 12px;
+    display: flex;
+    align-items: center;
+    justify-content: space-between;
+    flex-wrap: wrap;
+    gap: 8px;
+}
+
+.app-footer a { color: var(--muted); }
+@media (hover: hover) and (pointer: fine) { .app-footer a:hover { color: var(--heading); } }
+
+/* backdrop behind the mobile drawer */
+.sidebar-backdrop {
+    position: fixed;
+    inset: 0;
+    z-index: 1025;
+    background: var(--scrim);
+    -webkit-backdrop-filter: blur(4px);
+    backdrop-filter: blur(4px);
+    opacity: 0;
+    visibility: hidden;
+    transition: opacity var(--dur) var(--ease-out), visibility var(--dur);
+}
+
+/* ============================================ desktop: collapsed rail */
+@media (min-width: 992px) {
+    body.sidebar-collapsed .sidebar { width: var(--sidebar-w-collapsed); }
+    body.sidebar-collapsed .header { left: var(--sidebar-w-collapsed); }
+    body.sidebar-collapsed .app-main { margin-left: var(--sidebar-w-collapsed); }
+
+    /* Hide every label, keep the icons centred. */
+    body.sidebar-collapsed .sidebar .brand-text,
+    body.sidebar-collapsed .nav-text,
+    body.sidebar-collapsed .nav-caret,
+    body.sidebar-collapsed .nav-badge,
+    body.sidebar-collapsed .nav-switch,
+    body.sidebar-collapsed .nav-heading,
+    body.sidebar-collapsed .sidebar-foot .nav-text {
+        display: none;
+    }
+
+    body.sidebar-collapsed .sidebar-head { justify-content: center; padding: 0 12px; }
+    body.sidebar-collapsed .nav-link { justify-content: center; padding-left: 12px; padding-right: 12px; }
+
+    /* Submenus cannot expand inside a 76px rail. */
+    body.sidebar-collapsed .nav-sub { display: none; }
+
+    body.sidebar-collapsed .nav-heading + .nav-list { margin-top: 8px; }
+
+    /* Label on hover, so the rail stays navigable. */
+    body.sidebar-collapsed .nav-item > .nav-link::after {
+        content: attr(data-label);
+        position: absolute;
+        left: calc(100% + 12px);
+        top: 50%;
+        transform: translateY(-50%) scale(.96);
+        transform-origin: left center;
+        padding: 6px 11px;
+        border-radius: var(--radius-sm);
+        background: var(--heading);
+        color: var(--panel);
+        font-size: 12.5px;
+        font-weight: 500;
+        white-space: nowrap;
+        box-shadow: var(--shadow);
+        opacity: 0;
+        visibility: hidden;
+        pointer-events: none;
+        transition: opacity var(--dur-press) var(--ease-out), transform var(--dur-press) var(--ease-out), visibility var(--dur-press);
+        z-index: 1040;
+    }
+
+    body.sidebar-collapsed .nav-item > .nav-link:hover::after {
+        opacity: 1;
+        visibility: visible;
+        transform: translateY(-50%) scale(1);
+    }
+}
+
+/* ================================================ mobile: drawer mode */
+@media (max-width: 991.98px) {
+    .sidebar {
+        width: min(86vw, 300px);
+        transform: translateX(-100%);
+        background: var(--panel);
+        box-shadow: none;
+    }
+
+    body.sidebar-open .sidebar { transform: translateX(0); box-shadow: var(--shadow-lg); }
+
+    body.sidebar-open .sidebar-backdrop {
+        opacity: 1;
+        visibility: visible;
+    }
+
+    /* Drawer overlays the page, so nothing is offset. */
+    .header { left: 0; }
+    .app-main { margin-left: 0; }
+
+    .sidebar-toggle-mobile { display: grid; }
+    .sidebar-toggle-desktop { display: none; }
+
+    .app-content { padding: 22px 20px 40px; }
+    .app-footer { padding: 16px 20px 20px; }
+    .header { padding: 0 14px; }
+
+    /* Locked while the drawer is open. */
+    body.sidebar-open { overflow: hidden; }
+}
+
+/* Tablets: sidebar is already a drawer here, so give the content full
+   width and shrink the stat grid to two columns instead of four. */
+@media (max-width: 991.98px) and (min-width: 576px) {
+    .stat-grid { grid-template-columns: repeat(2, minmax(0, 1fr)); }
+}
+
+@media (max-width: 575.98px) {
+    .header .dropdown[data-alert-bell] > .dropdown-menu {
+        position: fixed;
+        top: calc(var(--header-h) + 8px);
+        right: 8px;
+        left: 8px;
+        width: auto !important;
+        max-width: calc(100vw - 16px);
+        transform-origin: top center;
+    }
+}
+
+@media (min-width: 768px) and (max-width: 991.98px) {
+    .header-search { display: none; }
+}
+
+@media (max-width: 767.98px) {
+    .header-search { display: none; }
+    .header-user-meta { display: none; }
+    .app-footer { justify-content: center; text-align: center; }
+    .page-header { align-items: flex-start; flex-direction: column; }
+}
+
+@media (max-width: 575.98px) {
+    /* Two figures across, not one tall column of them. */
+    .stat-grid { grid-template-columns: repeat(2, minmax(0, 1fr)); gap: 10px; }
+    .stat { padding: 14px 14px 15px; }
+    .stat-value { font-size: 22px; }
+    .app-content { padding: 18px 14px 36px; }
+    .card-body, .card-header { padding: 14px; }
+    .table th, .table td { padding: 10px 12px; }
+    .header { padding: 0 10px; gap: 8px; }
+    .header-actions { gap: 0; }
+}
+
+@media (prefers-reduced-motion: reduce) {
+    .sidebar, .header, .app-main, .nav-sub, .dropdown-menu, .sidebar-backdrop {
+        transition-duration: .01ms;
+    }
+}
+
+/* Printing: drop the chrome entirely. */
+@media print {
+    .sidebar, .header, .app-footer, .sidebar-backdrop, .page-actions { display: none !important; }
+    .app-main { margin: 0; padding: 0; }
+    .app-content { max-width: none; padding: 0; }
+    .card { border-color: #ddd; box-shadow: none; }
+}

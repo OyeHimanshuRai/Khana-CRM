@@ -1,0 +1,138 @@
+/* The Project Owner's screens: section headings, bar charts, the attention lists. */
+
+.pf-section {
+    margin: 22px 0 10px;
+    font-size: 13px;
+    font-weight: 600;
+    color: var(--muted);
+}
+
+.pf-grid {
+    display: grid;
+    grid-template-columns: repeat(2, minmax(0, 1fr));
+    gap: 14px;
+    margin-top: 14px;
+}
+
+.pf-card { padding: 18px 20px; min-width: 0; }
+
+.pf-card-head {
+    display: flex;
+    align-items: center;
+    justify-content: space-between;
+    gap: 10px;
+    margin-bottom: 12px;
+}
+
+.pf-card-title { margin: 0; font-size: 14px; font-weight: 600; color: var(--heading); }
+
+.pf-card-total { font-size: 13px; color: var(--muted); font-variant-numeric: tabular-nums; }
+
+/*
+| One series, one hue. Each column is the whole height so the hover target is
+| larger than the bar, and the gap between columns is the 2px surface spacer.
+*/
+.pf-bars {
+    display: flex;
+    align-items: stretch;
+    gap: 2px;
+    height: 150px;
+    border-bottom: 1px solid var(--rule, var(--border));
+}
+
+.pf-bar {
+    position: relative;
+    flex: 1 1 0;
+    min-width: 0;
+    display: flex;
+    align-items: flex-end;
+    outline-offset: -2px;
+}
+
+.pf-bar-fill {
+    width: 100%;
+    max-width: 34px;
+    margin: 0 auto;
+    min-height: 2px;
+    background: var(--brand);
+    border-radius: 4px 4px 0 0;
+}
+
+.pf-bar:hover .pf-bar-fill,
+.pf-bar:focus-visible .pf-bar-fill { filter: brightness(.88); }
+
+.pf-bar::after {
+    content: attr(data-tip);
+    position: absolute;
+    bottom: calc(100% - 26px);
+    left: 50%;
+    z-index: 3;
+    transform: translateX(-50%);
+    padding: 4px 8px;
+    border-radius: 6px;
+    background: var(--heading);
+    color: var(--panel);
+    font-size: 11.5px;
+    white-space: nowrap;
+    pointer-events: none;
+    opacity: 0;
+}
+
+.pf-bar:first-child::after { left: 0; transform: none; }
+.pf-bar:last-child::after { left: auto; right: 0; transform: none; }
+
+.pf-bar:hover::after,
+.pf-bar:focus-visible::after { opacity: 1; }
+
+.pf-labels { display: flex; gap: 2px; margin-top: 5px; }
+
+.pf-labels span {
+    flex: 1 1 0;
+    min-width: 0;
+    overflow: hidden;
+    text-align: center;
+    font-size: 10.5px;
+    color: var(--muted);
+    white-space: nowrap;
+}
+
+.pf-table { margin-top: 10px; font-size: 12.5px; }
+.pf-table summary { cursor: pointer; color: var(--muted); }
+.pf-table table { width: 100%; margin-top: 8px; border-collapse: collapse; }
+.pf-table th, .pf-table td { padding: 4px 0; text-align: left; font-weight: 400; }
+.pf-table td:last-child, .pf-table th:last-child { text-align: right; font-variant-numeric: tabular-nums; }
+
+.pf-empty { padding: 44px 0; text-align: center; font-size: 13px; color: var(--muted); }
+
+.pf-list { margin: 0; padding: 0; list-style: none; }
+
+.pf-list li {
+    display: flex;
+    align-items: baseline;
+    justify-content: space-between;
+    gap: 12px;
+    padding: 8px 0;
+    border-top: 1px solid var(--rule, var(--border));
+    font-size: 13px;
+}
+
+.pf-list li:first-child { border-top: 0; }
+.pf-list .pf-when { flex: none; color: var(--muted); font-size: 12px; }
+
+.pf-num,
+.table th.pf-num { text-align: right; white-space: nowrap; font-variant-numeric: tabular-nums; }
+
+/* Five tiles on one row, so the last is not left alone beneath the others. */
+@media (min-width: 1200px) {
+    .stat-grid.pf-five { grid-template-columns: repeat(5, minmax(0, 1fr)); }
+}
+
+@media (max-width: 900px) {
+    .pf-grid { grid-template-columns: minmax(0, 1fr); }
+}
+
+@media (max-width: 560px) {
+    /* Twelve labels cannot share a phone: every other one is enough. */
+    .pf-labels span:nth-child(even) { visibility: hidden; }
+    .pf-card { padding: 16px; }
+}

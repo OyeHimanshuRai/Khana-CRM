@@ -1,0 +1,157 @@
+/* Plans, checkout and billing controls on the Subscription page. */
+
+.billing { padding: 22px; margin-bottom: 14px; }
+
+.billing-head {
+    display: flex;
+    flex-wrap: wrap;
+    align-items: center;
+    justify-content: space-between;
+    gap: 12px;
+    margin-bottom: 16px;
+}
+
+/* The heading here is a title, not a section rule: no underline of its own. */
+.billing-head .form-section-title {
+    margin: 0;
+    padding: 0;
+    border: 0;
+    font-size: 16px;
+    letter-spacing: -.012em;
+}
+
+/*
+ | Monthly / Yearly is a choice between two views of the same prices, so it is
+ | a segmented control (a raised thumb on a recessed track), not a pair of
+ | buttons one of which is brand-coloured: the page's one brand-coloured thing
+ | should be the plan someone is about to buy.
+ */
+.billing-toggle {
+    display: inline-flex;
+    gap: 2px;
+    padding: 2px;
+    background: var(--active);
+    border-radius: var(--radius);
+}
+
+.billing-toggle button {
+    padding: 6px 16px;
+    border: 0;
+    border-radius: calc(var(--radius) - 2px);
+    background: transparent;
+    color: var(--muted);
+    font: inherit;
+    font-size: 13px;
+    font-weight: 500;
+    cursor: pointer;
+    transition: background-color var(--dur-fast) var(--ease-out), color var(--dur-fast) var(--ease-out), transform var(--dur-press) var(--ease-out);
+}
+
+.billing-toggle button:active { transform: scale(.97); }
+
+.billing-toggle button[aria-pressed="true"] {
+    background: var(--panel);
+    color: var(--heading);
+    font-weight: 600;
+    box-shadow: var(--shadow-sm);
+}
+
+.billing-toggle button:focus-visible { outline: none; box-shadow: 0 0 0 3px var(--ring); }
+
+/* auto-fit, not auto-fill: three plans share the row instead of leaving a gap
+   where a fourth would have been. */
+.billing-grid {
+    display: grid;
+    grid-template-columns: repeat(auto-fit, minmax(230px, 1fr));
+    gap: 14px;
+}
+
+.billing-plan {
+    display: flex;
+    flex-direction: column;
+    gap: 12px;
+    padding: 20px;
+    border: 1px solid var(--border);
+    border-radius: var(--radius-lg);
+    background: var(--panel);
+}
+
+/* Marked by its ring - the same border, one pixel more of it - so it stays the
+   size of its neighbours. */
+.billing-plan.is-current { border-color: var(--brand); box-shadow: 0 0 0 1px var(--brand); }
+
+.billing-plan header { display: flex; align-items: center; justify-content: space-between; gap: 8px; }
+.billing-plan h3 { margin: 0; font-size: 17px; font-weight: 600; letter-spacing: -.016em; color: var(--heading); }
+.billing-plan .btn { align-self: stretch; justify-content: center; margin-top: auto; }
+
+.billing-plan ul {
+    margin: 0;
+    padding: 0;
+    flex: 1;
+    list-style: none;
+    font-size: 13.5px;
+}
+
+.billing-plan ul li {
+    position: relative;
+    padding: 4px 0 4px 22px;
+    color: var(--text);
+}
+
+.billing-plan ul li::before {
+    content: "";
+    position: absolute;
+    left: 3px;
+    top: 10px;
+    width: 9px;
+    height: 5px;
+    border-left: 1.8px solid var(--brand);
+    border-bottom: 1.8px solid var(--brand);
+    transform: rotate(-45deg);
+}
+
+.billing-price { font-size: 28px; font-weight: 600; letter-spacing: -.03em; color: var(--heading); font-variant-numeric: tabular-nums; }
+.billing-price small { font-size: 13px; font-weight: 400; letter-spacing: 0; color: var(--muted); margin-left: 3px; }
+.billing-price em { display: block; font-size: 12.5px; font-style: normal; font-weight: 500; letter-spacing: 0; color: var(--success); }
+
+/* One price shows at a time, following the toggle. */
+[data-billing][data-period="monthly"] [data-price="yearly"],
+[data-billing][data-period="yearly"] [data-price="monthly"] { display: none; }
+
+.billing-confirm {
+    margin-top: 14px;
+    padding: 16px 18px;
+    border: 1px solid var(--border);
+    border-radius: var(--radius-lg);
+    background: var(--panel-alt);
+}
+
+.billing-confirm[hidden] { display: none; }
+.billing-confirm .billing-total { font-size: 22px; font-weight: 600; letter-spacing: -.02em; color: var(--heading); }
+.billing-confirm .billing-note { color: var(--muted); font-size: 13px; margin-top: 2px; }
+
+.billing-actions { display: flex; flex-wrap: wrap; gap: 8px; margin-top: 12px; }
+
+.billing-manage { margin-top: 14px; padding-top: 12px; border-top: 1px solid var(--rule); }
+
+.billing [aria-busy="true"] { opacity: .65; pointer-events: none; }
+
+@media (max-width: 560px) {
+    .billing { padding: 16px; }
+    .billing-toggle { width: 100%; }
+    .billing-toggle button { flex: 1; }
+    .billing-actions .btn { flex: 1; justify-content: center; }
+}
+
+/*
+ | The prices line up across the plans: each blurb keeps room for three
+ | lines, so a plan with a longer description does not push its price lower
+ | than its neighbours'. Not on a phone, where the plans are a column anyway.
+ */
+@media (min-width: 768px) {
+    .billing-plan > p { min-height: calc(3 * 1.5em); }
+}
+
+/* A renewal request is a form, not a bare button, and still belongs at the foot of its card. */
+.billing-plan > form { display: flex; margin-top: auto; }
+.billing-plan > form .btn { flex: 1; margin-top: 0; }
