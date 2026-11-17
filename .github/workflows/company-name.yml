@@ -27,8 +27,8 @@ jobs:
             foreach (['company_name', 'company_title', 'meta_title_home', 'mail_from_name'] as $k) {
                 echo "BEFORE $k = \"".Setting::get($k)."\"\n";
             }
-            Setting::put(['company_name' => 'RestroOne']);
-            echo "AFTER  company_name = \"".Setting::get('company_name')."\"\n";
+            Setting::put(['company_name' => 'RestroOne', 'mail_from_name' => 'RestroOne']);
+            echo "AFTER  company_name = \"".Setting::get('company_name')."\", mail_from_name = \"".Setting::get('mail_from_name')."\"\n";
             PHP
             php artisan tinker --execute="$(cat /tmp/company_name.php)"
             rm -f /tmp/company_name.php
