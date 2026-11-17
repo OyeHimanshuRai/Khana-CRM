@@ -44,16 +44,16 @@ class CompanySettingSeeder extends Seeder
         return [
             // Company Information
             'company_name' => 'RestroOne',
-            'company_title' => 'world pvt ltd',
+            'company_title' => '',
             'currency' => 'INR',
-            'company_email' => 'info@example.com',
+            'company_email' => '',
             'phone' => '',
 
             // Social Links
-            'facebook_url' => 'https://www.facebook.com/softwaresoldco/',
+            'facebook_url' => '',
             'twitter_url' => 'https://twitter.com/yourpage',
-            'linkedin_url' => 'https://www.linkedin.com/company/oldco/',
-            'instagram_url' => 'https://www.instagram.com/oldco/',
+            'linkedin_url' => '',
+            'instagram_url' => '',
             'whatsapp_no' => '',
 
             // URLs
@@ -85,11 +85,11 @@ class CompanySettingSeeder extends Seeder
 
             // Mail
             'mail_mailer' => 'smtp',
-            'mail_host' => 'smtp.example.com',
+            'mail_host' => '',
             'mail_port' => '587',
-            'mail_username' => 'noreply@example.com',
+            'mail_username' => '',
             'mail_encryption' => 'tls',
-            'mail_from_address' => 'noreply@example.com',
+            'mail_from_address' => '',
             'mail_from_name' => 'RestroOne',
 
             // Integrations - secrets are deliberately left unset.

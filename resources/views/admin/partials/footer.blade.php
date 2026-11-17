@@ -10,7 +10,7 @@
 @endphp
 
 <footer class="app-footer">
-    <span>&copy; {{ date('Y') }} {{ \App\Models\Setting::get('company_name', config('app.name')) }}. All rights reserved.</span>
+    <span>&copy; {{ date('Y') }} {{ \App\Models\Setting::get('company_name', config('app.name')) }}. All Rights Reserved.</span>
     <span>
         v1.0.0 &middot;
         @if ($support)

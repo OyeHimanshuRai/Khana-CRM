@@ -81,6 +81,6 @@
     </div>
 
     <div class="lp-wrap">
-        <p class="lp-meta lp-footer-copy">&copy; {{ date('Y') }} {{ $site['name'] }}</p>
+        <p class="lp-meta lp-footer-copy">&copy; {{ date('Y') }} {{ $site['name'] }}. All Rights Reserved.</p>
     </div>
 </footer>

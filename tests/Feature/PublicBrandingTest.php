@@ -36,7 +36,7 @@ class PublicBrandingTest extends TestCase
             'company_name' => 'RestroOne',
             'company_title' => 'Restaurant software that runs the room',
             'phone' => '+91 98765 43210',
-            'company_email' => 'hello@oldco.test',
+            'company_email' => 'hello@restroone.test',
             'whatsapp_no' => '+91 99887 76655',
             'address_line_1' => '12 MG Road',
             // The seeder fills a second line; this test's address has none.
@@ -81,7 +81,7 @@ class PublicBrandingTest extends TestCase
                 ->assertSee('Restaurant software that runs the room')
                 ->assertSee('+91 98765 43210')
                 ->assertSee('href="tel:+919876543210"', false)
-                ->assertSee('mailto:hello@oldco.test', false)
+                ->assertSee('mailto:hello@restroone.test', false)
                 ->assertSee('https://wa.me/919988776655', false)
                 ->assertSee('12 MG Road, Jaipur, Rajasthan, 302001, India')
                 ->assertSee('Mon - Sat · 10 am - 7 pm')

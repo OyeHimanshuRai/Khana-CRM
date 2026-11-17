@@ -95,7 +95,7 @@ class BrandTest extends TestCase
 
         $this->assertStringNotContainsString('has-logo', $html);
         // First three letters of the company name.
-        $this->assertStringContainsString('TIA', $html);
+        $this->assertStringContainsString('RES', $html);
     }
 
     public function test_a_logo_whose_file_has_gone_missing_falls_back_too(): void

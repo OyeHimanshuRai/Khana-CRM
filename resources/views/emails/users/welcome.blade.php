@@ -121,7 +121,7 @@
                 </table>
 
                 <p style="margin:14px 0 0;font-size:11px;color:#9aa3b2;">
-                    &copy; {{ now()->year }} {{ $company }}
+                    &copy; {{ now()->year }} {{ $company }}. All Rights Reserved.
                 </p>
             </td>
         </tr>
