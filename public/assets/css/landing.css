@@ -229,7 +229,7 @@ body.lp {
     .lp-header-cta .lp-btn-solid { padding: 9px 12px; font-size: 13px; }
     .lp-header-row { gap: 10px; min-height: 58px; }
     .lp-menu summary { width: 38px; height: 38px; }
-    .lp-brand img { max-width: 118px; height: auto; }
+    .lp-brand img { max-width: 150px; height: auto; }
     .lp-brand-text { font-size: 17px; }
 }
 

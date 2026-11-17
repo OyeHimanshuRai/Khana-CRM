@@ -33,7 +33,7 @@
     <div class="lp-wrap lp-header-row">
         <a href="{{ route('landing') }}" class="lp-brand">
             @if ($site['logo'])
-                <img src="{{ $site['logo'] }}" alt="{{ $site['name'] }}" height="34">
+                <img src="{{ $site['logo'] }}" alt="{{ $site['name'] }}" height="46">
             @else
                 <span class="lp-brand-text">{{ $site['name'] }}</span>
             @endif

@@ -80,7 +80,7 @@ class CrossTenantAccessTest extends TestCase
             'plan' => 'restaurant',
             'period' => 'monthly',
             'terms' => '1',
-        ])->assertRedirect(route('admin.dashboard'));
+        ])->assertRedirect(route('landing'));
 
         $this->ownerB = User::query()->withoutGlobalScopes()->where('email', 'owner-b@example.test')->firstOrFail();
         // Confirmed, as a real owner would be before doing any of this.
