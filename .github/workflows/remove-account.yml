@@ -1,0 +1,88 @@
+name: Remove one account and its company (manual)
+
+# One-off helper, run by hand. Never runs on push.
+#   mode=report : lists exactly what would be removed. Changes nothing.
+#   mode=apply  : takes a database backup, then removes it the way the admin
+#                 panel does (company and shops are soft-removed and keep their
+#                 records for audit; the user row is deleted).
+# Refuses anything that touches a Super Admin or the platform's own company.
+
+on:
+  workflow_dispatch:
+    inputs:
+      mode:
+        description: report or apply
+        required: true
+        default: report
+        type: choice
+        options: [report, apply]
+      email:
+        description: Account email
+        required: true
+      shop_id:
+        description: Shop id that must belong to that account's company
+        required: true
+
+jobs:
+  remove:
+    name: Remove account (${{ inputs.mode }})
+    runs-on: ubuntu-latest
+    steps:
+      - name: Run on server
+        uses: appleboy/ssh-action@v1.0.3
+        env:
+          MODE: ${{ inputs.mode }}
+          TARGET_EMAIL: ${{ inputs.email }}
+          TARGET_SHOP: ${{ inputs.shop_id }}
+        with:
+          host: ${{ secrets.VPS_HOST }}
+          username: ${{ secrets.VPS_USER }}
+          key: ${{ secrets.VPS_SSH_KEY }}
+          port: ${{ secrets.VPS_PORT }}
+          envs: MODE,TARGET_EMAIL,TARGET_SHOP
+          script: |
+            set -e
+            cd ${{ secrets.VPS_PROJECT_PATH }}
+            if [ "$MODE" = "apply" ]; then
+              echo "== backup first =="
+              php artisan backup:run --keep=14
+            fi
+            cat > /tmp/remove_account.php <<'PHP'
+            use App\Models\{User, Tenant, Shop, ActivityLog};
+            use Illuminate\Support\Facades\DB;
+            $mode = getenv('MODE');
+            $email = strtolower(trim(getenv('TARGET_EMAIL')));
+            $shopId = (int) getenv('TARGET_SHOP');
+
+            $user = User::withoutGlobalScopes()->where('email', $email)->first();
+            if (! $user) { echo "ABORT: no user with that email\n"; return; }
+            echo "USER   id={$user->id} name={$user->name} tenant_id=".($user->tenant_id ?? 'null')." super=".($user->isSuperAdmin() ? 'YES' : 'no')."\n";
+            if ($user->isSuperAdmin() || ! $user->tenant_id) { echo "ABORT: platform account - refusing\n"; return; }
+            if ((int) $user->tenant_id === 1) { echo "ABORT: tenant 1 is the platform's own company - refusing\n"; return; }
+
+            $tenant = Tenant::withoutGlobalScopes()->find($user->tenant_id);
+            $shops = Shop::withoutGlobalScopes()->where('tenant_id', $user->tenant_id)->get();
+            $staff = User::withoutGlobalScopes()->where('tenant_id', $user->tenant_id)->get();
+            echo "COMPANY id={$tenant->id} name={$tenant->name} code={$tenant->code}\n";
+            foreach ($shops as $s) echo "SHOP   id={$s->id} name={$s->name} code={$s->code}\n";
+            foreach ($staff as $u) echo "STAFF  id={$u->id} ".($u->id === $user->id ? '(this account)' : '(stays, but company will be removed)')."\n";
+            foreach (['invoices','orders','products','customers','payments'] as $t) {
+                try { echo "ROWS   $t: ".DB::table($t)->whereIn('shop_id', $shops->pluck('id'))->count()."\n"; } catch (\Throwable $e) {}
+            }
+            if (! $shops->contains('id', $shopId)) { echo "ABORT: shop $shopId does not belong to this company\n"; return; }
+
+            if ($mode !== 'apply') { echo "REPORT ONLY - nothing changed.\n"; return; }
+
+            DB::transaction(function () use ($user, $tenant, $shops) {
+                foreach ($shops as $s) { $s->forceFill(['is_active' => false])->save(); $s->delete(); }
+                $tenant->forceFill(['is_active' => false])->save();
+                $tenant->delete();
+                $name = $user->name;
+                $user->delete();
+                ActivityLog::record('tenant.deleted', "Removed company \"{$tenant->name}\" and its owner account (manual cleanup)");
+            });
+            echo "DONE: removed.\n";
+            PHP
+            php artisan tinker --execute="$(cat /tmp/remove_account.php)"
+            rm -f /tmp/remove_account.php
+            php artisan cache:clear
