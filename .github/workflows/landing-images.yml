@@ -1,0 +1,52 @@
+name: Restore built-in pictures in the Landing Page slots that hold the logo (manual)
+
+# One-off helper, run by hand. Never runs on push.
+# Five slots hold the RestroOne logo PNG by mistake. Each is pointed back at
+# its built-in illustration. The old files are NOT deleted, so any of them can
+# be put back from Settings. Slots holding anything else are left alone.
+
+on:
+  workflow_dispatch:
+
+jobs:
+  restore:
+    name: Restore built-in landing pictures
+    runs-on: ubuntu-latest
+    steps:
+      - name: Update on server
+        uses: appleboy/ssh-action@v1.0.3
+        with:
+          host: ${{ secrets.VPS_HOST }}
+          username: ${{ secrets.VPS_USER }}
+          key: ${{ secrets.VPS_SSH_KEY }}
+          port: ${{ secrets.VPS_PORT }}
+          script: |
+            set -e
+            cd ${{ secrets.VPS_PROJECT_PATH }}
+            cat > /tmp/landing_restore.php <<'PHP'
+            use App\Models\Setting;
+            use Illuminate\Support\Facades\Storage;
+            $slots = [
+                'landing_reports_image' => 'shot-reports.svg',
+                'landing_step_scan_image' => 'step-scan.svg',
+                'landing_step_order_image' => 'step-order.svg',
+                'landing_step_kitchen_image' => 'step-kitchen.svg',
+                'landing_step_bill_image' => 'step-bill.svg',
+            ];
+            $disk = Storage::disk('public');
+            foreach ($slots as $key => $file) {
+                $current = (string) Setting::get($key);
+                if ($current === '' || ! str_ends_with(strtolower($current), '.png')) { echo "KEEP  $key ($current)\n"; continue; }
+                $src = public_path('assets/img/landing/'.$file);
+                if (! is_file($src)) { echo "MISS  $key: $file not on server\n"; continue; }
+                $dest = 'settings/landing-'.str_replace('_', '-', substr($key, 8)).'.svg';
+                $disk->put($dest, file_get_contents($src));
+                Setting::put([$key => $dest]);
+                echo "SET   $key: $current -> $dest (old file kept)\n";
+            }
+            echo "DONE\n";
+            PHP
+            php artisan tinker --execute="$(cat /tmp/landing_restore.php)"
+            rm -f /tmp/landing_restore.php
+            chown -R www-data:www-data storage/app/public/settings 2>/dev/null || true
+            php artisan cache:clear
