@@ -132,7 +132,8 @@ class SignupNoticesTest extends TestCase
                 && str_contains($html, 'Spice Garden')
                 && str_contains($html, 'Asha Rao')
                 && str_contains($html, 'registration is confirmed')
-                && preg_match('/>\\s*Login\\s*</', $html) === 1
+                && preg_match('/>\\s*Verify my email\\s*</', $html) === 1
+                && ! str_contains($html, 'To get going')
                 && str_contains($html, route('login'))
                 && ! str_contains($html, 'Secret123');
         });
