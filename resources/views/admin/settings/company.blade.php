@@ -112,6 +112,33 @@
                         @endallows
                     </div>
                 </form>
+
+                @if ($key === 'mail')
+                    @allows('settings.general.edit')
+                        {{-- A separate form: nesting it in the one above would send the
+                             test address along with the mail settings. Save first, then test. --}}
+                        <form method="POST" action="{{ route('admin.settings.company.test-mail') }}" data-ajax>
+                            @csrf
+                            <div class="card" style="margin-top:12px">
+                                <div class="card-header">
+                                    <div>
+                                        <div class="card-title">Send test email</div>
+                                        <div class="text-xs text-muted">Uses the settings saved above. Save them first.</div>
+                                    </div>
+                                </div>
+                                <div class="card-body">
+                                    <div style="display:flex;gap:8px;flex-wrap:wrap;align-items:center">
+                                        <input type="email" name="email" class="form-control" required maxlength="190"
+                                               style="flex:1;min-width:220px"
+                                               value="{{ auth()->user()->email }}" placeholder="you@example.com"
+                                               aria-label="Send the test email to">
+                                        <button type="submit" class="btn btn-primary btn-sm">Send test email</button>
+                                    </div>
+                                </div>
+                            </div>
+                        </form>
+                    @endallows
+                @endif
             </div>
         @endforeach
     </div>

@@ -9,6 +9,8 @@ use App\Support\ApiResponse;
 use App\Support\CompanySettings;
 use Illuminate\Http\JsonResponse;
 use Illuminate\Http\Request;
+use Illuminate\Support\Facades\Config;
+use Illuminate\Support\Facades\Mail;
 use Illuminate\Support\Facades\Storage;
 use Illuminate\View\View;
 
@@ -30,6 +32,34 @@ class CompanySettingController extends Controller
             'files' => CompanySettings::fileUrls(),
             'filledSecrets' => CompanySettings::filledSecrets(),
         ]);
+    }
+
+    /**
+     * Send one real email through the saved mail settings, and say what
+     * happened - including the mail server's own error when it fails.
+     */
+    public function sendTestMail(Request $request): JsonResponse
+    {
+        $email = $request->validate(['email' => ['required', 'email', 'max:190']])['email'];
+
+        $mailer = (string) Config::get('mail.default');
+        $host = $mailer === 'smtp' ? Config::get('mail.mailers.smtp.host') : null;
+
+        try {
+            Mail::to($email)->send(new \App\Mail\MailSettingsTestMail($mailer, $host, (string) $request->user()->name));
+        } catch (\Throwable $e) {
+            report($e);
+
+            return ApiResponse::error(
+                'The test email could not be sent: '.\Illuminate\Support\Str::limit($e->getMessage(), 300),
+                [],
+                502,
+            );
+        }
+
+        ActivityLog::record('settings.mail_test', "Sent a test email to {$email}");
+
+        return ApiResponse::success("Test email sent to {$email}. Check that inbox (and spam).");
     }
 
     /**

@@ -1415,6 +1415,9 @@ Route::prefix('superadmin')->name('admin.')->group(function () {
             ->name('settings.company');
 
         Route::middleware('permission:settings.general.edit')->group(function () {
+            Route::post('settings/company/mail/test', [CompanySettingController::class, 'sendTestMail'])
+                ->middleware('throttle:10,1')
+                ->name('settings.company.test-mail');
             Route::put('settings/company/{section}', [CompanySettingController::class, 'update'])
                 ->name('settings.company.update');
             Route::delete('settings/company/{section}/file/{key}', [CompanySettingController::class, 'destroyFile'])
