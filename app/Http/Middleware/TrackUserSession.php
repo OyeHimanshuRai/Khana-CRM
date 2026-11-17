@@ -40,6 +40,11 @@ class TrackUserSession
             return;
         }
 
+        // A Super Admin looking in as the owner must not show up as the owner.
+        if ($request->hasSession() && $request->session()->has(\App\Http\Controllers\Admin\ImpersonationController::SESSION_KEY)) {
+            return;
+        }
+
         $sessionId = $request->session()->getId();
 
         $session = UserSession::query()

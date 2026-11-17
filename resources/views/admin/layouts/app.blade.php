@@ -17,6 +17,19 @@
 
     <div class="app-main">
         <main class="app-content">
+            @if (session(\App\Http\Controllers\Admin\ImpersonationController::SESSION_KEY))
+                <div class="banner banner-warning" role="alert">
+                    <div class="banner-body">
+                        <strong>Viewing as {{ auth()->user()->name }}</strong>
+                        ({{ auth()->user()->tenant?->name ?? 'company' }} owner). Everything you do here is recorded in the Activity Log.
+                    </div>
+                    <form method="POST" action="{{ route('admin.impersonate.stop') }}">
+                        @csrf
+                        <button type="submit" class="btn btn-sm btn-primary">Exit to Platform</button>
+                    </form>
+                </div>
+            @endif
+
             {{-- Set at sign-in when the password is a well-known one; see RequireStrongPassword. --}}
             @if (session('password_is_weak') && ! request()->routeIs('admin.profile.*'))
                 <div class="banner banner-warning" role="alert">

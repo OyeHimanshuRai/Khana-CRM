@@ -421,6 +421,12 @@ Route::prefix('superadmin')->name('admin.')->group(function () {
             ->name('verification.send');
     });
 
+    // The way back from "login as owner". Only `auth`, so it still works when
+    // the company has been suspended or the owner must change a password.
+    Route::post('impersonate/stop', [\App\Http\Controllers\Admin\ImpersonationController::class, 'stop'])
+        ->middleware('auth')
+        ->name('impersonate.stop');
+
     Route::middleware(['auth', 'admin', 'email.confirmed', 'password.strong', 'tenant.active', 'shop.subscribed', 'module'])->group(function () {
         Route::get('/', fn () => redirect()->route('admin.dashboard'));
         Route::post('logout', [LoginController::class, 'destroy'])->name('logout');
@@ -991,6 +997,11 @@ Route::prefix('superadmin')->name('admin.')->group(function () {
                 ->whereNumber('tenant')
                 ->name('tenants.show');
         });
+
+        Route::post('tenants/{tenant}/impersonate', [\App\Http\Controllers\Admin\ImpersonationController::class, 'start'])
+            ->whereNumber('tenant')
+            ->middleware('permission:settings.tenants.create')
+            ->name('tenants.impersonate');
 
         Route::middleware('permission:settings.tenants.create')->group(function () {
             // Registered before the wildcard so "create" is not read as an id.

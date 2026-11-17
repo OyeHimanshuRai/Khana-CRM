@@ -124,6 +124,17 @@
                                 </a>
                             @endallows
 
+                            @if ($canCreate && $tenant->is_active && auth()->user()->isSuperAdmin() && ! session(\App\Http\Controllers\Admin\ImpersonationController::SESSION_KEY))
+                                <form method="POST" action="{{ route('admin.tenants.impersonate', $tenant) }}"
+                                      onsubmit="return confirm('Sign in as the owner of “{{ $tenant->name }}”? You can exit any time from the top banner.')">
+                                    @csrf
+                                    <button type="submit" class="btn btn-icon" title="Login as owner"
+                                            aria-label="Login as owner of {{ $tenant->name }}">
+                                        <x-icon name="user" :size="15" />
+                                    </button>
+                                </form>
+                            @endif
+
                             @if ($canCreate)
                                 @allows('settings.tenants.delete')
                                     <form method="POST" action="{{ route('admin.tenants.destroy', $tenant) }}"
