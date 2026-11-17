@@ -60,10 +60,6 @@
             }
             return '';
         },
-        password_confirmation: function (v, f) {
-            if (!v) { return 'Type the password again.'; }
-            return v === f.elements.password.value ? '' : 'The two passwords do not match.';
-        },
         terms: function (v, f) {
             return f.elements.terms.checked ? '' : 'Please accept the terms to continue.';
         },
@@ -233,12 +229,6 @@
 
         event.target.dataset.touched = '1';
         check(name);
-
-        // The confirmation depends on the password; recheck it once it has
-        // been filled, so fixing the first box clears the second's error.
-        if (name === 'password' && inputFor('password_confirmation').dataset.touched === '1') {
-            check('password_confirmation');
-        }
     });
 
     // Typing in a field that has already been checked re-checks it, so the
@@ -248,10 +238,6 @@
 
         if (RULES[name] && event.target.dataset.touched === '1') {
             check(name);
-        }
-
-        if (name === 'password' && inputFor('password_confirmation').dataset.touched === '1') {
-            check('password_confirmation');
         }
     });
 

@@ -225,15 +225,6 @@
                     <span class="rg-hint">At least 8 characters, with letters and numbers.</span>
                     @error('password')<span class="rg-error" role="alert">{{ $message }}</span>@enderror
                 </p>
-
-                <p class="lp-field field">
-                    <label for="r-password2">Confirm password</label>
-                    <span class="rg-password">
-                        <input id="r-password2" type="password" name="password_confirmation" required
-                               autocomplete="new-password">
-                        @include('register._eye', ['for' => 'r-password2'])
-                    </span>
-                </p>
             </div>
 
             <div class="rg-terms-row">

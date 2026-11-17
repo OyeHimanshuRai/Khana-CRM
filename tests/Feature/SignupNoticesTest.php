@@ -99,15 +99,26 @@ class SignupNoticesTest extends TestCase
 
     public function test_a_wrong_password_comes_back_on_the_password_field(): void
     {
-        $this->postJson('/register', $this->payload(['password_confirmation' => 'Different123']))
-            ->assertStatus(422)
-            ->assertJsonValidationErrors(['password' => 'The two passwords do not match.']);
-
-        $this->postJson('/register', $this->payload(['password' => 'short', 'password_confirmation' => 'short']))
+        $this->postJson('/register', $this->payload(['password' => 'short']))
             ->assertStatus(422)
             ->assertJsonValidationErrors('password');
 
         $this->assertSame(0, Tenant::query()->where('name', 'Spice Garden')->count());
+    }
+
+    public function test_signing_up_needs_no_password_confirmation(): void
+    {
+        $payload = $this->payload();
+        unset($payload['password_confirmation']);
+
+        $this->postJson('/register', $payload)->assertOk()->assertJsonPath('success', true);
+
+        $this->assertDatabaseHas('users', ['email' => 'asha@spicegarden.test']);
+    }
+
+    public function test_the_sign_up_form_has_no_confirm_password_box(): void
+    {
+        $this->get('/register')->assertOk()->assertDontSee('Confirm password')->assertSee('name="password"', false);
     }
 
     public function test_a_taken_email_is_refused_whatever_its_case(): void

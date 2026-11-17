@@ -373,7 +373,6 @@ class RegistrationTest extends TestCase
             'bad mobile' => [['mobile' => 'abc'], 'mobile'],
             'short password' => [['password' => 'a1', 'password_confirmation' => 'a1'], 'password'],
             'password without a number' => [['password' => 'onlyletters', 'password_confirmation' => 'onlyletters'], 'password'],
-            'passwords differ' => [['password_confirmation' => 'Different123'], 'password'],
             'terms not accepted' => [['terms' => ''], 'terms'],
             'unknown plan' => [['plan' => 'platinum'], 'plan'],
             'bad period' => [['period' => 'weekly'], 'period'],

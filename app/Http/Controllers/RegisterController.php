@@ -132,14 +132,13 @@ class RegisterController extends Controller
             'name' => ['required', 'string', 'max:120'],
             'email' => ['required', 'string', 'email:filter', 'max:150', Rule::unique('users', 'email')],
             'mobile' => ['required', 'string', 'max:20', 'regex:/^[0-9+\-\s()]{7,20}$/'],
-            'password' => ['required', 'string', 'confirmed', Password::min(8)->letters()->numbers()],
+            'password' => ['required', 'string', Password::min(8)->letters()->numbers()],
             'plan' => ['required', 'string', Rule::exists('plans', 'slug')->where('is_active', true)->whereNull('tenant_id')->whereNull('deleted_at')],
             'period' => ['required', Rule::in(Plan::PERIODS)],
             'terms' => ['accepted'],
         ], [
             'email.unique' => 'An account with this email already exists. Try signing in instead.',
             'mobile.regex' => 'Enter a valid phone number.',
-            'password.confirmed' => 'The two passwords do not match.',
             'terms.accepted' => 'Please accept the terms to continue.',
             'plan.exists' => 'That plan is no longer available. Please choose another.',
         ]);
@@ -254,7 +253,7 @@ class RegisterController extends Controller
         }
 
         return back()
-            ->withInput($request->except('password', 'password_confirmation'))
+            ->withInput($request->except('password'))
             ->withErrors([$field => $message]);
     }
 }
