@@ -89,8 +89,8 @@ class SignupNoticesTest extends TestCase
         $this->postJson('/register', $this->payload(['email' => '  Asha@SpiceGarden.TEST ']))
             ->assertOk()
             ->assertJsonPath('success', true)
-            ->assertJsonPath('redirect', route('admin.dashboard'))
-            ->assertJsonFragment(['message' => 'Welcome! Your 7-day free trial of the Restaurant plan has started. We have emailed your sign-in details.']);
+            ->assertJsonPath('redirect', route('landing'))
+            ->assertJsonFragment(['message' => 'Registration successful! Your 7-day free trial of the Restaurant plan has started. A welcome email has been sent to asha@spicegarden.test.']);
 
         // Stored the way it will be typed to sign in.
         $this->assertDatabaseHas('users', ['email' => 'asha@spicegarden.test']);
@@ -119,11 +119,45 @@ class SignupNoticesTest extends TestCase
             ->assertJsonValidationErrors(['email' => 'An account with this email already exists. Try signing in instead.']);
     }
 
+    public function test_the_welcome_email_is_from_restroone_with_the_names_and_a_login_button(): void
+    {
+        $owner = $this->signUp();
+
+        Mail::assertSent(TrialWelcomeMail::class, function (TrialWelcomeMail $mail) use ($owner) {
+            $html = $mail->render();
+
+            return $mail->hasTo('asha@spicegarden.test')
+                && $mail->hasFrom(config('mail.from.address'), 'RestroOne')
+                && $mail->hasSubject('Welcome to RestroOne – Registration Successful')
+                && str_contains($html, 'Spice Garden')
+                && str_contains($html, 'Asha Rao')
+                && str_contains($html, 'registration is confirmed')
+                && preg_match('/>\\s*Login\\s*</', $html) === 1
+                && str_contains($html, route('login'))
+                && ! str_contains($html, 'Secret123');
+        });
+        $this->assertNotNull($owner);
+    }
+
+    public function test_a_mail_server_failure_is_never_reported_as_a_sent_email(): void
+    {
+        Mail::shouldReceive('to')->andThrow(new \RuntimeException('SMTP connect failed'));
+
+        $this->postJson('/register', $this->payload())
+            ->assertOk()
+            ->assertJsonPath('redirect', route('landing'))
+            ->assertJsonFragment(['message' => 'Registration successful! Your 7-day free trial of the Restaurant plan has started. We could not send the welcome email to asha@spicegarden.test, but your account is ready - sign in at http://localhost/login.']);
+
+        // The account exists, and the failure is on record without any secret.
+        $this->assertDatabaseHas('users', ['email' => 'asha@spicegarden.test']);
+        $this->assertDatabaseHas('activity_logs', ['event' => 'signup.welcome_failed']);
+    }
+
     public function test_signing_up_emails_the_owner_and_the_platform(): void
     {
         $owner = $this->signUp();
 
-        Mail::assertQueued(TrialWelcomeMail::class, fn (TrialWelcomeMail $mail) => $mail->hasTo('asha@spicegarden.test')
+        Mail::assertSent(TrialWelcomeMail::class, fn (TrialWelcomeMail $mail) => $mail->hasTo('asha@spicegarden.test')
             && $mail->user->is($owner));
 
         Mail::assertQueued(NewSignupMail::class, fn (NewSignupMail $mail) => $mail->hasTo('admin@erp.test')

@@ -73,7 +73,7 @@ class SignupEmailVerificationTest extends TestCase
         $this->assertNull($owner->email_verified_at);
         $this->assertTrue($owner->needsEmailVerification());
 
-        Mail::assertQueued(TrialWelcomeMail::class, fn (TrialWelcomeMail $mail) => $mail->hasTo('asha@spicegarden.test')
+        Mail::assertSent(TrialWelcomeMail::class, fn (TrialWelcomeMail $mail) => $mail->hasTo('asha@spicegarden.test')
             && str_contains($mail->render(), '/email/verify/'.$owner->id.'/'));
     }
 

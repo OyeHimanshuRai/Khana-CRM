@@ -4,6 +4,7 @@ namespace App\Mail;
 
 use App\Models\Subscription;
 use App\Models\User;
+use Illuminate\Mail\Mailables\Address;
 use Illuminate\Mail\Mailables\Content;
 use Illuminate\Mail\Mailables\Envelope;
 
@@ -23,7 +24,12 @@ class TrialWelcomeMail extends PlatformMail
 
     public function envelope(): Envelope
     {
-        return new Envelope(subject: 'Welcome to '.$this->company().' - your account is ready');
+        // The sender is RestroOne whatever the company name setting says; the
+        // address is the configured (Gmail SMTP) one, so the server accepts it.
+        return new Envelope(
+            from: new Address((string) config('mail.from.address'), 'RestroOne'),
+            subject: 'Welcome to RestroOne – Registration Successful',
+        );
     }
 
     public function content(): Content

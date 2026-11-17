@@ -199,7 +199,7 @@ class RegistrationTest extends TestCase
             'latitude' => '26.9124000',
             'longitude' => '75.7873000',
             'logo' => UploadedFile::fake()->image('business.png')->size(256),
-        ]))->assertRedirect(route('admin.dashboard'));
+        ]))->assertRedirect(route('landing'));
 
         $tenant = $this->newOwner()->tenant;
         $shop = Shop::query()->withoutGlobalScopes()->where('tenant_id', $tenant->id)->firstOrFail();
@@ -224,7 +224,7 @@ class RegistrationTest extends TestCase
     public function test_a_ten_digit_mobile_is_stored_with_the_india_code(): void
     {
         $this->post('/register', $this->payload(['mobile' => '9876543210']))
-            ->assertRedirect(route('admin.dashboard'));
+            ->assertRedirect(route('landing'));
 
         $this->assertSame('+91 9876543210', $this->newOwner()->mobile);
     }
@@ -234,7 +234,7 @@ class RegistrationTest extends TestCase
     public function test_signing_up_creates_a_business_ready_to_trade_and_signs_the_owner_in(): void
     {
         $this->post('/register', $this->payload())
-            ->assertRedirect(route('admin.dashboard'))
+            ->assertRedirect(route('landing'))
             ->assertSessionHas('status');
 
         $owner = $this->newOwner();
@@ -306,7 +306,7 @@ class RegistrationTest extends TestCase
     public function test_the_email_is_stored_in_lower_case(): void
     {
         $this->post('/register', $this->payload(['email' => '  Asha@SpiceGarden.TEST ']))
-            ->assertRedirect(route('admin.dashboard'));
+            ->assertRedirect(route('landing'));
 
         $this->assertSame('asha@spicegarden.test', $this->newOwner()->email);
     }
@@ -428,7 +428,7 @@ class RegistrationTest extends TestCase
     {
         for ($i = 1; $i <= 5; $i++) {
             $this->post('/register', $this->payload(['email' => "owner{$i}@spicegarden.test"]))
-                ->assertRedirect(route('admin.dashboard'));
+                ->assertRedirect(route('landing'));
             $this->signOut();
         }
 
@@ -447,7 +447,7 @@ class RegistrationTest extends TestCase
             $this->from('/register')->post('/register', $this->payload(['email' => 'nope']));
         }
 
-        $this->post('/register', $this->payload())->assertRedirect(route('admin.dashboard'));
+        $this->post('/register', $this->payload())->assertRedirect(route('landing'));
     }
 
     /* ----------------------------------------------------------- atomicity */

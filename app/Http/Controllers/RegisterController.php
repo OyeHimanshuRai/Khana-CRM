@@ -199,22 +199,28 @@ class RegisterController extends Controller
         CurrentShop::forget();
         PlanAccess::forget();
 
-        // Welcome to the owner, "new sign-up" to us. Queued, and never throws.
-        SignupMailer::send($user);
+        // Welcome to the owner (sent now, so a failure is known), "new sign-up" to us (queued). Never throws.
+        $emailed = SignupMailer::send($user);
 
         // And on the platform's bell, and its phones.
         app(\App\Services\EventNotifier::class)->signedUp($user);
 
-        [$route, $message] = (int) $plan->trial_days > 0
-            ? ['admin.dashboard', sprintf(
-                'Welcome! Your %d-day free trial of the %s plan has started. We have emailed your sign-in details.',
-                (int) $plan->trial_days,
-                $plan->name,
-            )]
-            : ['admin.subscription.mine', 'Welcome! Pick your plan below and pay to get started.'];
+        $trial = (int) $plan->trial_days > 0;
+
+        // Honest about the email: the account exists either way, but the
+        // person is only told a message is on its way when one was sent.
+        $emailNote = $emailed
+            ? "A welcome email has been sent to {$user->email}."
+            : "We could not send the welcome email to {$user->email}, but your account is ready - sign in at ".route('login').'.';
+
+        // A trial plan ends at the homepage; a plan that is paid up front goes
+        // to the subscription page, where the payment has to happen.
+        [$route, $message] = $trial
+            ? ['landing', sprintf('Registration successful! Your %d-day free trial of the %s plan has started. %s', (int) $plan->trial_days, $plan->name, $emailNote)]
+            : ['admin.subscription.mine', 'Registration successful! Pick your plan below and pay to get started. '.$emailNote];
 
         if ($request->expectsJson()) {
-            // The dashboard shows it again, for whoever missed the toast.
+            // Shown again on the next page, for whoever missed the toast.
             $request->session()->flash('status', $message);
 
             return json_success($message, [], route($route));

@@ -21,7 +21,7 @@ use Illuminate\Support\Facades\Mail;
  */
 final class SignupMailer
 {
-    public static function send(User $owner): void
+    public static function send(User $owner): bool
     {
         $subscription = Subscription::query()
             ->where('tenant_id', $owner->tenant_id)
@@ -30,11 +30,13 @@ final class SignupMailer
             ->first();
 
         if ($subscription === null) {
-            return;
+            return false;
         }
 
-        self::attempt('signup.welcome', $owner, function () use ($owner, $subscription) {
-            Mail::to($owner->email, $owner->name)->send(new TrialWelcomeMail($owner, $subscription));
+        // Sent now rather than queued, so a mail-server failure is seen here
+        // instead of after the sign-up page has already said "emailed".
+        $welcomed = self::attempt('signup.welcome', $owner, function () use ($owner, $subscription) {
+            Mail::to($owner->email, $owner->name)->sendNow(new TrialWelcomeMail($owner, $subscription));
         });
 
         $staff = self::platformAddresses();
@@ -44,6 +46,8 @@ final class SignupMailer
                 Mail::to($staff)->send(new NewSignupMail($owner, $subscription));
             });
         }
+
+        return $welcomed;
     }
 
     /**
@@ -74,10 +78,12 @@ final class SignupMailer
         return $admins;
     }
 
-    private static function attempt(string $event, User $owner, callable $send): void
+    private static function attempt(string $event, User $owner, callable $send): bool
     {
         try {
             $send();
+
+            return true;
         } catch (\Throwable $e) {
             EmailLogger::fail($e);
 
@@ -88,6 +94,8 @@ final class SignupMailer
             ]);
 
             ActivityLog::record($event.'_failed', 'A sign-up email failed to send', $owner, ['error' => $e->getMessage()]);
+
+            return false;
         }
     }
 }

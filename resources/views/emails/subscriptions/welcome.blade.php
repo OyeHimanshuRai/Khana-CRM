@@ -3,7 +3,7 @@
 @section('heading', 'Welcome aboard, '.$user->name)
 
 @section('intro')
-    Your {{ $company }} account for <strong>{{ $business }}</strong> is ready, and you are already signed in.
+    Your registration is confirmed. <strong>{{ $business }}</strong> is now on RestroOne, owned by <strong>{{ $user->name }}</strong>, and your account is ready.
     @if ($trialEnds)
         Your free trial of the {{ $plan }} plan runs until <strong>{{ $trialEnds->copy()->timezone('Asia/Kolkata')->format('j M Y, g:i A') }}</strong>.
     @endif
@@ -27,10 +27,9 @@
 @endsection
 
 @section('cta')
-    {{-- A self-signed-up account opens once its email is confirmed. --}}
-    <a href="{{ $verifyUrl ?? $loginUrl }}"
+    <a href="{{ $loginUrl }}"
        style="display:inline-block;padding:11px 22px;font-size:14px;font-weight:600;color:#ffffff;text-decoration:none;">
-        {{ $verifyUrl ? 'Confirm my email' : 'Open my dashboard' }}
+        Login
     </a>
 @endsection
 
