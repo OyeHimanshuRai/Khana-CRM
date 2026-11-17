@@ -850,6 +850,7 @@ return [
                         'label' => 'Printers & Devices',
                         'route' => 'admin.printers.index',
                         'active' => 'admin.printers.index',
+                        'shop_only' => true,
                         'can' => 'settings.printers.view',
                     ],
                     [
@@ -868,6 +869,7 @@ return [
                         'label' => 'Print Log',
                         'route' => 'admin.printers.jobs',
                         'active' => 'admin.printers.jobs',
+                        'shop_only' => true,
                         'can' => 'settings.printers.view',
                     ],
                 ],

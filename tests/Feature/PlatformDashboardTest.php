@@ -179,7 +179,7 @@ class PlatformDashboardTest extends TestCase
             ->assertDontSee('All reports');
     }
 
-    public function test_switching_into_a_company_brings_its_restaurant_menus(): void
+    public function test_the_project_owner_gets_no_restaurant_menus_even_inside_a_company(): void
     {
         $this->resetState();
         $this->actingAs($this->owner)
@@ -188,8 +188,12 @@ class PlatformDashboardTest extends TestCase
 
         $this->actingAs($this->owner)->get(route('admin.dashboard'))
             ->assertOk()
-            ->assertSee('Floor Plan')
-            ->assertSee('Menu Items');
+            ->assertSee('Owner Dashboard')
+            ->assertDontSee('Floor Plan')
+            ->assertDontSee('Kitchen Display')
+            ->assertDontSee('Table Bills')
+            ->assertDontSee('Menu Items')
+            ->assertDontSee('Printers &amp; Devices', false);
     }
 
     public function test_the_platform_menu_hides_links_and_closes_no_screen(): void

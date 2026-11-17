@@ -282,14 +282,14 @@ class User extends Authenticatable
     }
 
     /**
-     * Is the Super Admin looking at the platform rather than inside a company?
-     * Restaurant menus appear only once they switch into one company; with
-     * none selected the sidebar is the platform's alone. Only the sidebar
-     * reads this: the screens themselves stay open to them.
+     * The Super Admin runs the platform, not a restaurant: restaurant menus
+     * (floor, kitchen, counter, stock...) never appear in their sidebar, even
+     * with a company selected. Only the sidebar reads this: the screens
+     * themselves stay open to them by address.
      */
     public function hidesShopMenus(): bool
     {
-        return $this->isSuperAdmin() && \App\Support\CurrentTenant::id() === null;
+        return $this->isSuperAdmin();
     }
 
     /** Where the logo and the Home crumb lead. */
