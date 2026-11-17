@@ -160,28 +160,12 @@ class PlatformDashboardTest extends TestCase
             ->assertDontSee('SaaS Finance');
     }
 
-    public function test_the_project_owner_sees_every_menu_until_they_switch_them_off(): void
+    public function test_the_project_owner_sees_only_platform_menus_with_no_company_selected(): void
     {
         $this->resetState();
         $this->actingAs($this->owner)->get(route('admin.platform.dashboard'))
             ->assertOk()
-            ->assertSee('Restaurant menus')
-            ->assertSee('aria-checked="true"', false)
-            ->assertSee('Floor Plan')
-            ->assertSee('Online Store')
-            ->assertSee('Menu Items');
-    }
-
-    public function test_the_switch_leaves_the_project_owner_their_own_menus(): void
-    {
-        $this->resetState();
-        $this->actingAs($this->owner)->post(route('admin.platform.shop-menus'))->assertRedirect();
-
-        $this->assertFalse($this->owner->fresh()->show_shop_menus);
-
-        $this->actingAs($this->owner->fresh())->get(route('admin.platform.dashboard'))
-            ->assertOk()
-            ->assertSee('aria-checked="false"', false)
+            ->assertDontSee('Restaurant menus')
             ->assertSee('Owner Dashboard')
             ->assertSee('Subscriptions')
             ->assertSee('Landing Page')
@@ -195,26 +179,27 @@ class PlatformDashboardTest extends TestCase
             ->assertDontSee('All reports');
     }
 
-    public function test_switching_back_on_brings_every_menu_back(): void
+    public function test_switching_into_a_company_brings_its_restaurant_menus(): void
     {
         $this->resetState();
-        $this->owner->forceFill(['show_shop_menus' => false])->save();
+        $this->actingAs($this->owner)
+            ->postJson('/superadmin/tenants/switch', ['tenant' => $this->tenantB->id])
+            ->assertOk();
 
-        $this->actingAs($this->owner)->post(route('admin.platform.shop-menus'))->assertRedirect();
-
-        $this->assertTrue($this->owner->fresh()->show_shop_menus);
-        $this->actingAs($this->owner->fresh())->get(route('admin.platform.dashboard'))->assertSee('Floor Plan');
+        $this->actingAs($this->owner)->get(route('admin.dashboard'))
+            ->assertOk()
+            ->assertSee('Floor Plan')
+            ->assertSee('Menu Items');
     }
 
-    public function test_the_switch_hides_links_and_closes_no_screen(): void
+    public function test_the_platform_menu_hides_links_and_closes_no_screen(): void
     {
         $this->resetState();
-        $this->owner->forceFill(['show_shop_menus' => false])->save();
 
         $this->actingAs($this->owner)->get(route('admin.dashboard'))->assertOk();
     }
 
-    public function test_nobody_in_a_company_gets_the_switch(): void
+    public function test_nobody_in_a_company_gets_a_menu_switch(): void
     {
         $this->resetState();
         $owner = $this->staffOf($this->shopA, 'Tenant Owner');
@@ -223,9 +208,19 @@ class PlatformDashboardTest extends TestCase
             ->assertOk()
             ->assertDontSee('Restaurant menus')
             ->assertSee('Floor Plan');
+    }
 
-        $this->actingAs($owner)->post(route('admin.platform.shop-menus'))->assertForbidden();
-        $this->assertTrue((bool) ($owner->fresh()->show_shop_menus ?? true));
+    public function test_a_restaurant_owner_manages_their_own_online_store(): void
+    {
+        $this->resetState();
+        $owner = $this->staffOf($this->shopA, 'Tenant Owner');
+
+        $this->actingAs($owner)->get(route('admin.dashboard'))->assertOk()->assertSee('Online Store');
+        $this->actingAs($owner)->get(route('admin.storefront.edit'))->assertOk();
+
+        $this->resetState();
+        $cashier = $this->staffOf($this->shopA, 'Cashier');
+        $this->actingAs($cashier)->get(route('admin.storefront.edit'))->assertForbidden();
     }
 
     public function test_the_project_owner_finds_dashboard_under_platform(): void
@@ -238,12 +233,6 @@ class PlatformDashboardTest extends TestCase
             ->assertSee($link, false)
             ->assertDontSee('<div class="nav-heading">Main</div>', false);
 
-        $this->owner->forceFill(['show_shop_menus' => false])->save();
-
-        $this->actingAs($this->owner)->get(route('admin.platform.dashboard'))
-            ->assertOk()
-            ->assertSee($link, false)
-            ->assertDontSee('Floor Plan');
     }
 
     public function test_a_restaurant_owner_keeps_dashboard_under_main(): void

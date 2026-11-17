@@ -42,18 +42,6 @@ class PlatformController extends Controller
         ]);
     }
 
-    /** The sidebar switch for a restaurant's own menus. */
-    public function toggleShopMenus(Request $request): RedirectResponse
-    {
-        $user = $request->user();
-
-        abort_unless($user->isSuperAdmin(), 403);
-
-        $user->forceFill(['show_shop_menus' => $user->hidesShopMenus()])->save();
-
-        return back();
-    }
-
     /* ---------------------------------------------------------------- shops */
 
     public function shops(Request $request): View

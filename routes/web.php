@@ -966,10 +966,6 @@ Route::prefix('superadmin')->name('admin.')->group(function () {
                 ->middleware('permission:platform.overview.view')
                 ->name('dashboard');
 
-            Route::post('shop-menus', [\App\Http\Controllers\Admin\PlatformController::class, 'toggleShopMenus'])
-                ->middleware('permission:platform.overview.view')
-                ->name('shop-menus');
-
             Route::middleware('permission:platform.shops.view')->group(function () {
                 Route::get('shops', [\App\Http\Controllers\Admin\PlatformController::class, 'shops'])->name('shops');
                 Route::get('shops/{shop}', [\App\Http\Controllers\Admin\PlatformController::class, 'shop'])
@@ -2487,12 +2483,15 @@ Route::prefix('superadmin')->name('admin.')->group(function () {
             ->middleware('permission:content.sliders.delete')
             ->name('sliders.destroy');
 
-        Route::middleware('permission:content.sliders.view')->group(function () {
+        // A restaurant's own storefront is a setting of its shop, so it rides on
+        // `settings.shops.*` (a Tenant Owner holds it); `content.*` is the
+        // platform's website and is closed to companies.
+        Route::middleware('permission:settings.shops.view')->group(function () {
             Route::get('storefront', [\App\Http\Controllers\Admin\StorefrontSettingsController::class, 'edit'])
                 ->name('storefront.edit');
         });
 
-        Route::middleware('permission:content.sliders.edit')->group(function () {
+        Route::middleware('permission:settings.shops.edit')->group(function () {
             Route::put('storefront', [\App\Http\Controllers\Admin\StorefrontSettingsController::class, 'update'])
                 ->name('storefront.update');
             Route::put('storefront/slides/{slide}', [\App\Http\Controllers\Admin\StorefrontSettingsController::class, 'updateSlide'])
@@ -2501,12 +2500,12 @@ Route::prefix('superadmin')->name('admin.')->group(function () {
         });
 
         Route::post('storefront/slides', [\App\Http\Controllers\Admin\StorefrontSettingsController::class, 'storeSlide'])
-            ->middleware('permission:content.sliders.create')
+            ->middleware('permission:settings.shops.edit')
             ->name('storefront.slides.store');
 
         Route::delete('storefront/slides/{slide}', [\App\Http\Controllers\Admin\StorefrontSettingsController::class, 'destroySlide'])
             ->whereNumber('slide')
-            ->middleware('permission:content.sliders.delete')
+            ->middleware('permission:settings.shops.edit')
             ->name('storefront.slides.destroy');
 
         /*

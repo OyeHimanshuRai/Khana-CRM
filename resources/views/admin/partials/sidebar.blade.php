@@ -192,18 +192,6 @@
     </nav>
 
     <div class="sidebar-foot">
-        @if (auth()->user()?->isSuperAdmin())
-            <form method="POST" action="{{ route('admin.platform.shop-menus') }}">
-                @csrf
-                <button type="submit" class="nav-link" role="switch" aria-label="Restaurant menus"
-                        aria-checked="{{ auth()->user()->hidesShopMenus() ? 'false' : 'true' }}">
-                    <x-icon name="grid" />
-                    <span class="nav-text">Restaurant menus</span>
-                    <span class="nav-switch" aria-hidden="true"></span>
-                </button>
-            </form>
-        @endif
-
         <form method="POST" action="{{ route('admin.logout') }}">
             @csrf
             <button type="submit" class="nav-link" data-label="Sign out">

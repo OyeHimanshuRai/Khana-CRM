@@ -282,12 +282,14 @@ class User extends Authenticatable
     }
 
     /**
-     * Has the Project Owner switched a restaurant's menus out of their sidebar?
-     * Only the sidebar reads this: the screens themselves stay open to them.
+     * Is the Super Admin looking at the platform rather than inside a company?
+     * Restaurant menus appear only once they switch into one company; with
+     * none selected the sidebar is the platform's alone. Only the sidebar
+     * reads this: the screens themselves stay open to them.
      */
     public function hidesShopMenus(): bool
     {
-        return $this->show_shop_menus === false && $this->isSuperAdmin();
+        return $this->isSuperAdmin() && \App\Support\CurrentTenant::id() === null;
     }
 
     /** Where the logo and the Home crumb lead. */

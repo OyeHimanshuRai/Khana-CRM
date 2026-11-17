@@ -507,7 +507,7 @@ return [
                 'icon' => 'grid',
                 'route' => 'admin.storefront.edit',
                 'active' => 'admin.storefront.*',
-                'can' => 'content.sliders.view',
+                'can' => 'settings.shops.view',
             ],
             [
                 'label' => 'Sliders',
