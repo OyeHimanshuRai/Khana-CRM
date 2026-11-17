@@ -1,0 +1,72 @@
+name: Set Super Admin login (manual)
+
+# One-off helper, run by hand from the Actions tab. Never runs on push.
+# Sets the platform Super Admin's email + password on the live server.
+
+on:
+  workflow_dispatch:
+    inputs:
+      email:
+        description: Super Admin email
+        required: true
+      password:
+        description: New password (min 12 chars)
+        required: true
+
+jobs:
+  reset:
+    name: Set Super Admin credentials
+    runs-on: ubuntu-latest
+    steps:
+      - name: Mask password in logs
+        run: echo "::add-mask::${{ inputs.password }}"
+
+      - name: Update on server
+        uses: appleboy/ssh-action@v1.0.3
+        env:
+          NEW_EMAIL: ${{ inputs.email }}
+          NEW_PASS: ${{ inputs.password }}
+        with:
+          host: ${{ secrets.VPS_HOST }}
+          username: ${{ secrets.VPS_USER }}
+          key: ${{ secrets.VPS_SSH_KEY }}
+          port: ${{ secrets.VPS_PORT }}
+          envs: NEW_EMAIL,NEW_PASS
+          script: |
+            set -e
+            cd ${{ secrets.VPS_PROJECT_PATH }}
+            cat > /tmp/set_superadmin.php <<'PHP'
+            $email = strtolower(trim(getenv('NEW_EMAIL')));
+            $pass  = (string) getenv('NEW_PASS');
+            if (strlen($pass) < 12) { echo "ABORT: password shorter than 12 chars\n"; return; }
+
+            $users = fn () => \App\Models\User::withoutGlobalScopes();
+            $existing = $users()->where('email', $email)->first();
+
+            if ($existing && ! $existing->isSuperAdmin()) {
+                echo "ABORT: $email belongs to a non-Super-Admin account\n";
+                return;
+            }
+
+            $target = $existing ?? $users()->get()->first(fn ($u) => $u->isSuperAdmin());
+
+            if (! $target) {
+                $target = new \App\Models\User(['name' => 'Super Admin']);
+                $target->tenant_id = null;
+                echo "No Super Admin existed - creating one\n";
+            } else {
+                echo "Updating Super Admin id={$target->id}\n";
+            }
+
+            $target->email = $email;
+            $target->password = $pass;
+            $target->is_admin = true;
+            $target->is_active = true;
+            $target->email_verified_at = $target->email_verified_at ?? now();
+            $target->save();
+            if (! $target->isSuperAdmin()) { $target->assignRole(\App\Models\User::SUPER_ADMIN); }
+            echo "DONE: sign in at /superadmin/login as $email\n";
+            PHP
+            php artisan tinker --execute="$(cat /tmp/set_superadmin.php)"
+            rm -f /tmp/set_superadmin.php
+            php artisan cache:clear
