@@ -1456,15 +1456,25 @@ th.num { text-align: right; }
     height: 82px;
     padding: 8px;
     flex: none;
+    /* A tall or square upload must stay inside the box, not spill over the next label. */
+    overflow: hidden;
     background: var(--panel-alt);
     border: 1px dashed var(--border-strong);
 }
 
 .setting-image-preview img {
     max-width: 100%;
-    max-height: 100%;
+    /* The box is 82px high with 8px padding. A percentage here would not bind:
+       the grid row grows to fit the image, so the size is spelled out. */
+    max-height: 64px;
     /* contain, not cover: a logo must not be cropped to fill the box. */
     object-fit: contain;
+}
+
+/* On a phone the picker takes the full width instead of sitting beside a small box. */
+@media (max-width: 560px) {
+    .setting-image-controls { flex: 1 1 100%; }
+    .setting-image .setting-image-controls input[type="file"] { width: 100%; }
 }
 
 .setting-image-controls {
