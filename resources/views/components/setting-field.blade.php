@@ -99,6 +99,7 @@
             <input id="{{ $id }}" type="{{ $type }}" name="{{ $name }}" class="form-control"
                    value="{{ $value }}"
                    placeholder="{{ $field['placeholder'] ?? '' }}"
+                   @if (! empty($field['autocomplete'])) autocomplete="{{ $field['autocomplete'] }}" @endif
                    aria-invalid="false">
     @endswitch
 

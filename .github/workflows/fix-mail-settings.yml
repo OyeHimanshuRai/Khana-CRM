@@ -1,0 +1,59 @@
+name: Show / fix the saved mail settings (manual)
+
+# One-off helper, run by hand. Never runs on push.
+# Without an input it only PRINTS the saved mail settings (never the password).
+# With `gmail` filled in, it sets Username and From Address to that address
+# when they are blank or not a valid address. Nothing else is changed.
+
+on:
+  workflow_dispatch:
+    inputs:
+      gmail:
+        description: "Leave empty to only look. Otherwise the sending address to use."
+        required: false
+        default: ""
+
+jobs:
+  mail:
+    name: Mail settings
+    runs-on: ubuntu-latest
+    steps:
+      - name: Run on server
+        uses: appleboy/ssh-action@v1.0.3
+        env:
+          GMAIL: ${{ github.event.inputs.gmail }}
+        with:
+          host: ${{ secrets.VPS_HOST }}
+          username: ${{ secrets.VPS_USER }}
+          key: ${{ secrets.VPS_SSH_KEY }}
+          port: ${{ secrets.VPS_PORT }}
+          envs: GMAIL
+          script: |
+            set -e
+            cd ${{ secrets.VPS_PROJECT_PATH }}
+            cat > /tmp/fix_mail.php <<'PHP'
+            use Illuminate\Support\Facades\DB;
+            $gmail = trim((string) getenv('GMAIL'));
+            $keys = ['mail_mailer', 'mail_host', 'mail_port', 'mail_username', 'mail_encryption', 'mail_from_address', 'mail_from_name'];
+            $show = function ($title) use ($keys) {
+              echo "$title\n";
+              foreach ($keys as $k) { $r = DB::table('settings')->where('key', $k)->first(); echo '  '.str_pad($k, 18).' = '.json_encode($r->value ?? null)."\n"; }
+              $p = DB::table('settings')->where('key', 'mail_password')->first();
+              echo '  mail_password      = '.(filled($p->value ?? null) ? '(set)' : '(empty)')."\n";
+            };
+            $show('BEFORE');
+            if ($gmail !== '' && filter_var($gmail, FILTER_VALIDATE_EMAIL)) {
+              foreach (['mail_username', 'mail_from_address'] as $k) {
+                $r = DB::table('settings')->where('key', $k)->first();
+                $cur = trim((string) ($r->value ?? ''));
+                if ($cur === '' || ! filter_var($cur, FILTER_VALIDATE_EMAIL) || ! str_contains($cur, '.')) {
+                  DB::table('settings')->updateOrInsert(['key' => $k], ['value' => $gmail]);
+                  echo "FIXED $k\n";
+                } else { echo "OK    $k already a valid address\n"; }
+              }
+              $show('AFTER');
+            } else { echo "(look only - nothing changed)\n"; }
+            PHP
+            php artisan tinker --execute="$(cat /tmp/fix_mail.php)"
+            rm -f /tmp/fix_mail.php
+            php artisan cache:clear
