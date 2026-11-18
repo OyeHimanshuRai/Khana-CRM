@@ -7,6 +7,10 @@
 
     Sections: heading, intro, details (optional), cta (optional), note (optional).
 --}}
+@php
+    // A mail may ask for its text centred: @section('align', 'center').
+    $align = trim($__env->yieldContent('align')) === 'center' ? 'center' : 'left';
+@endphp
 <div style="margin:0;padding:24px 12px;background:#f6f7f9;font-family:-apple-system,'Segoe UI',Roboto,Helvetica,Arial,sans-serif;">
     <table role="presentation" width="100%" cellpadding="0" cellspacing="0" border="0">
         <tr>
@@ -15,10 +19,10 @@
                        style="max-width:560px;background:#ffffff;border:1px solid #e6e9ef;">
 
                     <tr>
-                        <td style="padding:26px 30px 0;">
+                        <td style="padding:26px 30px 0;text-align:{{ $align }};">
                             @if ($logoUrl)
                                 <img src="{{ $logoUrl }}" alt="{{ $company }}"
-                                     style="max-width:180px;max-height:56px;display:block;border:0;">
+                                     style="max-width:180px;max-height:56px;display:block;border:0;@if ($align === 'center') margin:0 auto;@endif">
                             @else
                                 <div style="font-size:18px;font-weight:700;color:#111827;">{{ $company }}</div>
                             @endif
@@ -26,8 +30,8 @@
                     </tr>
 
                     <tr>
-                        <td style="padding:22px 30px 0;">
-                            <h1 style="margin:0 0 6px;font-size:19px;line-height:1.35;color:#111827;font-weight:650;">
+                        <td style="padding:22px 30px 0;text-align:{{ $align }};">
+                            <h1 style="margin:0 0 6px;font-size:19px;line-height:1.35;color:#111827;font-weight:600;">
                                 @yield('heading')
                             </h1>
                             <p style="margin:0;font-size:14px;line-height:1.6;color:#374151;">
@@ -53,10 +57,10 @@
 
                     @hasSection('cta')
                         <tr>
-                            <td style="padding:22px 30px 0;">
+                            <td style="padding:22px 30px 0;text-align:{{ $align }};">
                                 {{-- A table cell, not a styled <a>: Outlook ignores
                                      padding on inline elements. --}}
-                                <table role="presentation" cellpadding="0" cellspacing="0" border="0">
+                                <table role="presentation" cellpadding="0" cellspacing="0" border="0" align="{{ $align }}" @if ($align === 'center') style="margin:0 auto;" @endif>
                                     <tr>
                                         <td style="background:#f97316;">
                                             @yield('cta')
@@ -68,7 +72,7 @@
                     @endif
 
                     <tr>
-                        <td style="padding:22px 30px 26px;">
+                        <td style="padding:22px 30px 26px;text-align:{{ $align }};">
                             <p style="margin:0;font-size:13px;line-height:1.6;color:#374151;">
                                 @hasSection('note')
                                     @yield('note')
@@ -81,7 +85,7 @@
                     </tr>
 
                     <tr>
-                        <td style="padding:16px 30px;border-top:1px solid #e6e9ef;background:#fafbfc;">
+                        <td style="padding:16px 30px;border-top:1px solid #e6e9ef;background:#fafbfc;text-align:{{ $align }};">
                             <p style="margin:0;font-size:12px;line-height:1.6;color:#7b8493;">
                                 @if ($supportEmail)
                                     Questions? Write to
