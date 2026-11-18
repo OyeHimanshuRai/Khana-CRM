@@ -25,6 +25,8 @@ jobs:
             echo "HEAD: $(git rev-parse --short HEAD)  origin/main: $(git rev-parse --short origin/main)"
             echo "refs:"; git for-each-ref --format='  %(refname)' | head
             echo "commits naming the old company, all refs, BEFORE: $(git log --all -i -S'oldco' --oneline | wc -l)"
+            # The server only ever deploys main; drop its stale copies of the other branches.
+            for r in $(git for-each-ref --format='%(refname)' refs/remotes/origin | grep -vE 'origin/(main|HEAD)$'); do git update-ref -d "$r" && echo "dropped $r"; done
             git reflog expire --expire=now --all
             git gc --prune=now --quiet
             echo "commits naming the old company, all refs, AFTER:  $(git log --all -i -S'oldco' --oneline | wc -l)"
