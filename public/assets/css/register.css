@@ -41,8 +41,8 @@
 
 .rg-field-wide { grid-column: 1 / -1; }
 
-/* Level with the Plan and Billing boxes, which have a caption above them. */
-.rg-field-business { padding-top: 21px; }
+/* Same type as the captions over Plan and Billing, so the three boxes line up exactly. */
+.rg-label-spacer { display: block; visibility: hidden; margin: 0 0 5px; font-size: 12.5px; font-weight: 600; }
 .rg-field-address { grid-column: span 2; }
 
 /* ------------------------------------------------------------- fields */
@@ -344,7 +344,8 @@
     .rg-card { padding: 26px 26px 20px; }
     .rg-grid { grid-template-columns: repeat(2, minmax(0, 1fr)); }
     /* Plan | Billing on the first row, then the business name on a row of its own. */
-    .rg-field-business { grid-column: 1 / -1; padding-top: 0; }
+    .rg-field-business { grid-column: 1 / -1; }
+    .rg-label-spacer { display: none; }
 }
 
 /* ------------------------------------------------------------- phone */

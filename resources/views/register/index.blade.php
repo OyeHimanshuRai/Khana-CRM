@@ -107,6 +107,8 @@
                 </p>
 
                 <p class="lp-field field rg-field-business">
+                    {{-- Takes the height of the captions over Plan and Billing, so the three boxes start on one line. --}}
+                    <span class="rg-label-spacer" aria-hidden="true">&nbsp;</span>
                     <label for="r-business" class="rg-sr">Business name</label>
                     <input id="r-business" type="text" name="business_name" required maxlength="150" placeholder="Business name *"
                            value="{{ old('business_name') }}" autocomplete="organization"
