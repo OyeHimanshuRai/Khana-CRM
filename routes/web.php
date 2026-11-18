@@ -427,7 +427,7 @@ Route::prefix('superadmin')->name('admin.')->group(function () {
         ->middleware('auth')
         ->name('impersonate.stop');
 
-    Route::middleware(['auth', 'admin', 'email.confirmed', 'password.strong', 'tenant.active', 'shop.subscribed', 'module'])->group(function () {
+    Route::middleware(['auth', 'admin', 'email.confirmed', 'password.strong', 'tenant.active', 'shop.subscribed', 'module', 'fragment.page'])->group(function () {
         Route::get('/', fn () => redirect()->route('admin.dashboard'));
         Route::post('logout', [LoginController::class, 'destroy'])->name('logout');
 

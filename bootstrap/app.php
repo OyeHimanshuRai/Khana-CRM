@@ -57,6 +57,8 @@ return Application::configure(basePath: dirname(__DIR__))
             */
             'module' => \App\Http\Middleware\EnsureModuleIsEnabled::class,
             // "Do this once": a repeated or retried request with the same key gets the first answer.
+            // A dialog screen opened by URL gets the admin page around it.
+            'fragment.page' => \App\Http\Middleware\WrapModalFragment::class,
             'idempotent' => \App\Http\Middleware\EnsureIdempotent::class,
             'ip.allowed' => \App\Http\Middleware\EnsureIpNotBlocked::class,
             'customer.shop' => \App\Http\Middleware\EnsureCustomerBelongsToShop::class,
