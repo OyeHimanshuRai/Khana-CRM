@@ -124,14 +124,14 @@
 .rg-hint[data-plan-blurb] {
     display: block;
     margin-top: 6px;
-    padding: 6px 10px;
-    /* Not a pill: a few lines of text in a 999px curve looks like a blob. */
+    padding: 5px 10px;
+    border: 1px solid rgba(194, 65, 12, .2);
     border-radius: 6px;
-    border-left: 3px solid var(--lp-brand);
     background: rgba(194, 65, 12, .06);
     color: #8a3411;
-    font-weight: 400;
-    line-height: 1.45;
+    font-weight: 500;
+    line-height: 1.4;
+    text-align: center;
 }
 
 .rg-error { display: block; margin-top: 5px; font-size: 12.5px; color: #c4262e; }

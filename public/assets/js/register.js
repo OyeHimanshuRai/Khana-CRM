@@ -91,6 +91,7 @@
         var text = option ? (option.getAttribute('data-blurb') || '') : '';
 
         planBlurb.textContent = text;
+        planBlurb.title = option ? (option.getAttribute('data-full') || text) : '';
         planBlurb.hidden = text === '';
     }
 

@@ -46,9 +46,18 @@
     $chosenPlan = old('plan', $selected->slug);
     $chosenPeriod = old('period', $period);
     $chosen = $plans->firstWhere('slug', $chosenPlan);
-    $blurbOf = $chosen
-        ? trim(((int) $chosen->trial_days > 0 ? (int) $chosen->trial_days.'-day free trial. ' : '').$chosen->blurb)
-        : '';
+
+    // The one short line under the plan box: the trial, or failing that the blurb's first sentence.
+    // The whole description is kept as the tooltip.
+    $shortNote = function ($plan): string {
+        if ((int) $plan->trial_days > 0) {
+            return (int) $plan->trial_days.'-day free trial';
+        }
+
+        return \Illuminate\Support\Str::limit(trim(strtok((string) $plan->blurb, '.')), 44);
+    };
+    $blurbOf = $chosen ? $shortNote($chosen) : '';
+    $blurbTitle = $chosen ? trim(((int) $chosen->trial_days > 0 ? (int) $chosen->trial_days.'-day free trial. ' : '').$chosen->blurb) : '';
 @endphp
 
 <main class="rg-page">
@@ -88,12 +97,13 @@
                                 // Short enough not to be cut off in the box; the trial
                                 // and the description go in the line under it.
                                 $optionText = $p->name.' — ₹'.number_format($p->priceFor('monthly'), 0).'/mo';
-                                $optionNote = trim(((int) $p->trial_days > 0 ? (int) $p->trial_days.'-day free trial. ' : '').$p->blurb);
+                                $optionNote = $shortNote($p);
+                                $optionFull = trim(((int) $p->trial_days > 0 ? (int) $p->trial_days.'-day free trial. ' : '').$p->blurb);
                             @endphp
-                            <option value="{{ $p->slug }}" @selected($chosenPlan === $p->slug) data-blurb="{{ $optionNote }}">{{ $optionText }}</option>
+                            <option value="{{ $p->slug }}" @selected($chosenPlan === $p->slug) data-blurb="{{ $optionNote }}" data-full="{{ $optionFull }}">{{ $optionText }}</option>
                         @endforeach
                     </select>
-                    <span class="rg-hint" data-plan-blurb @if (! $blurbOf) hidden @endif>{{ $blurbOf }}</span>
+                    <span class="rg-hint" data-plan-blurb title="{{ $blurbTitle }}" @if (! $blurbOf) hidden @endif>{{ $blurbOf }}</span>
                     @error('plan')<span class="rg-error" role="alert">{{ $message }}</span>@enderror
                 </p>
 
