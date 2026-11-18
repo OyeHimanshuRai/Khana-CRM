@@ -20,7 +20,6 @@
     padding: 25px 36px 22px;
     background: var(--lp-surface);
     border: 1px solid var(--lp-line);
-    border-radius: 12px;
     box-shadow: 0 1px 2px rgba(0, 0, 0, .04), 0 14px 36px rgba(0, 0, 0, .06);
 }
 
@@ -353,7 +352,7 @@
 
 @media (max-width: 640px) {
     .rg-page { padding: 14px 10px 32px; }
-    .rg-card { padding: 20px 16px 16px; border-radius: 16px; }
+    .rg-card { padding: 20px 16px 16px; }
     .rg-head { margin-bottom: 16px; }
     .rg-grid { grid-template-columns: minmax(0, 1fr); gap: 12px; }
     .rg-field-wide,
