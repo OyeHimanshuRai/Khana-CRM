@@ -1,0 +1,32 @@
+name: Server inventory for cleanup (read-only, manual)
+
+# One-off helper, run by hand. Never runs on push. Reads only; changes nothing.
+
+on:
+  workflow_dispatch:
+
+jobs:
+  look:
+    name: Look around
+    runs-on: ubuntu-latest
+    steps:
+      - name: Inspect server
+        uses: appleboy/ssh-action@v1.0.3
+        with:
+          host: ${{ secrets.VPS_HOST }}
+          username: ${{ secrets.VPS_USER }}
+          key: ${{ secrets.VPS_SSH_KEY }}
+          port: ${{ secrets.VPS_PORT }}
+          script: |
+            echo "### A. the project folder's git state"
+            cd ${{ secrets.VPS_PROJECT_PATH }} && pwd && git remote -v | head -2 && git status --short | head -10 && echo "(end status)" && git log -1 --format='%h %s'
+            echo "### B. /var/www/khana-crm layout"
+            ls -la /var/www/khana-crm | head -15
+            readlink -f /var/www/khana-crm/current 2>/dev/null || echo "(no 'current' link)"
+            echo "### C. does a web server config point at that folder?"
+            grep -rIl "khana-crm" /etc/caddy /etc/Caddyfile /etc/nginx /etc/systemd/system 2>/dev/null | head || true
+            echo "### D. every file under /var/www/khana-crm that names the old company (excluding vendor)"
+            grep -rIil "oldco" /var/www/khana-crm --exclude-dir=vendor --exclude-dir=node_modules --exclude-dir=.git 2>/dev/null | sed -E 's#/releases/[0-9a-f]{8}[0-9a-f]*#/releases/<id>#' | sort | uniq -c | head -30
+            echo "### E. other site folders naming the old company"
+            for d in /var/www/*; do n=$(grep -rIil "oldco" "$d" --exclude-dir=vendor --exclude-dir=node_modules --exclude-dir=.git 2>/dev/null | wc -l); echo "$d: $n file(s)"; done
+            echo "### DONE"
