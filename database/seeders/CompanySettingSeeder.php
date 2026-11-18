@@ -51,7 +51,7 @@ class CompanySettingSeeder extends Seeder
 
             // Social Links
             'facebook_url' => '',
-            'twitter_url' => 'https://twitter.com/yourpage',
+            'twitter_url' => '',
             'linkedin_url' => '',
             'instagram_url' => '',
             'whatsapp_no' => '',
@@ -66,14 +66,14 @@ class CompanySettingSeeder extends Seeder
             // Address
             'address_line_1' => '',
             'address_line_2' => '',
-            'city' => 'Jaipur',
-            'zip_code' => '302004',
+            'city' => '',
+            'zip_code' => '',
             'country' => 'India',
-            'state' => 'Rajasthan',
+            'state' => '',
 
             // General
             'date_format' => 'd-M-Y',
-            'operation_hours' => '9.30 AM - 6.30 PM',
+            'operation_hours' => '',
 
             // SEO
             'meta_title_home' => 'RestroOne',

@@ -78,7 +78,8 @@ class CompanySettingsTest extends TestCase
         $this->actingAs($this->actor())
             ->get('/superadmin/settings/company')
             ->assertSee('RestroOne')
-            ->assertSee('302004');
+            ->assertDontSee('302004')
+            ->assertDontSee('oldco');
     }
 
     public function test_a_section_saves(): void
