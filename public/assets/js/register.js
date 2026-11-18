@@ -94,6 +94,56 @@
         planBlurb.hidden = text === '';
     }
 
+    /*
+     | Billing, as a Monthly / Yearly switch. The <select> stays the real
+     | control - it is what is submitted, and what is there without JavaScript -
+     | and is only hidden; the buttons just set its value.
+     */
+    var periodSelect = form.querySelector('[data-period-select]');
+
+    if (periodSelect) {
+        var seg = document.createElement('div');
+        seg.className = 'rg-seg';
+        seg.setAttribute('role', 'radiogroup');
+        seg.setAttribute('aria-label', 'Billing after trial');
+
+        var segButtons = Array.prototype.map.call(periodSelect.options, function (option) {
+            var button = document.createElement('button');
+            button.type = 'button';
+            button.setAttribute('role', 'radio');
+            button.dataset.value = option.value;
+            button.appendChild(document.createTextNode(option.value === 'yearly' ? 'Yearly' : 'Monthly'));
+
+            if (option.value === 'yearly') {
+                var tag = document.createElement('span');
+                tag.className = 'rg-seg-tag';
+                tag.textContent = 'Save';
+                button.appendChild(tag);
+            }
+
+            button.addEventListener('click', function () {
+                periodSelect.value = option.value;
+                paintSeg();
+            });
+
+            seg.appendChild(button);
+
+            return button;
+        });
+
+        var paintSeg = function () {
+            segButtons.forEach(function (button) {
+                button.setAttribute('aria-checked', button.dataset.value === periodSelect.value ? 'true' : 'false');
+            });
+        };
+
+        periodSelect.classList.add('rg-seg-source');
+        periodSelect.tabIndex = -1;
+        periodSelect.parentNode.insertBefore(seg, periodSelect.nextSibling);
+        periodSelect.addEventListener('change', paintSeg);
+        paintSeg();
+    }
+
     if (locationButton && locationLatitude && locationLongitude && locationDisplay && locationStatus) {
         locationButton.addEventListener('click', function () {
             if (!navigator.geolocation) {

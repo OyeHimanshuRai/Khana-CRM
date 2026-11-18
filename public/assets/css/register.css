@@ -1,101 +1,224 @@
 /* Sign-up page. Builds on landing.css (header, footer, buttons, .lp-field). */
 
-/* Keep the longer signup form compact without squeezing its inputs. */
-.rg-page { padding: 28px 16px 44px; }
-
-.rg-card {
-    max-width: 960px;
-    margin: 0 auto;
-    padding: 36px 40px 28px;
-    background: var(--lp-surface);
-    border: 1px solid var(--lp-line);
-    border-radius: 24px;
+/*
+ | One wide, compact card: three columns on a desktop, two on a tablet, one on a
+ | phone. Everything is sized from a handful of values here so the fields line
+ | up row after row.
+ */
+.rg-page {
+    --rg-h: 45px;
+    --rg-radius: 10px;
+    --rg-border: #d5d5db;
+    --rg-ring: rgba(194, 65, 12, .16);
+    padding: 22px 16px 40px;
 }
 
-.rg-head { text-align: center; margin-bottom: 26px; }
-.rg-head h1 { margin: 0 0 6px; font-size: clamp(30px, 4.2vw, 44px); font-weight: 650; letter-spacing: -.034em; line-height: 1.08; }
-.rg-head p { margin: 0; }
+.rg-card {
+    width: 100%;
+    max-width: 1120px;
+    margin: 0 auto;
+    padding: 28px 36px 22px;
+    background: var(--lp-surface);
+    border: 1px solid var(--lp-line);
+    border-radius: 20px;
+    box-shadow: 0 1px 2px rgba(0, 0, 0, .04), 0 14px 36px rgba(0, 0, 0, .06);
+}
+
+.rg-head { text-align: center; margin-bottom: 20px; }
+.rg-head h1 { margin: 0 0 4px; font-size: clamp(24px, 3vw, 32px); font-weight: 650; letter-spacing: -.03em; line-height: 1.15; }
+.rg-head p { margin: 0; font-size: 14.5px; }
 
 .rg-form { display: grid; gap: 16px; }
 
-.rg-grid { display: grid; grid-template-columns: repeat(3, minmax(0, 1fr)); gap: 18px 20px; }
+.rg-page .field { position: relative; }
+
+.rg-grid {
+    display: grid;
+    grid-template-columns: repeat(3, minmax(0, 1fr));
+    gap: 14px 18px;
+    align-items: start;
+}
+
 .rg-field-wide { grid-column: 1 / -1; }
 .rg-field-address { grid-column: span 2; }
 
-.rg-card .lp-field label { color: var(--lp-text); font-size: 13.5px; font-weight: 500; margin-bottom: 6px; }
+/* ------------------------------------------------------------- fields */
+
+.rg-card .lp-field label {
+    display: block;
+    margin: 0 0 5px;
+    color: #3a3a3f;
+    font-size: 12.5px;
+    font-weight: 600;
+    letter-spacing: .005em;
+}
+
 .rg-card .lp-field input,
 .rg-card .lp-field select {
     width: 100%;
-    height: 48px;
-    padding: 0 14px;
+    height: var(--rg-h);
+    /* landing.css gives every field a 48px minimum; the compact height wins here. */
+    min-height: var(--rg-h);
+    padding: 0 13px;
     background-color: #fff;
-    border: 1px solid #d2d2d7;
-    border-radius: 12px;
+    border: 1px solid var(--rg-border);
+    border-radius: var(--rg-radius);
     color: var(--lp-text);
     font: inherit;
-    /* 16px, so iOS does not zoom the page when a field takes focus. */
-    font-size: 16px;
-    transition: border-color .15s var(--lp-ease), box-shadow .15s var(--lp-ease);
+    font-size: 15px;
+    transition: border-color .15s var(--lp-ease), box-shadow .15s var(--lp-ease), background-color .15s var(--lp-ease);
 }
 
-.rg-card .lp-field input[type="file"] {
-    height: auto;
-    min-height: 48px;
-    padding: 7px 8px;
-    color: var(--lp-muted);
-    font-size: 14.5px;
-}
-
-/* The browser's own grey "Choose File" box, redrawn as one of our buttons. */
-.rg-card .lp-field input[type="file"]::file-selector-button {
-    margin-right: 12px;
-    padding: 8px 14px;
-    border: 0;
-    border-radius: 8px;
-    background: var(--lp-bg-alt);
-    color: var(--lp-text);
-    font: inherit;
-    font-size: 14px;
-    font-weight: 500;
-    cursor: pointer;
-    transition: background-color .15s var(--lp-ease);
-}
+.rg-card .lp-field input::placeholder { color: #9a9aa2; }
 
 @media (hover: hover) and (pointer: fine) {
-    .rg-card .lp-field input[type="file"]::file-selector-button:hover { background: #e8e8ed; }
-}
-
-.rg-optional { color: var(--lp-muted); font-size: 13px; font-weight: 400; }
-
-.rg-location-controls { display: flex; gap: 10px; }
-.rg-card .rg-location-controls input { min-width: 0; flex: 1; }
-.rg-location-button { min-height: 48px; flex: none; white-space: nowrap; display: inline-flex; align-items: center; justify-content: center; gap: 8px; }
-
-/* The native arrow is replaced by one drawn here, so the control reads the same
-   in every browser and sits where the text's own padding leaves room for it. */
-.rg-card .lp-field select {
-    padding-right: 40px;
-    cursor: pointer;
-    -webkit-appearance: none;
-    appearance: none;
-    background-image: url("data:image/svg+xml,%3Csvg xmlns='http://www.w3.org/2000/svg' width='16' height='16' viewBox='0 0 24 24' fill='none' stroke='%236e6e73' stroke-width='2' stroke-linecap='round' stroke-linejoin='round'%3E%3Cpath d='m6 9 6 6 6-6'/%3E%3C/svg%3E");
-    background-repeat: no-repeat;
-    background-position: right 14px center;
+    .rg-card .lp-field input:not([type="checkbox"]):not([readonly]):hover,
+    .rg-card .lp-field select:hover { border-color: #b4b4bd; }
 }
 
 .rg-card .lp-field input:focus-visible,
 .rg-card .lp-field select:focus-visible {
     outline: none;
-    border-color: #6e6e73;
-    box-shadow: 0 0 0 4px rgba(0, 0, 0, .07);
+    border-color: var(--lp-brand);
+    box-shadow: 0 0 0 3px var(--rg-ring);
 }
 
-.rg-card .lp-field select.is-invalid { border-color: #c4262e; }
+.rg-card .lp-field input[readonly] { background-color: var(--lp-bg-alt); color: var(--lp-muted); cursor: default; }
+.rg-card .lp-field select.is-invalid,
+.rg-card .lp-field input.is-invalid { border-color: #c4262e; }
 
-.rg-hint { display: block; margin-top: 6px; font-size: 13px; color: var(--lp-muted); line-height: 1.4; }
+/* The native arrow is replaced by one drawn here, so the control reads the same
+   in every browser and sits where the text's own padding leaves room for it. */
+.rg-card .lp-field select {
+    padding-right: 38px;
+    cursor: pointer;
+    -webkit-appearance: none;
+    appearance: none;
+    background-image: url("data:image/svg+xml,%3Csvg xmlns='http://www.w3.org/2000/svg' width='16' height='16' viewBox='0 0 24 24' fill='none' stroke='%236e6e73' stroke-width='2' stroke-linecap='round' stroke-linejoin='round'%3E%3Cpath d='m6 9 6 6 6-6'/%3E%3C/svg%3E");
+    background-repeat: no-repeat;
+    background-position: right 13px center;
+}
+
+.rg-optional { color: var(--lp-muted); font-size: 12px; font-weight: 400; }
+
+.rg-hint { display: block; margin-top: 5px; font-size: 12px; color: var(--lp-muted); line-height: 1.4; }
 .rg-hint[hidden] { display: none; }
 
-/* Mobile: the +91 sits inside the box, to the left. */
+/* The chosen plan's one line, as a small badge rather than loose grey text. */
+.rg-hint[data-plan-blurb] {
+    display: inline-block;
+    margin-top: 6px;
+    padding: 3px 9px;
+    border-radius: 999px;
+    background: rgba(194, 65, 12, .08);
+    color: var(--lp-brand);
+    font-weight: 500;
+}
+
+.rg-error { display: block; margin-top: 5px; font-size: 12.5px; color: #c4262e; }
+.rg-summary { margin: 0 0 16px; padding: 11px 16px 11px 32px; border-radius: 12px; background: rgba(196, 38, 46, .09); color: #c4262e; font-size: 14px; }
+
+/* ------------------------------------------------- billing, as a switch */
+
+/* register.js turns the Billing select into this and hides the select; without
+   JavaScript the select is simply the control. */
+.rg-card .lp-field select.rg-seg-source {
+    position: absolute;
+    width: 1px;
+    height: 1px;
+    min-height: 0;
+    padding: 0;
+    border: 0;
+    opacity: 0;
+    pointer-events: none;
+}
+
+.rg-seg {
+    display: grid;
+    grid-template-columns: 1fr 1fr;
+    gap: 4px;
+    height: var(--rg-h);
+    padding: 4px;
+    background: var(--lp-bg-alt);
+    border: 1px solid var(--lp-line);
+    border-radius: 12px;
+}
+
+.rg-seg button {
+    display: inline-flex;
+    align-items: center;
+    justify-content: center;
+    gap: 6px;
+    padding: 0 8px;
+    border: 0;
+    border-radius: 8px;
+    background: transparent;
+    color: var(--lp-muted);
+    font: inherit;
+    font-size: 14px;
+    font-weight: 600;
+    cursor: pointer;
+    transition: background-color .15s var(--lp-ease), color .15s var(--lp-ease), box-shadow .15s var(--lp-ease);
+}
+
+@media (hover: hover) and (pointer: fine) { .rg-seg button:hover { color: var(--lp-text); } }
+.rg-seg button:focus-visible { outline: none; box-shadow: 0 0 0 3px var(--rg-ring); }
+.rg-seg button[aria-checked="true"] { background: #fff; color: var(--lp-text); box-shadow: 0 1px 3px rgba(0, 0, 0, .14); }
+
+.rg-seg-tag {
+    padding: 1px 6px;
+    border-radius: 999px;
+    background: rgba(48, 164, 108, .14);
+    color: #1f7a4d;
+    font-size: 10.5px;
+    font-weight: 700;
+    letter-spacing: .02em;
+    text-transform: uppercase;
+}
+
+/* ----------------------------------------------------- location, logo */
+
+.rg-location-controls { display: flex; gap: 10px; }
+.rg-card .rg-location-controls input { min-width: 0; flex: 1; }
+.rg-location-button { min-height: var(--rg-h); padding-block: 0; flex: none; white-space: nowrap; display: inline-flex; align-items: center; justify-content: center; gap: 8px; border-radius: var(--rg-radius); }
+
+/* The file box, as a drop area. */
+.rg-card .lp-field input[type="file"] {
+    height: auto;
+    min-height: 50px;
+    padding: 8px 10px;
+    background: #fafafb;
+    border: 1.5px dashed #c6c6ce;
+    color: var(--lp-muted);
+    font-size: 14px;
+    cursor: pointer;
+}
+
+@media (hover: hover) and (pointer: fine) {
+    .rg-card .lp-field input[type="file"]:hover { border-color: var(--lp-brand); background: rgba(194, 65, 12, .04); }
+}
+
+.rg-card .lp-field input[type="file"]::file-selector-button {
+    margin-right: 12px;
+    padding: 7px 14px;
+    border: 1px solid var(--rg-border);
+    border-radius: 8px;
+    background: #fff;
+    color: var(--lp-text);
+    font: inherit;
+    font-size: 13.5px;
+    font-weight: 600;
+    cursor: pointer;
+    transition: border-color .15s var(--lp-ease), color .15s var(--lp-ease);
+}
+
+@media (hover: hover) and (pointer: fine) {
+    .rg-card .lp-field input[type="file"]::file-selector-button:hover { border-color: var(--lp-brand); color: var(--lp-brand); }
+}
+
+/* ------------------------------------------------------------- phone */
+
+/* The +91 sits inside the box, to the left. */
 .rg-phone { display: flex; align-items: stretch; }
 
 .rg-prefix {
@@ -104,81 +227,131 @@
     gap: 6px;
     padding: 0 10px;
     background: var(--lp-bg-alt);
-    border: 1px solid #d2d2d7;
+    border: 1px solid var(--rg-border);
     border-right: 0;
-    border-radius: 12px 0 0 12px;
-    font-size: 15px;
+    border-radius: var(--rg-radius) 0 0 var(--rg-radius);
+    font-size: 14.5px;
     color: var(--lp-text);
     white-space: nowrap;
 }
 
 .rg-flag { display: block; border-radius: 2px; box-shadow: 0 0 0 1px rgba(0, 0, 0, .08); }
 
-.rg-card .rg-phone input { border-radius: 0 12px 12px 0; min-width: 0; }
+.rg-card .rg-phone input { border-radius: 0 var(--rg-radius) var(--rg-radius) 0; min-width: 0; }
 
-/* Password with an eye inside the field (app.js data-toggle-password + data-toggle-icon). */
+/* ---------------------------------------------------------- password */
+
+/* An eye inside the field (app.js data-toggle-password + data-toggle-icon). */
 .rg-password { position: relative; display: block; }
 .rg-card .rg-password input { padding-right: 44px; }
 
 .rg-reveal {
     position: absolute;
     top: 50%;
-    right: 6px;
+    right: 5px;
     transform: translateY(-50%);
     display: grid;
     place-items: center;
-    width: 36px;
-    height: 36px;
+    width: 34px;
+    height: 34px;
     padding: 0;
     border: 0;
     border-radius: 8px;
     background: transparent;
     color: var(--lp-muted);
     cursor: pointer;
+    transition: color .15s var(--lp-ease), background-color .15s var(--lp-ease);
 }
 
-@media (hover: hover) and (pointer: fine) { .rg-reveal:hover { color: var(--lp-text); } }
-.rg-reveal:focus-visible { outline: none; color: var(--lp-text); box-shadow: 0 0 0 3px rgba(194, 65, 12, .2); }
+@media (hover: hover) and (pointer: fine) { .rg-reveal:hover { color: var(--lp-text); background: var(--lp-bg-alt); } }
+.rg-reveal:focus-visible { outline: none; color: var(--lp-text); box-shadow: 0 0 0 3px var(--rg-ring); }
 
 .rg-eye-off { display: none; }
 .rg-reveal.is-revealed .rg-eye { display: none; }
 .rg-reveal.is-revealed .rg-eye-off { display: block; }
 
-.rg-error { display: block; margin-top: 6px; font-size: 13px; color: #c4262e; }
-.rg-summary { margin: 0 0 18px; padding: 12px 16px 12px 32px; border-radius: 12px; background: rgba(196, 38, 46, .09); color: #c4262e; }
+/* ------------------------------------------------------------- terms */
 
-.rg-terms { display: flex; align-items: flex-start; gap: 10px; font-size: 15px; line-height: 1.5; cursor: pointer; }
-.rg-terms input { margin-top: 3px; width: 18px; height: 18px; flex: none; accent-color: var(--lp-brand); }
+/* Beside the password: its box is as tall as the password's, and it sits level with it. */
+.rg-terms-cell { grid-column: span 2; align-self: end; }
+
+.rg-terms {
+    display: flex;
+    align-items: center;
+    gap: 10px;
+    min-height: var(--rg-h);
+    font-size: 14px;
+    line-height: 1.45;
+    cursor: pointer;
+}
+
+.rg-terms input { width: 18px; height: 18px; flex: none; accent-color: var(--lp-brand); }
 .rg-terms a { color: var(--lp-text); font-weight: 600; text-underline-offset: 2px; }
 
-.rg-submit { width: min(280px, 100%); justify-self: center; text-align: center; display: inline-flex; align-items: center; justify-content: center; gap: 9px; }
+/* ------------------------------------------------------------ submit */
+
+.rg-submit {
+    width: min(320px, 100%);
+    min-height: 46px;
+    justify-self: center;
+    text-align: center;
+    display: inline-flex;
+    align-items: center;
+    justify-content: center;
+    gap: 9px;
+    border-radius: 12px;
+    transition: transform .15s var(--lp-ease), box-shadow .15s var(--lp-ease), opacity .15s var(--lp-ease);
+}
+
+@media (hover: hover) and (pointer: fine) {
+    .rg-submit:not(:disabled):hover { transform: translateY(-1px); box-shadow: 0 8px 20px rgba(194, 65, 12, .28); }
+}
+
+.rg-submit:focus-visible { outline: none; box-shadow: 0 0 0 4px var(--rg-ring); }
 
 .rg-foot {
-    margin: 18px 0 0;
-    padding-top: 14px;
+    margin: 14px 0 0;
+    padding-top: 12px;
     border-top: 1px solid var(--lp-line);
     text-align: center;
-    font-size: 15px;
+    font-size: 14px;
     color: var(--lp-muted);
 }
 
 .rg-foot a { color: var(--lp-brand); font-weight: 600; text-decoration: none; }
 @media (hover: hover) and (pointer: fine) { .rg-foot a:hover { text-decoration: underline; text-underline-offset: 2px; } }
 
-@media (max-width: 760px) {
-    .rg-card { padding: 26px 24px 22px; }
-    .rg-grid { grid-template-columns: repeat(2, minmax(0, 1fr)); gap: 13px 16px; }
-    .rg-field-address { grid-column: 1 / -1; }
-}
-
-@media (max-width: 640px) {
-    .rg-page { padding: 18px 12px 36px; }
-    .rg-card { padding: 24px 18px 20px; border-radius: 20px; }
-    .rg-grid { grid-template-columns: minmax(0, 1fr); gap: 12px; }
-    .rg-field-wide,
-    .rg-field-address { grid-column: auto; }
-    .rg-submit { width: 100%; }
-}
-
 /* A field that passed after failing: a quiet confirmation, not a celebration. */
 .lp-field input.is-valid { border-color: #30a46c; }
+
+/* ------------------------------------------------------------ tablet */
+
+@media (max-width: 1000px) {
+    .rg-card { padding: 26px 26px 20px; }
+    .rg-grid { grid-template-columns: repeat(2, minmax(0, 1fr)); }
+    /* Plan | Billing on the first row, then the business name on a row of its own. */
+    .rg-field-business { grid-column: 1 / -1; }
+}
+
+/* ------------------------------------------------------------- phone */
+
+@media (max-width: 640px) {
+    .rg-page { padding: 14px 10px 32px; }
+    .rg-card { padding: 20px 16px 16px; border-radius: 16px; }
+    .rg-head { margin-bottom: 16px; }
+    .rg-grid { grid-template-columns: minmax(0, 1fr); gap: 12px; }
+    .rg-field-wide,
+    .rg-field-address,
+    .rg-field-business,
+    .rg-terms-cell { grid-column: auto; }
+
+    /* 16px, so iOS does not zoom the page when a field takes focus. */
+    .rg-card .lp-field input,
+    .rg-card .lp-field select { font-size: 16px; }
+
+    /* Full-width controls. */
+    .rg-location-controls { flex-direction: column; }
+    .rg-location-button { width: 100%; }
+    .rg-submit { width: 100%; }
+    .rg-terms-cell { align-self: stretch; }
+}

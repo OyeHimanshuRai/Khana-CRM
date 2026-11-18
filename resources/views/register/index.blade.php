@@ -1,9 +1,10 @@
 {{--
     Self-service sign-up.
 
-    One card, two columns: the plan and how to be billed as dropdowns, then
-    the business and the person, then the terms. Collapses to one column on
-    a phone.
+    One wide card on a three-column grid (two on a tablet, one on a phone):
+    plan, billing and business name; the address; the location and logo; then
+    the person and the terms. Plan and billing stay real <select>s - the
+    billing one is dressed as a Monthly/Yearly switch by register.js.
 
     With JavaScript: register.js checks every field as it is filled in, and
     app.js posts the form without a reload - server errors land on the field
@@ -52,7 +53,7 @@
 <main class="rg-page">
     <div class="rg-card">
         <header class="rg-head">
-            <h1>Register</h1>
+            <h1>Create your RestroOne account</h1>
             <p class="lp-meta">Start your free trial. No card needed.</p>
         </header>
 
@@ -96,15 +97,15 @@
                 </p>
 
                 <p class="lp-field field">
-                    <label for="r-period">After the trial, bill me</label>
-                    <select id="r-period" name="period" required>
+                    <label for="r-period">Billing after trial</label>
+                    <select id="r-period" name="period" required data-period-select>
                         <option value="monthly" @selected($chosenPeriod === 'monthly')>Monthly</option>
                         <option value="yearly" @selected($chosenPeriod === 'yearly')>Yearly (cheaper per month)</option>
                     </select>
-                    <span class="rg-hint">GST extra. Change or cancel whenever you like.</span>
+                    <span class="rg-hint">GST extra. Cancel anytime.</span>
                 </p>
 
-                <p class="lp-field field">
+                <p class="lp-field field rg-field-business">
                     <label for="r-business">Business name</label>
                     <input id="r-business" type="text" name="business_name" required maxlength="150"
                            value="{{ old('business_name') }}" autocomplete="organization"
@@ -162,7 +163,7 @@
                     <input type="hidden" name="latitude" value="{{ old('latitude') }}" data-location-latitude>
                     <input type="hidden" name="longitude" value="{{ old('longitude') }}" data-location-longitude>
                     <span class="rg-hint" id="r-location-hint" data-location-status role="status">
-                        Allow location access to save the business GPS coordinates. Enter the postal address above.
+                        Optional. Saves the business GPS coordinates; the postal address above is what counts.
                     </span>
                     @error('latitude')<span class="rg-error" role="alert">{{ $message }}</span>@enderror
                     @error('longitude')<span class="rg-error" role="alert">{{ $message }}</span>@enderror
@@ -218,26 +219,25 @@
                     <label for="r-password">Password</label>
                     <span class="rg-password">
                         <input id="r-password" type="password" name="password" required minlength="8"
-                               autocomplete="new-password"
+                               autocomplete="new-password" placeholder="8+ characters, letters and numbers"
                                aria-invalid="{{ $errors->has('password') ? 'true' : 'false' }}">
                         @include('register._eye', ['for' => 'r-password'])
                     </span>
-                    <span class="rg-hint">At least 8 characters, with letters and numbers.</span>
                     @error('password')<span class="rg-error" role="alert">{{ $message }}</span>@enderror
                 </p>
-            </div>
 
-            <div class="rg-terms-row">
-                <label class="rg-terms">
-                    <input type="checkbox" name="terms" value="1" @checked(old('terms')) required>
-                    <span>
-                        I have read and agree to the
-                        @if ($terms)<a href="{{ route('page.show', $terms->slug) }}" target="_blank" rel="noopener">{{ $terms->title }}</a>@else terms of use @endif
-                        and
-                        @if ($privacy)<a href="{{ route('page.show', $privacy->slug) }}" target="_blank" rel="noopener">{{ $privacy->title }}</a>@else privacy policy @endif.
-                    </span>
-                </label>
-                @error('terms')<span class="rg-error" role="alert">{{ $message }}</span>@enderror
+                <div class="rg-terms-cell">
+                    <label class="rg-terms">
+                        <input type="checkbox" name="terms" value="1" @checked(old('terms')) required>
+                        <span>
+                            I agree to the
+                            @if ($terms)<a href="{{ route('page.show', $terms->slug) }}" target="_blank" rel="noopener">{{ $terms->title }}</a>@else<span>terms of use</span>@endif
+                            and
+                            @if ($privacy)<a href="{{ route('page.show', $privacy->slug) }}" target="_blank" rel="noopener">{{ $privacy->title }}</a>@else<span>privacy policy</span>@endif.
+                        </span>
+                    </label>
+                    @error('terms')<span class="rg-error" role="alert">{{ $message }}</span>@enderror
+                </div>
             </div>
 
             <button type="submit" class="lp-btn lp-btn-solid lp-btn-lg rg-submit">
