@@ -3,10 +3,7 @@
 @section('title', 'Forgot your password')
 
 @section('content')
-    <x-brand />
-
-    <h1>Forgot your password?</h1>
-    <p class="lede">Enter the email you sign in with and we will send you a link to choose a new one.</p>
+    <x-auth-head title="Forgot your password?" lede="We will email you a link to choose a new one." />
 
     @if (session('status'))
         <div class="alert alert-success" role="status">{{ session('status') }}</div>

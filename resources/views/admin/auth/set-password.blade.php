@@ -3,11 +3,7 @@
 @section('title', 'Set your password')
 
 @section('content')
-    {{-- Uploaded Site Logo when there is one, lettermark otherwise. --}}
-    <x-brand />
-
-    <h1>Set your password</h1>
-    <p class="lede">Choose a password for your account, then sign in.</p>
+    <x-auth-head title="Set your password" lede="Choose a password for your account, then sign in." />
 
     {{-- With JavaScript on, these are delivered as toasts instead. --}}
     <noscript>

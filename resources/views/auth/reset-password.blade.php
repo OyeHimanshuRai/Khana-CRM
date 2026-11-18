@@ -3,10 +3,7 @@
 @section('title', 'Choose a new password')
 
 @section('content')
-    <x-brand />
-
-    <h1>Choose a new password</h1>
-    <p class="lede">You will be signed out on every other device.</p>
+    <x-auth-head title="Choose a new password" lede="You will be signed out on every other device." />
 
     <form method="POST" action="{{ route('password.update') }}" data-ajax novalidate>
         @csrf

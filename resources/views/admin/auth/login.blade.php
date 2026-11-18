@@ -6,14 +6,7 @@
             {{-- Uploaded Site Logo when there is one, lettermark otherwise.
                  The platform owner's door only: restaurants sign in at /login,
                  and each door refuses the other's accounts. --}}
-            @php $siteLogo = \App\Support\CompanySettings::fileUrl('site_logo'); @endphp
-            @if ($siteLogo)
-                <img src="{{ $siteLogo }}" alt="{{ \App\Models\Setting::get('company_name', config('app.name')) }}" class="auth-logo">
-            @else
-                <x-brand sub="" class="auth-logo-brand" />
-            @endif
-
-            <h1 class="auth-title">Platform admin sign in</h1>
+            <x-auth-head title="Platform admin sign in" />
 
             {{-- With JavaScript on, these are delivered as toasts instead. --}}
             <noscript>
