@@ -6,10 +6,14 @@
             {{-- Uploaded Site Logo when there is one, lettermark otherwise.
                  The platform owner's door only: restaurants sign in at /login,
                  and each door refuses the other's accounts. --}}
-            <x-brand />
+            @php $siteLogo = \App\Support\CompanySettings::fileUrl('site_logo'); @endphp
+            @if ($siteLogo)
+                <img src="{{ $siteLogo }}" alt="{{ \App\Models\Setting::get('company_name', config('app.name')) }}" class="auth-logo">
+            @else
+                <x-brand sub="" class="auth-logo-brand" />
+            @endif
 
-            <h1>Platform admin sign in</h1>
-            <p class="lede">For the platform owner only.</p>
+            <h1 class="auth-title">Platform admin sign in</h1>
 
             {{-- With JavaScript on, these are delivered as toasts instead. --}}
             <noscript>
@@ -83,7 +87,6 @@
                 <button type="submit" class="btn btn-primary btn-block btn-lg">Sign in</button>
             </form>
 
-            <p class="foot">Authorised personnel only. Activity may be monitored.</p>
 @endsection
 
 {{-- The Show/Hide button is wired by app.js, delegated for the whole app. --}}

@@ -1200,14 +1200,16 @@ html { scroll-behavior: smooth; }
     text-decoration: none;
 }
 
-.lp-auth-brand img { display: block; width: auto; max-width: min(100%, 220px); max-height: 44px; object-fit: contain; object-position: left center; }
-.lp-auth-card h1 { margin: 0 0 6px; font-size: var(--ui-fs-page); font-weight: var(--ui-fw-semibold); letter-spacing: -.02em; line-height: 1.25; }
+.lp-auth-brand img { display: block; width: auto; max-width: min(100%, 220px); max-height: 44px; object-fit: contain; object-position: center; }
+.lp-auth-card h1 { margin: 0 0 18px; text-align: center; font-size: var(--ui-fs-page); font-weight: var(--ui-fw-semibold); letter-spacing: -.02em; line-height: 1.25; }
 .lp-auth-card > .lp-meta { margin: 0 0 20px; }
 .lp-auth-card form { display: grid; gap: 14px; }
+/* The logo sits centred over the heading. */
+.lp-auth-card .lp-auth-brand { display: flex; justify-content: center; width: 100%; }
 .lp-auth-check { display: flex; align-items: center; gap: 10px; min-height: 44px; font-size: 14.5px; cursor: pointer; }
 .lp-auth-check input { width: 18px; height: 18px; accent-color: var(--lp-brand); }
 .lp-auth-submit { width: 100%; text-align: center; }
-.lp-auth-card > .lp-auth-foot { margin: 20px 0 0; color: var(--lp-muted); }
+.lp-auth-card > .lp-auth-foot { margin: 20px 0 0; color: var(--lp-muted); text-align: center; }
 .lp-auth-foot a { color: var(--lp-brand); font-weight: 600; }
 .lp-auth-password { position: relative; display: block; }
 .lp-auth-password input { padding-right: 64px; }

@@ -45,9 +45,7 @@
                     <span>{{ $site['name'] }}</span>
                 @endif
             </a>
-            <p class="lp-eyebrow">For restaurants</p>
             <h1>Sign in to your restaurant</h1>
-            <p class="lp-meta">Owners and staff: billing, tables, kitchen and reports.</p>
 
             @if (session('status'))
                 <p class="lp-demo-thanks" role="status">{{ session('status') }}</p>

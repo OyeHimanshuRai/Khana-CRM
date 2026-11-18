@@ -2137,6 +2137,11 @@ body.sidebar-collapsed .sidebar .brand-mark.has-logo {
 .brand-sub { font-size: 12px; color: var(--muted); }
 
 .auth-card .brand { margin-bottom: 26px; }
+
+/* The Super Admin sign-in: wide logo (or the brand) centred over a centred heading. */
+.auth-card .auth-logo { display: block; width: auto; height: 44px; max-width: 220px; margin: 0 auto 18px; object-fit: contain; }
+.auth-card .auth-logo-brand { justify-content: center; margin-bottom: 18px; }
+.auth-card h1.auth-title { margin: 0 0 20px; text-align: center; }
 .auth-card .lede { margin: 4px 0 22px; color: var(--muted); font-size: 12.5px; }
 
 .pw-wrap { position: relative; }
