@@ -25,8 +25,10 @@ jobs:
             set -e
             cd ${{ secrets.VPS_PROJECT_PATH }}
 
-            # Pull latest code
-            git pull origin main
+            # Take exactly what is on GitHub. A plain `git pull` would try to merge
+            # if the branch history is ever rewritten; this always lands on origin/main.
+            git fetch origin main
+            git reset --hard origin/main
 
             # Install/update PHP dependencies
             composer install --no-dev --optimize-autoloader --no-interaction
