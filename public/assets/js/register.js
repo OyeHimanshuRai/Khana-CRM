@@ -148,12 +148,12 @@
     if (locationButton && locationLatitude && locationLongitude && locationDisplay && locationStatus) {
         locationButton.addEventListener('click', function () {
             if (!navigator.geolocation) {
-                locationStatus.textContent = 'Location is not supported by this browser. You can still enter the address above.';
+                locationStatus.textContent = 'Location is not supported by this browser. You can still enter the address above.'; locationStatus.hidden = false;
                 return;
             }
 
             locationButton.disabled = true;
-            locationStatus.textContent = 'Getting your current location…';
+            locationStatus.textContent = 'Getting your current location…'; locationStatus.hidden = false;
 
             navigator.geolocation.getCurrentPosition(function (position) {
                 var latitude = position.coords.latitude.toFixed(7);
@@ -162,7 +162,7 @@
                 locationLatitude.value = latitude;
                 locationLongitude.value = longitude;
                 locationDisplay.value = latitude + ', ' + longitude;
-                locationStatus.textContent = 'Location saved. Your GPS coordinates will be stored with the business.';
+                locationStatus.textContent = 'Location saved. Your GPS coordinates will be stored with the business.'; locationStatus.hidden = false;
                 locationButton.disabled = false;
             }, function (error) {
                 var message = error.code === error.PERMISSION_DENIED
@@ -171,7 +171,7 @@
                         ? 'Your location could not be determined. Enter the address above and try again.'
                         : 'Location request timed out. Please try again or enter the address above.';
 
-                locationStatus.textContent = message;
+                locationStatus.textContent = message; locationStatus.hidden = false;
                 locationButton.disabled = false;
             }, {
                 enableHighAccuracy: true,
@@ -184,9 +184,8 @@
     if (logoInput && logoName) {
         logoInput.addEventListener('change', function () {
             var file = logoInput.files && logoInput.files[0];
-            logoName.textContent = file
-                ? file.name + ' · ' + (file.size / 1024 / 1024).toFixed(2) + ' MB'
-                : 'JPG, PNG or WebP · up to 2 MB · used on invoices.';
+            logoName.textContent = file ? file.name + ' · ' + (file.size / 1024 / 1024).toFixed(2) + ' MB' : '';
+            logoName.hidden = !file;
         });
     }
 

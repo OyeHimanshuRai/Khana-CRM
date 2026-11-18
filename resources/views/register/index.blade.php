@@ -118,7 +118,6 @@
                         <option value="monthly" @selected($chosenPeriod === 'monthly')>Monthly</option>
                         <option value="yearly" @selected($chosenPeriod === 'yearly')>Yearly (cheaper per month)</option>
                     </select>
-                    <span class="rg-hint">GST extra. Cancel anytime.</span>
                 </p>
 
                 <p class="lp-field field rg-field-business">
@@ -187,9 +186,8 @@
                     </div>
                     <input type="hidden" name="latitude" value="{{ old('latitude') }}" data-location-latitude>
                     <input type="hidden" name="longitude" value="{{ old('longitude') }}" data-location-longitude>
-                    <span class="rg-hint" id="r-location-hint" data-location-status role="status">
-                        Optional. Saves the business GPS coordinates; the postal address above is what counts.
-                    </span>
+                    {{-- Empty until the button is used; then it says what happened. --}}
+                    <span class="rg-hint" id="r-location-hint" data-location-status role="status" hidden></span>
                     @error('latitude')<span class="rg-error" role="alert">{{ $message }}</span>@enderror
                     @error('longitude')<span class="rg-error" role="alert">{{ $message }}</span>@enderror
                 </div>
@@ -198,7 +196,7 @@
                     <label for="r-logo">Business logo <span class="rg-optional">(optional)</span></label>
                     <input id="r-logo" type="file" name="logo" accept="image/jpeg,image/png,image/webp"
                            aria-describedby="r-logo-hint" data-logo-input>
-                    <span class="rg-hint" id="r-logo-hint" data-logo-name>JPG, PNG or WebP · up to 2 MB · used on invoices.</span>
+                    <span class="rg-hint" id="r-logo-hint" data-logo-name hidden></span>
                     @error('logo')<span class="rg-error" role="alert">{{ $message }}</span>@enderror
                 </p>
 
@@ -215,7 +213,6 @@
                     <input id="r-email" type="email" name="email" required maxlength="150" placeholder="Email address *"
                            value="{{ old('email') }}" autocomplete="email" inputmode="email"
                            aria-invalid="{{ $errors->has('email') ? 'true' : 'false' }}">
-                    <span class="rg-hint">You will sign in with this.</span>
                     @error('email')<span class="rg-error" role="alert">{{ $message }}</span>@enderror
                 </p>
 
