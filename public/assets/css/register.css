@@ -80,11 +80,11 @@
     border-radius: var(--rg-radius);
     color: var(--lp-text);
     font: inherit;
-    font-size: 15px;
+    font-size: 14px;
     transition: border-color .15s var(--lp-ease), box-shadow .15s var(--lp-ease), background-color .15s var(--lp-ease);
 }
 
-.rg-card .lp-field input::placeholder { color: #7c7c85; letter-spacing: .01em; }
+.rg-card .lp-field input::placeholder { color: #8a8a93; font-size: 14px; letter-spacing: 0; opacity: 1; }
 
 @media (hover: hover) and (pointer: fine) {
     .rg-card .lp-field input:not([type="checkbox"]):not([readonly]):hover,
@@ -260,7 +260,7 @@
     border: 1px solid var(--rg-border);
     border-right: 0;
     border-radius: var(--rg-radius) 0 0 var(--rg-radius);
-    font-size: 14.5px;
+    font-size: 14px;
     color: var(--lp-text);
     white-space: nowrap;
 }
@@ -377,6 +377,7 @@
     /* 16px, so iOS does not zoom the page when a field takes focus. */
     .rg-card .lp-field input,
     .rg-card .lp-field select { font-size: 16px; }
+    .rg-card .lp-field input::placeholder { font-size: 14px; }
 
     /* Full-width controls. */
     .rg-submit { width: 100%; }
