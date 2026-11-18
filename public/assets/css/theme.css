@@ -20,9 +20,9 @@
 
 /* ------------------------------------------------------------- tokens */
 :root {
-    --sidebar-w: 248px;
-    --sidebar-w-collapsed: 76px;
-    --header-h: 56px;
+    --sidebar-w: 220px;
+    --sidebar-w-collapsed: 64px;
+    --header-h: 50px;
 
     /*
      | Shape. One place sets how round the whole product is; set all five to 0
@@ -359,10 +359,10 @@ button, [role="button"], .btn, .badge {
     padding: 0 14px;
     min-height: var(--control-h);
     font: inherit;
-    font-size: 13px;
+    font-size: 12.5px;
     font-weight: 500;
     line-height: 1.2;
-    letter-spacing: -.005em;
+    letter-spacing: 0;
     color: var(--heading);
     background: var(--panel);
     border: 1px solid var(--border-strong);
@@ -424,7 +424,7 @@ button, [role="button"], .btn, .badge {
     color: var(--on-brand);
     background: var(--brand-strong);
     border-color: transparent;
-    font-weight: 600;
+    font-weight: 500;
     box-shadow: none;
 }
 
@@ -730,7 +730,7 @@ input[type="checkbox"]:disabled, input[type="radio"]:disabled { opacity: .5; cur
     border-bottom: 1px solid var(--rule);
 }
 
-.card-title { font-size: 15px; font-weight: 600; letter-spacing: -.01em; color: var(--heading); }
+.card-title { font-size: 14px; font-weight: 600; letter-spacing: -.005em; color: var(--heading); }
 .card-body { padding: 20px; }
 .card-footer { padding: 14px 20px; border-top: 1px solid var(--rule); }
 
@@ -744,7 +744,7 @@ input[type="checkbox"]:disabled, input[type="radio"]:disabled { opacity: .5; cur
 .stat-grid {
     display: grid;
     grid-template-columns: repeat(auto-fit, minmax(210px, 1fr));
-    gap: 16px;
+    gap: 12px;
     margin-bottom: 20px;
 }
 
@@ -754,12 +754,13 @@ input[type="checkbox"]:disabled, input[type="radio"]:disabled { opacity: .5; cur
     grid-template-columns: auto minmax(0, 1fr);
     align-items: center;
     column-gap: 8px;
-    row-gap: 8px;
+    row-gap: 6px;
     min-width: 0;
-    padding: 16px 18px 17px;
+    padding: 13px 16px 14px;
     background: var(--panel);
     border: 1px solid var(--border);
     border-radius: var(--radius-lg);
+    box-shadow: none;
 }
 
 /*
@@ -782,15 +783,15 @@ input[type="checkbox"]:disabled, input[type="radio"]:disabled { opacity: .5; cur
 .stat-body { display: contents; }
 .stat-body > * { grid-column: 1 / -1; }
 .stat-icon + .stat-body > .stat-label { grid-column: 2; }
-.stat-label { font-size: 13px; font-weight: 500; color: var(--muted); }
+.stat-label { font-size: 12.5px; font-weight: 500; color: var(--muted); }
 
 .stat-value {
-    font-size: 26px;
+    font-size: 24px;
     font-weight: 600;
     letter-spacing: -.024em;
     font-variant-numeric: tabular-nums;
     color: var(--heading);
-    line-height: 1.15;
+    line-height: 1.1;
 }
 
 .stat-trend {
@@ -1196,7 +1197,7 @@ th.num { text-align: right; }
 }
 
 .sec-identity { display: flex; align-items: flex-start; gap: 16px; min-width: 0; }
-.sec-name { font-size: 16px; font-weight: 650; color: var(--heading); }
+.sec-name { font-size: 16px; font-weight: 600; color: var(--heading); }
 
 .sec-facts {
     display: grid;
@@ -1212,7 +1213,7 @@ th.num { text-align: right; }
 .sec-facts dd {
     margin: 0;
     font-size: 14px;
-    font-weight: 650;
+    font-weight: 600;
     color: var(--heading);
 }
 
@@ -1414,7 +1415,7 @@ th.num { text-align: right; }
     border-radius: 8px;
     color: var(--heading);
     font-size: 13px;
-    font-weight: 650;
+    font-weight: 600;
     cursor: pointer;
     list-style: none;
 }
@@ -1601,7 +1602,7 @@ th.num { text-align: right; }
 }
 
 .page-header .page-title { font-size: 24px; font-weight: 600; letter-spacing: -.024em; line-height: 1.15; }
-.page-header .page-sub { font-size: 14px; color: var(--muted); margin-top: 4px; letter-spacing: -.006em; }
+.page-header .page-sub { font-size: 13px; color: var(--muted); margin-top: 4px; letter-spacing: -.006em; }
 .page-actions { display: flex; align-items: center; gap: 8px; flex-wrap: wrap; }
 
 .breadcrumb {
@@ -1947,7 +1948,7 @@ th.num { text-align: right; }
 }
 
 .pmatrix-module-label {
-    font-weight: 650;
+    font-weight: 600;
     color: var(--heading);
 }
 
@@ -2046,7 +2047,7 @@ th.num { text-align: right; }
     background: var(--info-soft);
     color: var(--info);
     font-size: 9px;
-    font-weight: 800;
+    font-weight: 600;
 }
 
 .pmatrix-empty {
@@ -2092,7 +2093,7 @@ th.num { text-align: right; }
     display: grid;
     place-items: center;
     font-size: 14px;
-    font-weight: 700;
+    font-weight: 600;
     letter-spacing: .5px;
 }
 
@@ -2132,7 +2133,7 @@ body.sidebar-collapsed .sidebar .brand-mark.has-logo {
     max-width: 40px;
 }
 
-.brand-name { font-weight: 650; color: var(--heading); line-height: 1.25; }
+.brand-name { font-weight: 600; color: var(--heading); line-height: 1.25; }
 .brand-sub { font-size: 12px; color: var(--muted); }
 
 .auth-card .brand { margin-bottom: 26px; }

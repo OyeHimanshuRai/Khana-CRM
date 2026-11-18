@@ -38,8 +38,8 @@
     flex: none;
     display: flex;
     align-items: center;
-    gap: 11px;
-    padding: 0 18px;
+    gap: 10px;
+    padding: 0 14px;
     overflow: hidden;
 }
 
@@ -52,7 +52,7 @@
     flex: 1 1 auto;
     overflow-y: auto;
     overflow-x: hidden;
-    padding: 6px 12px 22px;
+    padding: 6px 10px 16px;
     scrollbar-width: none;
     -ms-overflow-style: none;
     overscroll-behavior: contain;
@@ -62,12 +62,13 @@
 
 /* Group names: sentence case at a size that can be read, not tracked capitals. */
 .nav-heading {
-    padding: 18px 12px 6px;
-    font-size: 12px;
+    padding: 16px 10px 5px;
+    font-size: 11px;
     font-weight: 600;
-    letter-spacing: 0;
+    letter-spacing: .05em;
     color: var(--muted);
     white-space: nowrap;
+    text-transform: uppercase;
 }
 
 .sidebar-nav > .nav-heading:first-child { padding-top: 6px; }
@@ -78,18 +79,18 @@
     position: relative;
     display: flex;
     align-items: center;
-    gap: 11px;
+    gap: 10px;
     width: 100%;
     min-height: 34px;
-    padding: 6px 12px;
+    padding: 6px 10px;
     margin-bottom: 1px;
     border: 0;
     border-radius: var(--radius-sm);
     background: transparent;
     font: inherit;
-    font-size: 13.5px;
+    font-size: 13px;
     font-weight: 500;
-    letter-spacing: -.006em;
+    letter-spacing: 0;
     color: var(--text);
     text-align: left;
     cursor: pointer;
@@ -104,17 +105,17 @@
     .nav-link:hover svg { color: var(--heading); }
 }
 
-.nav-link svg { width: 18px; height: 18px; color: var(--muted); transition: color var(--dur-fast) var(--ease-out); }
+.nav-link svg { width: 16px; height: 16px; color: var(--muted); transition: color var(--dur-fast) var(--ease-out); }
 .nav-link:focus-visible { outline: none; box-shadow: inset 0 0 0 2px var(--ring); }
 
 /* Selected: a neutral tint, ink text, and the accent on the icon only. */
 .nav-link.is-active {
-    background: var(--active);
-    color: var(--heading);
-    font-weight: 600;
+    background: var(--brand-soft);
+    color: var(--brand-text);
+    font-weight: 500;
 }
 
-.nav-link.is-active svg { color: var(--brand); }
+.nav-link.is-active svg { color: var(--brand-text); }
 .nav-link.is-active svg.nav-caret { color: var(--faint); }
 
 /* A section that is open because one of its pages is selected does not also
@@ -136,14 +137,14 @@
 
 .nav-badge {
     flex: none;
-    min-width: 20px;
-    padding: 0 7px;
+    min-width: 18px;
+    padding: 0 6px;
     border-radius: var(--radius-pill);
     background: var(--active);
     color: var(--muted);
-    font-size: 12px;
+    font-size: 11px;
     font-weight: 600;
-    line-height: 20px;
+    line-height: 18px;
     text-align: center;
     font-variant-numeric: tabular-nums;
 }
@@ -161,8 +162,8 @@
 }
 
 .nav-sub .nav-link {
-    padding-left: 41px;
-    font-size: 13px;
+    padding-left: 36px;
+    font-size: 12.5px;
     font-weight: 400;
     color: var(--muted);
 }
@@ -170,7 +171,7 @@
 .nav-sub .nav-link::before {
     content: "";
     position: absolute;
-    left: 22px;
+    left: 18px;
     width: 5px;
     height: 5px;
     border-radius: 50%;
@@ -184,16 +185,16 @@
 }
 
 .nav-sub .nav-link.is-active {
-    background: var(--active);
-    color: var(--heading);
-    font-weight: 600;
+    background: var(--brand-soft);
+    color: var(--brand-text);
+    font-weight: 500;
 }
 
 .nav-sub .nav-link.is-active::before { background: var(--brand); transform: scale(1.2); }
 
 .sidebar-foot {
     flex: none;
-    padding: 10px 12px 12px;
+    padding: 8px 10px 10px;
     border-top: 1px solid var(--rule);
 }
 
@@ -237,8 +238,8 @@
     height: var(--header-h);
     display: flex;
     align-items: center;
-    gap: 12px;
-    padding: 0 24px;
+    gap: 10px;
+    padding: 0 20px;
     background: var(--panel);
     background: var(--glass);
     -webkit-backdrop-filter: var(--glass-blur);
@@ -265,13 +266,13 @@
 .header-btn.header-shop,
 .header-shop {
     width: auto;
-    height: 36px;
+    height: 32px;
     display: inline-flex;
     align-items: center;
     gap: 7px;
-    padding: 0 11px;
-    max-width: 240px;
-    font-size: 13.5px;
+    padding: 0 10px;
+    max-width: 200px;
+    font-size: 12.5px;
     font-weight: 500;
     color: var(--heading);
     background: var(--hover);
@@ -330,10 +331,11 @@
 
 /* A soft filled field with no outline until it is used. */
 .header-search input {
-    height: 36px;
+    height: 32px;
     padding-left: 36px;
     background-color: var(--hover);
     border-color: transparent;
+    font-size: 12.5px;
 }
 
 .header-search input:focus { background-color: var(--panel); }
@@ -348,8 +350,8 @@
 
 .header-btn {
     position: relative;
-    width: 36px;
-    height: 36px;
+    width: 32px;
+    height: 32px;
     display: grid;
     place-items: center;
     border: 0;
@@ -358,6 +360,7 @@
     color: var(--muted);
     cursor: pointer;
     transition: transform var(--dur-press) var(--ease-out), background-color var(--dur-fast) var(--ease-out), color var(--dur-fast) var(--ease-out);
+    font-size: 12.5px;
 }
 
 .header-btn:active { transform: scale(.94); }
@@ -417,8 +420,8 @@
 @media (hover: hover) and (pointer: fine) { .header-user:hover { background: var(--active); } }
 .header-user:focus-visible { outline: none; box-shadow: 0 0 0 3px var(--ring); }
 .header-user-meta { text-align: left; line-height: 1.25; }
-.header-user-meta strong { display: block; font-size: 13px; font-weight: 600; color: var(--heading); letter-spacing: -.006em; }
-.header-user-meta span { font-size: 12px; color: var(--muted); }
+.header-user-meta strong { display: block; font-size: 12.5px; font-weight: 600; color: var(--heading); letter-spacing: -.006em; }
+.header-user-meta span { font-size: 11.5px; color: var(--muted); }
 
 /* ------------------------------------------------------- notification bell */
 /*
@@ -674,3 +677,16 @@
     .app-content { max-width: none; padding: 0; }
     .card { border-color: #ddd; box-shadow: none; }
 }
+
+
+/* ----------------------------------------------------------- sidebar brand */
+
+/* A 30px mark and a two-line label, so "RestroOne" and "Administration" sit
+   aligned and the 220px rail is not crowded. */
+.sidebar .brand { gap: 10px; min-width: 0; }
+.sidebar .brand-mark { width: 30px; height: 30px; font-size: 12px; border-radius: 8px; }
+.sidebar .brand-mark.has-logo { width: auto; min-width: 30px; max-width: 120px; height: 30px; padding: 1px; }
+.sidebar .brand-mark.has-logo img { height: 28px; }
+.sidebar .brand-text { display: flex; flex-direction: column; min-width: 0; line-height: 1.2; }
+.sidebar .brand-name { font-size: 13.5px; font-weight: 600; white-space: nowrap; overflow: hidden; text-overflow: ellipsis; }
+.sidebar .brand-sub { font-size: 11px; font-weight: 400; margin-top: 1px; }

@@ -2,7 +2,7 @@
 
 .pf-section {
     margin: 22px 0 10px;
-    font-size: 13px;
+    font-size: 14px;
     font-weight: 600;
     color: var(--muted);
 }
@@ -14,7 +14,7 @@
     margin-top: 14px;
 }
 
-.pf-card { padding: 18px 20px; min-width: 0; }
+.pf-card { padding: 14px 16px; min-width: 0; }
 
 .pf-card-head {
     display: flex;
@@ -24,7 +24,7 @@
     margin-bottom: 12px;
 }
 
-.pf-card-title { margin: 0; font-size: 14px; font-weight: 600; color: var(--heading); }
+.pf-card-title { margin: 0; font-size: 13.5px; font-weight: 600; color: var(--heading); }
 
 .pf-card-total { font-size: 13px; color: var(--muted); font-variant-numeric: tabular-nums; }
 
@@ -36,7 +36,7 @@
     display: flex;
     align-items: stretch;
     gap: 2px;
-    height: 150px;
+    height: 120px;
     border-bottom: 1px solid var(--rule, var(--border));
 }
 
@@ -102,7 +102,7 @@
 .pf-table th, .pf-table td { padding: 4px 0; text-align: left; font-weight: 400; }
 .pf-table td:last-child, .pf-table th:last-child { text-align: right; font-variant-numeric: tabular-nums; }
 
-.pf-empty { padding: 44px 0; text-align: center; font-size: 13px; color: var(--muted); }
+.pf-empty { padding: 26px 12px; text-align: center; font-size: 13px; color: var(--muted); border: 1px dashed var(--border); border-radius: var(--radius); background: var(--panel-alt, transparent);}
 
 .pf-list { margin: 0; padding: 0; list-style: none; }
 
