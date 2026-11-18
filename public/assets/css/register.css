@@ -6,46 +6,46 @@
  | up row after row.
  */
 .rg-page {
-    --rg-h: 45px;
+    --rg-h: 40px;
     --rg-radius: 8px;
     --rg-border: #d9d9de;
     --rg-ring: rgba(194, 65, 12, .16);
-    padding: 22px 16px 40px;
+    padding: 14px 16px 28px;
 }
 
 .rg-card {
     width: 100%;
-    max-width: 769px;
+    max-width: 720px;
     margin: 0 auto;
-    padding: 25px 36px 22px;
+    padding: 18px 28px 14px;
     background: var(--lp-surface);
     border: 1px solid var(--lp-line);
     box-shadow: 0 1px 2px rgba(0, 0, 0, .04), 0 14px 36px rgba(0, 0, 0, .06);
 }
 
-.rg-head { text-align: center; margin-bottom: 20px; }
+.rg-head { text-align: center; margin-bottom: 12px; }
 
 /* The wide logo, centred over the heading; it links home. */
-.rg-logo { display: block; width: max-content; max-width: 100%; margin: 0 auto 12px; }
-.rg-logo img { display: block; width: auto; height: 46px; max-width: 100%; object-fit: contain; }
+.rg-logo { display: block; width: max-content; max-width: 100%; margin: 0 auto 8px; }
+.rg-logo img { display: block; width: auto; height: 36px; max-width: 100%; object-fit: contain; }
 .rg-head h1 { margin: 0 0 4px; font-size: var(--ui-fs-page); font-weight: var(--ui-fw-semibold); letter-spacing: -.02em; line-height: 1.25; }
-.rg-head p { margin: 0; font-size: 14.5px; }
+.rg-head p { margin: 0; font-size: 13px; }
 
-.rg-form { display: grid; gap: 16px; }
+.rg-form { display: grid; gap: 12px; }
 
 .rg-page .field { position: relative; }
 
 .rg-grid {
     display: grid;
     grid-template-columns: repeat(3, minmax(0, 1fr));
-    gap: 14px 18px;
+    gap: 10px 12px;
     align-items: start;
 }
 
 .rg-field-wide { grid-column: 1 / -1; }
 
 /* Same type as the captions over Plan and Billing, so the three boxes line up exactly. */
-.rg-label-spacer { display: block; visibility: hidden; margin: 0 0 5px; font-size: 12.5px; font-weight: 600; }
+.rg-label-spacer { display: block; visibility: hidden; margin: 0 0 4px; font-size: 12.5px; font-weight: 600; }
 .rg-field-address { grid-column: span 2; }
 
 /* ------------------------------------------------------------- fields */
@@ -65,7 +65,7 @@
 
 .rg-card .lp-field label {
     display: block;
-    margin: 0 0 5px;
+    margin: 0 0 4px;
     color: #3a3a3f;
     font-size: 12.5px;
     font-weight: 600;
@@ -219,7 +219,7 @@
 /* The file box, as a drop area. */
 .rg-card .lp-field input[type="file"] {
     height: auto;
-    min-height: 50px;
+    min-height: 42px;
     padding: 8px 10px;
     background: #fafafb;
     border: 1.5px dashed #c6c6ce;
@@ -342,8 +342,8 @@
 .rg-submit:focus-visible { outline: none; box-shadow: 0 0 0 4px var(--rg-ring); }
 
 .rg-foot {
-    margin: 14px 0 0;
-    padding-top: 12px;
+    margin: 10px 0 0;
+    padding-top: 10px;
     border-top: 1px solid var(--lp-line);
     text-align: center;
     font-size: 14px;
@@ -358,8 +358,9 @@
 
 /* ------------------------------------------------------------ tablet */
 
-@media (max-width: 1000px) {
-    .rg-card { padding: 26px 26px 20px; }
+/* Two columns once the card is too narrow for three comfortable ones. */
+@media (max-width: 760px) {
+    .rg-card { padding: 18px 22px 14px; }
     .rg-grid { grid-template-columns: repeat(2, minmax(0, 1fr)); }
     /* Plan | Billing on the first row, then the business name on a row of its own. */
     .rg-field-business { grid-column: 1 / -1; }
