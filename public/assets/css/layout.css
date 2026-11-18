@@ -658,7 +658,7 @@
     .stat { padding: 14px 14px 15px; }
     .stat-value { font-size: 22px; }
     .app-content { padding: 18px 14px 36px; }
-    .card-body, .card-header { padding: 14px; }
+    .card-body, .card-header, .card-head { padding: 14px; }
     .table th, .table td { padding: 10px 12px; }
     .header { padding: 0 10px; gap: 8px; }
     .header-actions { gap: 0; }

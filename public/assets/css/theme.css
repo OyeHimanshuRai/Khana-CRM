@@ -721,7 +721,9 @@ input[type="checkbox"]:disabled, input[type="radio"]:disabled { opacity: .5; cur
 
 .card + .card { margin-top: 20px; }
 
-.card-header {
+/* `.card-head` is the shorter spelling several screens use; same bar. */
+.card-header,
+.card-head {
     display: flex;
     align-items: center;
     justify-content: space-between;
