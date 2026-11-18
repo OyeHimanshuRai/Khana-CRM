@@ -159,8 +159,15 @@
                         <input id="r-location" type="text" readonly
                                value="{{ old('latitude') !== null && old('longitude') !== null ? old('latitude').', '.old('longitude') : '' }}"
                                placeholder="Location not detected" aria-describedby="r-location-hint">
-                        <button class="lp-btn lp-btn-ghost rg-location-button" type="button" data-get-location>
-                            <span>Use my location</span>
+                        {{-- An icon, not words: the label stays for screen readers and as the tooltip. --}}
+                        <button class="lp-btn lp-btn-ghost rg-location-button" type="button" data-get-location
+                                title="Use my location" aria-label="Use my location">
+                            <svg width="20" height="20" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.8"
+                                 stroke-linecap="round" stroke-linejoin="round" aria-hidden="true" focusable="false">
+                                <circle cx="12" cy="12" r="3.2"/>
+                                <circle cx="12" cy="12" r="7.5"/>
+                                <path d="M12 2.5v3M12 18.5v3M2.5 12h3M18.5 12h3"/>
+                            </svg>
                         </button>
                     </div>
                     <input type="hidden" name="latitude" value="{{ old('latitude') }}" data-location-latitude>

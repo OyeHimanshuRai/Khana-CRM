@@ -199,7 +199,18 @@
 
 .rg-location-controls { display: flex; gap: 10px; }
 .rg-card .rg-location-controls input { min-width: 0; flex: 1; }
-.rg-location-button { min-height: var(--rg-h); padding-block: 0; flex: none; white-space: nowrap; display: inline-flex; align-items: center; justify-content: center; gap: 8px; border-radius: var(--rg-radius); }
+.rg-location-button {
+    width: var(--rg-h);
+    min-height: var(--rg-h);
+    padding: 0;
+    flex: none;
+    display: inline-grid;
+    place-items: center;
+    border-radius: var(--rg-radius);
+    color: var(--lp-text);
+}
+
+.rg-location-button:disabled { cursor: progress; opacity: .6; }
 
 /* The file box, as a drop area. */
 .rg-card .lp-field input[type="file"] {
@@ -368,8 +379,6 @@
     .rg-card .lp-field select { font-size: 16px; }
 
     /* Full-width controls. */
-    .rg-location-controls { flex-direction: column; }
-    .rg-location-button { width: 100%; }
     .rg-submit { width: 100%; }
     .rg-terms-cell { align-self: stretch; }
 }
