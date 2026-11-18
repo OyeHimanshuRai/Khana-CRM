@@ -106,46 +106,46 @@
                 </p>
 
                 <p class="lp-field field rg-field-business">
-                    <label for="r-business">Business name</label>
-                    <input id="r-business" type="text" name="business_name" required maxlength="150"
+                    <label for="r-business" class="rg-sr">Business name</label>
+                    <input id="r-business" type="text" name="business_name" required maxlength="150" placeholder="Business name *"
                            value="{{ old('business_name') }}" autocomplete="organization"
                            aria-invalid="{{ $errors->has('business_name') ? 'true' : 'false' }}">
                     @error('business_name')<span class="rg-error" role="alert">{{ $message }}</span>@enderror
                 </p>
 
                 <p class="lp-field field rg-field-address">
-                    <label for="r-address1">Business address</label>
+                    <label for="r-address1" class="rg-sr">Business address</label>
                     <input id="r-address1" type="text" name="address_line1" maxlength="190"
                            value="{{ old('address_line1') }}" autocomplete="address-line1"
-                           placeholder="Street, building, area">
+                           placeholder="Business address (street, building, area)">
                     @error('address_line1')<span class="rg-error" role="alert">{{ $message }}</span>@enderror
                 </p>
 
                 <p class="lp-field field">
-                    <label for="r-address2">Address line 2</label>
+                    <label for="r-address2" class="rg-sr">Address line 2</label>
                     <input id="r-address2" type="text" name="address_line2" maxlength="190"
                            value="{{ old('address_line2') }}" autocomplete="address-line2"
-                           placeholder="Apartment, suite, landmark">
+                           placeholder="Address line 2 / landmark">
                     @error('address_line2')<span class="rg-error" role="alert">{{ $message }}</span>@enderror
                 </p>
 
                 <p class="lp-field field">
-                    <label for="r-city">City</label>
-                    <input id="r-city" type="text" name="city" maxlength="90"
+                    <label for="r-city" class="rg-sr">City</label>
+                    <input id="r-city" type="text" name="city" maxlength="90" placeholder="City"
                            value="{{ old('city') }}" autocomplete="address-level2">
                     @error('city')<span class="rg-error" role="alert">{{ $message }}</span>@enderror
                 </p>
 
                 <p class="lp-field field">
-                    <label for="r-state">State</label>
-                    <input id="r-state" type="text" name="state" maxlength="90"
+                    <label for="r-state" class="rg-sr">State</label>
+                    <input id="r-state" type="text" name="state" maxlength="90" placeholder="State"
                            value="{{ old('state') }}" autocomplete="address-level1">
                     @error('state')<span class="rg-error" role="alert">{{ $message }}</span>@enderror
                 </p>
 
                 <p class="lp-field field">
-                    <label for="r-pincode">PIN code</label>
-                    <input id="r-pincode" type="text" name="pincode" maxlength="12"
+                    <label for="r-pincode" class="rg-sr">PIN code</label>
+                    <input id="r-pincode" type="text" name="pincode" maxlength="12" placeholder="PIN code"
                            value="{{ old('pincode') }}" autocomplete="postal-code" inputmode="numeric">
                     @error('pincode')<span class="rg-error" role="alert">{{ $message }}</span>@enderror
                 </p>
@@ -178,16 +178,16 @@
                 </p>
 
                 <p class="lp-field field">
-                    <label for="r-name">Your name</label>
-                    <input id="r-name" type="text" name="name" required maxlength="120"
+                    <label for="r-name" class="rg-sr">Your name</label>
+                    <input id="r-name" type="text" name="name" required maxlength="120" placeholder="Your name *"
                            value="{{ old('name') }}" autocomplete="name"
                            aria-invalid="{{ $errors->has('name') ? 'true' : 'false' }}">
                     @error('name')<span class="rg-error" role="alert">{{ $message }}</span>@enderror
                 </p>
 
                 <p class="lp-field field">
-                    <label for="r-email">Email</label>
-                    <input id="r-email" type="email" name="email" required maxlength="150"
+                    <label for="r-email" class="rg-sr">Email</label>
+                    <input id="r-email" type="email" name="email" required maxlength="150" placeholder="Email address *"
                            value="{{ old('email') }}" autocomplete="email" inputmode="email"
                            aria-invalid="{{ $errors->has('email') ? 'true' : 'false' }}">
                     <span class="rg-hint">You will sign in with this.</span>
@@ -197,7 +197,7 @@
                 {{-- +91 is shown beside the box; a ten-digit number is stored
                      with it (RegisterController), anything else as typed. --}}
                 <p class="lp-field field">
-                    <label for="r-mobile">Mobile no</label>
+                    <label for="r-mobile" class="rg-sr">Mobile no</label>
                     <span class="rg-phone">
                         <span class="rg-prefix" aria-hidden="true">
                             <svg class="rg-flag" width="20" height="14" viewBox="0 0 20 14" focusable="false">
@@ -208,7 +208,7 @@
                             </svg>
                             +91
                         </span>
-                        <input id="r-mobile" type="tel" name="mobile" required maxlength="20"
+                        <input id="r-mobile" type="tel" name="mobile" required maxlength="20" placeholder="Mobile no *"
                                value="{{ old('mobile') }}" autocomplete="tel-national" inputmode="tel"
                                aria-invalid="{{ $errors->has('mobile') ? 'true' : 'false' }}">
                     </span>
@@ -216,10 +216,10 @@
                 </p>
 
                 <p class="lp-field field">
-                    <label for="r-password">Password</label>
+                    <label for="r-password" class="rg-sr">Password</label>
                     <span class="rg-password">
                         <input id="r-password" type="password" name="password" required minlength="8"
-                               autocomplete="new-password" placeholder="8+ characters, letters and numbers"
+                               autocomplete="new-password" placeholder="Password * (8+ characters)"
                                aria-invalid="{{ $errors->has('password') ? 'true' : 'false' }}">
                         @include('register._eye', ['for' => 'r-password'])
                     </span>

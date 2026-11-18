@@ -7,8 +7,8 @@
  */
 .rg-page {
     --rg-h: 45px;
-    --rg-radius: 10px;
-    --rg-border: #d5d5db;
+    --rg-radius: 8px;
+    --rg-border: #d9d9de;
     --rg-ring: rgba(194, 65, 12, .16);
     padding: 22px 16px 40px;
 }
@@ -40,9 +40,25 @@
 }
 
 .rg-field-wide { grid-column: 1 / -1; }
+
+/* Level with the Plan and Billing boxes, which have a caption above them. */
+.rg-field-business { padding-top: 21px; }
 .rg-field-address { grid-column: span 2; }
 
 /* ------------------------------------------------------------- fields */
+
+/* Text boxes carry their name as the placeholder; the label stays for screen readers. */
+.rg-card .lp-field label.rg-sr {
+    position: absolute;
+    width: 1px;
+    height: 1px;
+    margin: -1px;
+    padding: 0;
+    overflow: hidden;
+    clip: rect(0 0 0 0);
+    white-space: nowrap;
+    border: 0;
+}
 
 .rg-card .lp-field label {
     display: block;
@@ -69,7 +85,7 @@
     transition: border-color .15s var(--lp-ease), box-shadow .15s var(--lp-ease), background-color .15s var(--lp-ease);
 }
 
-.rg-card .lp-field input::placeholder { color: #9a9aa2; }
+.rg-card .lp-field input::placeholder { color: #7c7c85; letter-spacing: .01em; }
 
 @media (hover: hover) and (pointer: fine) {
     .rg-card .lp-field input:not([type="checkbox"]):not([readonly]):hover,
@@ -241,29 +257,27 @@
 
 /* ---------------------------------------------------------- password */
 
-/* An eye inside the field (app.js data-toggle-password + data-toggle-icon). */
-.rg-password { position: relative; display: block; }
-.rg-card .rg-password input { padding-right: 44px; }
+/* The eye is a grey segment joined to the box (app.js data-toggle-password + data-toggle-icon). */
+.rg-password { display: flex; align-items: stretch; }
+.rg-card .rg-password input { flex: 1; min-width: 0; border-radius: var(--rg-radius) 0 0 var(--rg-radius); }
 
 .rg-reveal {
-    position: absolute;
-    top: 50%;
-    right: 5px;
-    transform: translateY(-50%);
     display: grid;
     place-items: center;
-    width: 34px;
-    height: 34px;
+    flex: none;
+    width: 46px;
+    height: var(--rg-h);
     padding: 0;
-    border: 0;
-    border-radius: 8px;
-    background: transparent;
-    color: var(--lp-muted);
+    border: 1px solid var(--rg-border);
+    border-left: 0;
+    border-radius: 0 var(--rg-radius) var(--rg-radius) 0;
+    background: #eceef1;
+    color: #5b5b63;
     cursor: pointer;
     transition: color .15s var(--lp-ease), background-color .15s var(--lp-ease);
 }
 
-@media (hover: hover) and (pointer: fine) { .rg-reveal:hover { color: var(--lp-text); background: var(--lp-bg-alt); } }
+@media (hover: hover) and (pointer: fine) { .rg-reveal:hover { color: var(--lp-text); background: #e2e5e9; } }
 .rg-reveal:focus-visible { outline: none; color: var(--lp-text); box-shadow: 0 0 0 3px var(--rg-ring); }
 
 .rg-eye-off { display: none; }
@@ -330,7 +344,7 @@
     .rg-card { padding: 26px 26px 20px; }
     .rg-grid { grid-template-columns: repeat(2, minmax(0, 1fr)); }
     /* Plan | Billing on the first row, then the business name on a row of its own. */
-    .rg-field-business { grid-column: 1 / -1; }
+    .rg-field-business { grid-column: 1 / -1; padding-top: 0; }
 }
 
 /* ------------------------------------------------------------- phone */
