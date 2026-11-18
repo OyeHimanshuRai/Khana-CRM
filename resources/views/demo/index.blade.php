@@ -100,52 +100,52 @@
 
                     <div class="lp-demo-grid">
                         <p class="lp-field lp-field-full field">
-                            <label for="d-name">Your name</label>
-                            <input id="d-name" type="text" name="name" required maxlength="120"
+                            <label for="d-name" class="lp-sr">Your name</label>
+                            <input id="d-name" type="text" name="name" required maxlength="120" placeholder="Your name *"
                                    value="{{ old('name') }}" autocomplete="name">
                         </p>
 
                         <p class="lp-field field">
-                            <label for="d-phone">Phone</label>
-                            <input id="d-phone" type="tel" name="phone" maxlength="30"
+                            <label for="d-phone" class="lp-sr">Phone</label>
+                            <input id="d-phone" type="tel" name="phone" maxlength="30" placeholder="Phone"
                                    value="{{ old('phone') }}" autocomplete="tel">
                         </p>
 
                         <p class="lp-field field">
-                            <label for="d-email">Email</label>
-                            <input id="d-email" type="email" name="email" maxlength="150"
+                            <label for="d-email" class="lp-sr">Email</label>
+                            <input id="d-email" type="email" name="email" maxlength="150" placeholder="Email"
                                    value="{{ old('email') }}" autocomplete="email">
                         </p>
 
                         <p class="lp-field field">
-                            <label for="d-business">Restaurant name</label>
-                            <input id="d-business" type="text" name="business_name" maxlength="150"
+                            <label for="d-business" class="lp-sr">Restaurant name</label>
+                            <input id="d-business" type="text" name="business_name" maxlength="150" placeholder="Restaurant name"
                                    value="{{ old('business_name') }}" autocomplete="organization">
                         </p>
 
                         <p class="lp-field field">
-                            <label for="d-city">City</label>
-                            <input id="d-city" type="text" name="city" maxlength="90"
+                            <label for="d-city" class="lp-sr">City</label>
+                            <input id="d-city" type="text" name="city" maxlength="90" placeholder="City"
                                    value="{{ old('city') }}" autocomplete="address-level2">
                         </p>
 
                         <p class="lp-field lp-field-full field">
-                            <label for="d-outlets">How many outlets</label>
+                            <label for="d-outlets" class="lp-sr">How many outlets</label>
                             <input id="d-outlets" type="number" name="outlets" min="1" max="65535"
-                                   value="{{ old('outlets') }}" placeholder="1">
+                                   value="{{ old('outlets') }}" placeholder="How many outlets (e.g. 1)">
                         </p>
 
                         <p class="lp-field lp-field-full field">
-                            <label for="d-message">Anything else</label>
-                            <textarea id="d-message" name="message" rows="3" maxlength="2000">{{ old('message') }}</textarea>
+                            <label for="d-message" class="lp-sr">Anything else</label>
+                            <textarea id="d-message" name="message" rows="2" maxlength="2000" placeholder="Anything else">{{ old('message') }}</textarea>
                         </p>
                     </div>
 
                     {{-- Either will do — insisting on an email loses the owner
                          who only has a phone, and that is the likelier buyer. --}}
-                    <p class="lp-demo-note">Give us a phone number or an email — whichever you prefer.</p>
+                    <p class="lp-demo-note">Phone or email, whichever you prefer.</p>
 
-                    <button type="submit" class="lp-btn lp-btn-solid lp-btn-lg">Book a demo</button>
+                    <button type="submit" class="lp-btn lp-btn-solid">Book a demo</button>
                 </form>
             </div>
         </div>
