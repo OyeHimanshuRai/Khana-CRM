@@ -24,6 +24,10 @@
 }
 
 .rg-head { text-align: center; margin-bottom: 20px; }
+
+/* The wide logo, centred over the heading; it links home. */
+.rg-logo { display: block; width: max-content; max-width: 100%; margin: 0 auto 12px; }
+.rg-logo img { display: block; width: auto; height: 46px; max-width: 100%; object-fit: contain; }
 .rg-head h1 { margin: 0 0 4px; font-size: var(--ui-fs-page); font-weight: var(--ui-fw-semibold); letter-spacing: -.02em; line-height: 1.25; }
 .rg-head p { margin: 0; font-size: 14.5px; }
 

@@ -63,6 +63,11 @@
 <main class="rg-page">
     <div class="rg-card">
         <header class="rg-head">
+            @if (! empty($site['logo']))
+                <a href="{{ route('landing') }}" class="rg-logo" aria-label="{{ $site['name'] }}">
+                    <img src="{{ $site['logo'] }}" alt="{{ $site['name'] }}">
+                </a>
+            @endif
             <h1>Create your RestroOne account</h1>
             <p class="lp-meta">Start your free trial. No card needed.</p>
         </header>
