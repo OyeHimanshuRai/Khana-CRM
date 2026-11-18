@@ -175,7 +175,7 @@ class RegistrationTest extends TestCase
         $this->get('/register')->assertOk()
             ->assertSee('<select id="r-plan" name="plan"', false)
             ->assertSee('<select id="r-period" name="period"', false)
-            ->assertSee('₹1,999/month', false)
+            ->assertSee('₹1,999/mo', false)
             ->assertSee('+91')
             ->assertSee('data-toggle-icon', false)
             ->assertSee('name="address_line1"', false)

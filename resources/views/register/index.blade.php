@@ -87,7 +87,7 @@
                             @php
                                 // Short enough not to be cut off in the box; the trial
                                 // and the description go in the line under it.
-                                $optionText = $p->name.' — ₹'.number_format($p->priceFor('monthly'), 0).'/month';
+                                $optionText = $p->name.' — ₹'.number_format($p->priceFor('monthly'), 0).'/mo';
                                 $optionNote = trim(((int) $p->trial_days > 0 ? (int) $p->trial_days.'-day free trial. ' : '').$p->blurb);
                             @endphp
                             <option value="{{ $p->slug }}" @selected($chosenPlan === $p->slug) data-blurb="{{ $optionNote }}">{{ $optionText }}</option>
@@ -222,7 +222,7 @@
                     <label for="r-password" class="rg-sr">Password</label>
                     <span class="rg-password">
                         <input id="r-password" type="password" name="password" required minlength="8"
-                               autocomplete="new-password" placeholder="Password * (8+ characters)"
+                               autocomplete="new-password" placeholder="Password * (min 8)"
                                aria-invalid="{{ $errors->has('password') ? 'true' : 'false' }}">
                         @include('register._eye', ['for' => 'r-password'])
                     </span>
