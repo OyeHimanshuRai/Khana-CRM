@@ -1,0 +1,38 @@
+name: Replace old backups that name the previous company (manual)
+
+# One-off helper, run by hand. Never runs on push.
+# 1) takes a fresh database backup, 2) checks it is non-empty and has no mention
+# of the previous company, 3) only then deletes the older dumps (and one log
+# file) that do. Anything that does not mention it is left alone.
+
+on:
+  workflow_dispatch:
+
+jobs:
+  clean:
+    name: Fresh backup, then remove the old ones
+    runs-on: ubuntu-latest
+    steps:
+      - name: Run on server
+        uses: appleboy/ssh-action@v1.0.3
+        with:
+          host: ${{ secrets.VPS_HOST }}
+          username: ${{ secrets.VPS_USER }}
+          key: ${{ secrets.VPS_SSH_KEY }}
+          port: ${{ secrets.VPS_PORT }}
+          script: |
+            set -e
+            cd ${{ secrets.VPS_PROJECT_PATH }}
+            php artisan backup:run
+            NEW=$(ls -t storage/app/backups/*.sql 2>/dev/null | head -1)
+            echo "new backup: $NEW ($(stat -c %s "$NEW") bytes)"
+            if [ ! -s "$NEW" ]; then echo "ABORT: new backup is empty"; exit 1; fi
+            if grep -qi "oldco" "$NEW"; then echo "ABORT: new backup still mentions the old company"; exit 1; fi
+            echo "new backup is clean"
+            for f in $(grep -il "oldco" storage/app/backups/*.sql storage/logs/*.log 2>/dev/null); do
+              rm -f "$f" && echo "deleted: $f"
+            done
+            echo "remaining mentions in storage:"
+            grep -rIil "oldco" storage 2>/dev/null | head || true
+            echo "backups kept: $(ls storage/app/backups | wc -l)"
+            echo "### DONE"
