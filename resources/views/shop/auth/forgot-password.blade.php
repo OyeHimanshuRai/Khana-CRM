@@ -11,7 +11,7 @@
             <div class="shop-alert" role="status">{{ session('status') }}</div>
         @endif
 
-        <form action="{{ route('shop.password.email', $shop) }}" method="POST" data-ajax>
+        <form action="{{ route('shop.password.email', $shop) }}" method="POST" data-ajax data-reset-on-success>
             @csrf
 
             <div class="shop-field">

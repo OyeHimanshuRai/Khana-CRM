@@ -9,7 +9,7 @@
         <div class="alert alert-success" role="status">{{ session('status') }}</div>
     @endif
 
-    <form method="POST" action="{{ route('password.email') }}" data-ajax novalidate>
+    <form method="POST" action="{{ route('password.email') }}" data-ajax data-reset-on-success novalidate>
         @csrf
 
         <div class="field">
