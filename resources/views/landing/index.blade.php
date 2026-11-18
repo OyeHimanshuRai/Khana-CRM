@@ -49,6 +49,7 @@
     @include('site._favicon')
 
     @php $landingCss = public_path('assets/css/landing.css'); @endphp
+    <link rel="stylesheet" href="{{ asset('assets/css/ui.css') }}?v={{ filemtime(public_path('assets/css/ui.css')) }}">
     <link rel="stylesheet"
           href="{{ asset('assets/css/landing.css') }}?v={{ file_exists($landingCss) ? filemtime($landingCss) : 1 }}">
     {{-- Toasts and field-error states for the demo form; literal colours, no admin theme. --}}

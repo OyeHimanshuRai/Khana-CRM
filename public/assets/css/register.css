@@ -25,7 +25,7 @@
 }
 
 .rg-head { text-align: center; margin-bottom: 20px; }
-.rg-head h1 { margin: 0 0 4px; font-size: clamp(24px, 3vw, 32px); font-weight: 650; letter-spacing: -.03em; line-height: 1.15; }
+.rg-head h1 { margin: 0 0 4px; font-size: var(--ui-fs-page); font-weight: var(--ui-fw-semibold); letter-spacing: -.02em; line-height: 1.25; }
 .rg-head p { margin: 0; font-size: 14.5px; }
 
 .rg-form { display: grid; gap: 16px; }
@@ -306,14 +306,14 @@
 
 .rg-submit {
     width: min(320px, 100%);
-    min-height: 46px;
+    min-height: var(--ui-btn-h-lg);
     justify-self: center;
     text-align: center;
     display: inline-flex;
     align-items: center;
     justify-content: center;
     gap: 9px;
-    border-radius: 12px;
+    border-radius: var(--ui-radius-btn);
     transition: transform .15s var(--lp-ease), box-shadow .15s var(--lp-ease), opacity .15s var(--lp-ease);
 }
 

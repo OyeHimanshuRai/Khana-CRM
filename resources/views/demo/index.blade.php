@@ -21,6 +21,7 @@
     ])
 
     @include('site._favicon')
+    <link rel="stylesheet" href="{{ asset('assets/css/ui.css') }}?v={{ filemtime(public_path('assets/css/ui.css')) }}">
     <link rel="stylesheet"
           href="{{ asset('assets/css/landing.css') }}?v={{ filemtime(public_path('assets/css/landing.css')) }}">
     {{-- Toasts and field-error states for the form; literal colours, no admin theme. --}}

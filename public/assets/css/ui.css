@@ -1,0 +1,42 @@
+/*
+|------------------------------------------------------------------------------
+| RestroOne UI scale
+|------------------------------------------------------------------------------
+|
+| One set of sizes for the public site (landing.css) and the storefront
+| (shop.css), so a button, a menu item or a heading is the same size wherever
+| it appears. The admin panel (theme.css) was already on this scale and is
+| left alone.
+|
+| Body 14 · navigation 13.5 · buttons 13.5 · labels 12.5 · page heading 24 ·
+| section heading 18 · card heading 15. Weights 400, 500 and 600 only.
+| Buttons are 34 / 38 / 40px tall.
+|
+| Change a size here and every page that uses a token follows.
+*/
+:root {
+    --ui-fs-body: 14px;
+    --ui-fs-small: 13px;
+    --ui-fs-nav: 13.5px;
+    --ui-fs-btn: 13.5px;
+    --ui-fs-label: 12.5px;
+    --ui-fs-card: 15px;
+    --ui-fs-section: 18px;
+    --ui-fs-page: 24px;
+    /* The one big line on a page: the home page's headline. */
+    --ui-fs-hero: clamp(26px, 3.2vw, 34px);
+
+    --ui-fw-regular: 400;
+    --ui-fw-medium: 500;
+    --ui-fw-semibold: 600;
+
+    --ui-btn-h-sm: 34px;
+    --ui-btn-h: 38px;
+    --ui-btn-h-lg: 40px;
+    --ui-btn-pad: 0 16px;
+    --ui-btn-pad-lg: 0 20px;
+    --ui-radius: 10px;
+    --ui-radius-btn: 10px;
+
+    --ui-header-h: 52px;
+}

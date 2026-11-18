@@ -8,6 +8,7 @@
 
     @php $shopCss = public_path('assets/css/shop.css'); @endphp
     <link rel="stylesheet" href="{{ asset('assets/css/app.css') }}?v={{ filemtime(public_path('assets/css/app.css')) }}">
+    <link rel="stylesheet" href="{{ asset('assets/css/ui.css') }}?v={{ filemtime(public_path('assets/css/ui.css')) }}">
     <link rel="stylesheet" href="{{ asset('assets/css/shop.css') }}?v={{ file_exists($shopCss) ? filemtime($shopCss) : 1 }}">
     @stack('styles')
 </head>
