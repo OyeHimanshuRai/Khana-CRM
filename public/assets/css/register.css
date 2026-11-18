@@ -122,13 +122,16 @@
 
 /* The chosen plan's one line, as a small badge rather than loose grey text. */
 .rg-hint[data-plan-blurb] {
-    display: inline-block;
+    display: block;
     margin-top: 6px;
-    padding: 3px 9px;
-    border-radius: 999px;
-    background: rgba(194, 65, 12, .08);
-    color: var(--lp-brand);
-    font-weight: 500;
+    padding: 6px 10px;
+    /* Not a pill: a few lines of text in a 999px curve looks like a blob. */
+    border-radius: 6px;
+    border-left: 3px solid var(--lp-brand);
+    background: rgba(194, 65, 12, .06);
+    color: #8a3411;
+    font-weight: 400;
+    line-height: 1.45;
 }
 
 .rg-error { display: block; margin-top: 5px; font-size: 12.5px; color: #c4262e; }
