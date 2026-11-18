@@ -140,7 +140,7 @@ class PublicBrandingTest extends TestCase
         $this->assertSame(3, substr_count($html, Storage::disk('public')->url($logo)));
     }
 
-    public function test_the_admin_brand_uses_the_icon_and_the_name_from_settings(): void
+    public function test_the_admin_sign_in_shows_the_wide_logo_and_names_the_company_from_settings(): void
     {
         Storage::fake('public');
         $logo = UploadedFile::fake()->image('logo.png', 480, 128)->store('settings', 'public');
@@ -152,11 +152,11 @@ class PublicBrandingTest extends TestCase
 
         $html = $this->get(route('admin.login'))->assertOk()->getContent();
 
-        // The square slot beside the name gets the icon, not the wordmark -
-        // a logo that spells the name would say it twice.
-        preg_match('/<span class="brand-mark[^"]*"[^>]*>(.*?)<\/span>/s', $html, $mark);
-        $this->assertStringContainsString(Storage::disk('public')->url($icon), $mark[1] ?? '');
-        $this->assertStringNotContainsString(Storage::disk('public')->url($logo), $mark[1] ?? '');
+        // The Super Admin sign-in is the same picture as the restaurants': the wide
+        // logo, centred. (The icon is for the square slot in the panel's sidebar.)
+        $this->assertStringContainsString('class="auth-logo"', $html);
+        $this->assertStringContainsString(Storage::disk('public')->url($logo), $html);
+        $this->assertStringNotContainsString('Authorised personnel only', $html);
     }
 
     public function test_a_restaurant_account_is_told_a_platform_page_is_not_theirs(): void

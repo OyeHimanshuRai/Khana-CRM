@@ -81,9 +81,11 @@ class BrandTest extends TestCase
         // Uploading signed us in; /admin/login is behind `guest`.
         $this->asGuestAgain();
 
+        // The sign-in shows the wide logo itself, centred over the heading.
         $this->get('/superadmin/login')
             ->assertOk()
-            ->assertSee('brand-mark has-logo', false);
+            ->assertSee('class="auth-logo"', false)
+            ->assertSee(CompanySettings::fileUrl('site_logo'), false);
     }
 
     public function test_without_a_logo_it_falls_back_to_a_lettermark(): void
