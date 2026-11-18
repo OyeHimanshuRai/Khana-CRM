@@ -1,0 +1,84 @@
+name: Clear the previous company's details from the live database (manual)
+
+# One-off helper, run by hand. Never runs on push.
+# Blanks ONLY settings rows whose stored value is still exactly the old company's
+# value (so anything an operator has since typed in is left alone), then reports
+# - without changing - any other table column that still mentions it.
+
+on:
+  workflow_dispatch:
+
+jobs:
+  clear:
+    name: Blank the old company's settings
+    runs-on: ubuntu-latest
+    steps:
+      - name: Update on server
+        uses: appleboy/ssh-action@v1.0.3
+        with:
+          host: ${{ secrets.VPS_HOST }}
+          username: ${{ secrets.VPS_USER }}
+          key: ${{ secrets.VPS_SSH_KEY }}
+          port: ${{ secrets.VPS_PORT }}
+          script: |
+            set -e
+            cd ${{ secrets.VPS_PROJECT_PATH }}
+            cat > /tmp/clear_old.php <<'PHP'
+            use Illuminate\Support\Facades\DB;
+            $old = [
+              'phone' => '',
+              'whatsapp_no' => '',
+              'twitter_url' => 'https://twitter.com/yourpage',
+              'product_view_url' => '',
+              'feedback_url' => '',
+              'address_line_1' => '',
+              'address_line_2' => '',
+              'city' => 'Jaipur',
+              'zip_code' => '302004',
+              'state' => 'Rajasthan',
+              'operation_hours' => '9.30 AM - 6.30 PM',
+              'mail_host' => 'smtp.example.com',
+              'mail_username' => 'noreply@example.com',
+              'mail_from_address' => 'noreply@example.com',
+            ];
+            $hadOldMail = false;
+            DB::transaction(function () use ($old, &$hadOldMail) {
+              foreach ($old as $key => $val) {
+                $row = DB::table('settings')->where('key', $key)->first();
+                if (! $row) { echo "NONE  $key (no row)\n"; continue; }
+                if (trim((string) $row->value) === $val) {
+                  DB::table('settings')->where('key', $key)->update(['value' => '']);
+                  echo "BLANK $key: \"$val\" -> (empty)\n";
+                  if ($key === 'mail_host') $hadOldMail = true;
+                } else {
+                  echo "KEEP  $key (value differs from the old company's: now \"".(string) $row->value."\")\n";
+                }
+              }
+              // The old SMTP password only belongs to the old SMTP host.
+              if ($hadOldMail) {
+                $has = DB::table('settings')->where('key', 'mail_password')->whereNotNull('value')->where('value', '!=', '')->exists();
+                if ($has) { DB::table('settings')->where('key', 'mail_password')->update(['value' => '']); echo "BLANK mail_password (hidden)\n"; }
+              }
+              // Any other setting that still names the old company.
+              foreach (DB::table('settings')->whereRaw('LOWER(value) LIKE ?', ['%oldco%'])->get() as $r) {
+                $v = preg_match('/password|secret|token/i', $r->key) ? '(hidden)' : $r->value;
+                echo "LEFT  {$r->key}: {$v}  (mentions the old company; not on the list)\n";
+              }
+            });
+            // Read-only scan of every other table.
+            $db = DB::getDatabaseName();
+            $cols = DB::select("SELECT TABLE_NAME t, COLUMN_NAME c FROM information_schema.COLUMNS WHERE TABLE_SCHEMA = ? AND DATA_TYPE IN ('varchar','text','longtext','mediumtext','char','json')", [$db]);
+            foreach ($cols as $col) {
+              if (in_array($col->t, ['settings', 'sessions', 'cache', 'cache_locks', 'jobs', 'failed_jobs', 'activity_logs'], true)) continue;
+              try {
+                $n = DB::table($col->t)->where(function ($q) use ($col) {
+                  $q->whereRaw("LOWER(`{$col->c}`) LIKE ?", ['%oldco%'])->orWhere($col->c, 'like', '%0000000000%')->orWhere($col->c, 'like', '%00 00 000%');
+                })->count();
+                if ($n) echo "SCAN  {$col->t}.{$col->c}: $n row(s) still mention the old company (left alone)\n";
+              } catch (\Throwable $e) {}
+            }
+            echo "DONE\n";
+            PHP
+            php artisan tinker --execute="$(cat /tmp/clear_old.php)"
+            rm -f /tmp/clear_old.php
+            php artisan cache:clear
