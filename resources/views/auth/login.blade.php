@@ -69,8 +69,7 @@
                 <p class="lp-field field">
                     <label for="r-email">Email address</label>
                     <input id="r-email" type="email" name="email" value="{{ old('email') }}" required
-                           maxlength="255" autocomplete="username" inputmode="email" autofocus
-                           placeholder="you@restaurant.com">
+                           maxlength="255" autocomplete="username" inputmode="email" autofocus>
                 </p>
 
                 <p class="lp-field field">

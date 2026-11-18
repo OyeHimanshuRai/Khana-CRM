@@ -45,7 +45,6 @@
                         autofocus
                         autocomplete="username"
                         inputmode="email"
-                        placeholder="you@company.com"
                         aria-invalid="{{ $errors->has('email') ? 'true' : 'false' }}"
                         @error('email') aria-describedby="email-error" @enderror
                     >
