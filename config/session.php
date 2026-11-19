@@ -147,6 +147,26 @@ return [
 
     /*
     |--------------------------------------------------------------------------
+    | The platform (Super Admin) session
+    |--------------------------------------------------------------------------
+    |
+    | Everything under /superadmin runs in its own session, with its own
+    | cookie name and a cookie that is only sent to /superadmin/*. A
+    | restaurant's staff and customers use the cookie above, on the normal
+    | URLs. Neither signs the other in, out, or over. See App\Support\Realm.
+    |
+    */
+
+    'platform' => [
+        'cookie' => env(
+            'SESSION_COOKIE_PLATFORM',
+            Str::slug((string) env('APP_NAME', 'laravel')).'-superadmin-session'
+        ),
+        'path' => env('SESSION_PATH_PLATFORM', '/superadmin'),
+    ],
+
+    /*
+    |--------------------------------------------------------------------------
     | Session Cookie Domain
     |--------------------------------------------------------------------------
     |

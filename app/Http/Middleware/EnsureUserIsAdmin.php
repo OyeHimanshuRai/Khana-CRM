@@ -6,6 +6,7 @@ use App\Models\User;
 use App\Models\UserSession;
 use App\Support\ApiResponse;
 use App\Support\GuardSession;
+use App\Support\Realm;
 use Closure;
 use Illuminate\Http\Request;
 use Illuminate\Support\Facades\Auth;
@@ -34,6 +35,10 @@ class EnsureUserIsAdmin
         $message = match (true) {
             ! $user instanceof User || ! $user->is_admin => __('You do not have administrator access.'),
             ! $user->is_active => __('This account has been deactivated. Please contact your administrator.'),
+            // Each side takes only its own accounts: the Super Admin on
+            // /superadmin, a restaurant's people on the normal URLs.
+            Realm::isPlatform() && ! $user->isSuperAdmin() => __('This sign-in is for the platform administrator.'),
+            Realm::isCustomer() && $user->isSuperAdmin() => __('Platform administrators sign in at :url.', ['url' => route('admin.login')]),
             default => null,
         };
 
@@ -51,7 +56,7 @@ class EnsureUserIsAdmin
                 ?->terminate('system');
         }
 
-        Auth::guard('web')->logout();
+        Auth::guard(Realm::guardName())->logout();
 
         // A storefront customer on the same browser stays signed in.
         GuardSession::end($request, otherGuard: 'customer');
@@ -60,6 +65,6 @@ class EnsureUserIsAdmin
             return ApiResponse::error($message, [], 403);
         }
 
-        return redirect()->route('login')->with('error', $message);
+        return redirect()->to(Realm::loginRoute())->with('error', $message);
     }
 }

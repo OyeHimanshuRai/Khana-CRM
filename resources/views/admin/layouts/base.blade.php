@@ -18,14 +18,15 @@
         export, a print, or sign-out. A browser without the API ignores the block.
     --}}
     @php
-        $specBase = rtrim((string) parse_url(url('/'), PHP_URL_PATH), '/');
+        // The Super Admin's links start with /superadmin; a restaurant's are plain.
+        $specBase = rtrim((string) parse_url(url('/'), PHP_URL_PATH), '/').\App\Support\Realm::linkBase();
         $specRules = ['prefetch' => [[
             'where' => ['and' => [
-                ['href_matches' => $specBase.'/admin/*'],
+                ['href_matches' => $specBase.'/*'],
                 ['selector_matches' => '.sidebar-nav a'],
-                ['not' => ['href_matches' => $specBase.'/admin/*/export*']],
-                ['not' => ['href_matches' => $specBase.'/admin/*/print*']],
-                ['not' => ['href_matches' => $specBase.'/admin/logout*']],
+                ['not' => ['href_matches' => $specBase.'/*/export*']],
+                ['not' => ['href_matches' => $specBase.'/*/print*']],
+                ['not' => ['href_matches' => $specBase.'/logout*']],
             ]],
             'eagerness' => 'moderate',
         ]]];

@@ -44,6 +44,16 @@ return [
             'provider' => 'users',
         ],
 
+        // The platform owner's own guard, on the same `users` table: the
+        // Super Admin signs in at /superadmin/login and lives in a separate
+        // session (see config/session.php `platform` and App\Support\Realm),
+        // so a restaurant's owner signed in at /login in the same browser is
+        // neither signed out by it nor mistaken for it.
+        'superadmin' => [
+            'driver' => 'session',
+            'provider' => 'users',
+        ],
+
         // The storefront's own guard - a Customer signed in here is not a
         // `web`-guard user, which is deliberate (see ShopScope's docblock)
         // and why storefront code scopes tenant models explicitly.

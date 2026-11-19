@@ -9,6 +9,7 @@ use App\Models\LoginHistory;
 use App\Models\UserSession;
 use App\Support\CurrentShop;
 use App\Support\GuardSession;
+use App\Support\Realm;
 use App\Support\SiteBrand;
 use Illuminate\Http\JsonResponse;
 use Illuminate\Http\RedirectResponse;
@@ -83,15 +84,15 @@ class LoginController extends Controller
         CurrentShop::forget();
 
         /*
-         | The URL the guest was originally headed to - if it is in the admin
-         | app. The intended URL is shared with the storefront's customer
-         | guard, and a shop page left over from a customer's visit is not
-         | where staff should land.
+         | The URL the guest was originally headed to - if it is on this side of
+         | the app (Realm::intendedFor). The intended URL is shared with the
+         | storefront's customer guard, and a shop page left over from a
+         | customer's visit is not where staff should land.
          */
-        $intended = (string) $request->session()->pull('url.intended', '');
-        $target = $intended !== '' && ($intended === url('/admin') || str_starts_with($intended, url('/admin').'/'))
-            ? $intended
-            : route($user->isSuperAdmin() ? 'admin.platform.dashboard' : 'admin.dashboard');
+        $target = Realm::intendedFor(
+            (string) $request->session()->pull('url.intended', ''),
+            route($user->isSuperAdmin() ? 'admin.platform.dashboard' : 'admin.dashboard'),
+        );
 
         if ($request->expectsJson()) {
             return json_success('Signed in. Taking you to your dashboard…', [], $target);
@@ -120,7 +121,7 @@ class LoginController extends Controller
                 'ended_by' => 'user',
             ])->save());
 
-        Auth::guard('web')->logout();
+        Auth::guard(Realm::guardName())->logout();
 
         // A customer signed in on the same browser stays signed in.
         GuardSession::end($request, otherGuard: 'customer');

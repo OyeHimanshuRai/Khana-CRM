@@ -145,6 +145,16 @@ class User extends Authenticatable
      * out. Everything the permission middleware, Gate::allows(), @allows and
      * the sidebar ask ends up here.
      */
+    /**
+     * Roles and permissions are stored under the `web` guard name. The Super
+     * Admin signs in on the `superadmin` guard (see App\Support\Realm); this
+     * keeps Spatie asking for the same rows whichever guard is the default.
+     */
+    public function guardName(): string
+    {
+        return 'web';
+    }
+
     public function hasPermissionTo($permission, $guardName = null): bool
     {
         if (is_string($permission) && PlatformAbilities::deniedFor($this, $permission)) {

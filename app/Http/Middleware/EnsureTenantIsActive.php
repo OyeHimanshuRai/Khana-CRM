@@ -96,7 +96,7 @@ class EnsureTenantIsActive
             return ApiResponse::error($message, [], 403);
         }
 
-        Auth::guard('web')->logout();
+        Auth::guard(\App\Support\Realm::guardName())->logout();
 
         // A storefront customer on the same browser stays signed in.
         GuardSession::end($request, otherGuard: 'customer');
@@ -105,6 +105,6 @@ class EnsureTenantIsActive
             return ApiResponse::error($message, [], 403);
         }
 
-        return redirect()->route('login')->with('error', $message);
+        return redirect()->to(\App\Support\Realm::loginRoute())->with('error', $message);
     }
 }

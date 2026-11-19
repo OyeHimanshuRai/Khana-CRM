@@ -83,6 +83,9 @@ return Application::configure(basePath: dirname(__DIR__))
         | Terminable: it writes the presence timestamps after the response
         | has gone out, so tracking never sits on the request's critical path.
         */
+        // First, for every request: which side of the app is this (see App\Support\Realm)?
+        $middleware->prepend(\App\Http\Middleware\ResolveRealm::class);
+
         $middleware->web(append: [
             \App\Http\Middleware\SecurityHeaders::class,
             \App\Http\Middleware\TrackUserSession::class,
@@ -135,9 +138,13 @@ return Application::configure(basePath: dirname(__DIR__))
 
             $shop = $request->route('shop');
 
-            return str_starts_with((string) $request->route()?->getName(), 'shop.') && $shop
-                ? route('shop.login', ['shop' => $shop])
-                : route('login');
+            if (str_starts_with((string) $request->route()?->getName(), 'shop.') && $shop) {
+                return route('shop.login', ['shop' => $shop]);
+            }
+
+            // Each side has its own door: the Super Admin's pages send a
+            // stranger to /superadmin/login, a restaurant's to /login.
+            return \App\Support\Realm::loginRoute();
         });
 
         $middleware->redirectUsersTo(function (Request $request) {
@@ -145,7 +152,7 @@ return Application::configure(basePath: dirname(__DIR__))
 
             return str_starts_with((string) $request->route()?->getName(), 'shop.') && $shop
                 ? route('shop.home', ['shop' => $shop])
-                : route('admin.dashboard');
+                : route(\App\Support\Realm::isPlatform() ? 'admin.platform.dashboard' : 'admin.dashboard');
         });
     })
     ->withExceptions(function (Exceptions $exceptions): void {

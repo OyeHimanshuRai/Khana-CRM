@@ -6,7 +6,9 @@ use App\Models\Setting;
 use App\Support\CurrentShop;
 use App\Support\CurrentTenant;
 use App\Support\Modules;
+use App\Support\Realm;
 use App\Support\ScannerSettings;
+use Illuminate\Contracts\Auth\Authenticatable as UserContract;
 use Illuminate\Foundation\Testing\TestCase as BaseTestCase;
 
 abstract class TestCase extends BaseTestCase
@@ -26,6 +28,7 @@ abstract class TestCase extends BaseTestCase
         parent::setUp();
 
         $this->forgetMemos();
+        Realm::forget();
         $this->recordRoutesHit();
     }
 
@@ -49,9 +52,61 @@ abstract class TestCase extends BaseTestCase
         });
     }
 
+    /*
+     | The Super Admin (/superadmin, guard `superadmin`) and a restaurant (the
+     | normal URLs, guard `web`) are separate sides of the app - see
+     | App\Support\Realm. A test acts as one person, so that person is put on
+     | both guards, and outside-a-request code (route() in the test body) reads
+     | URLs for their side, exactly as the app does inside a request.
+     */
+    private ?UserContract $actor = null;
+
+    public function actingAs(UserContract $user, $guard = null)
+    {
+        parent::actingAs($user, $guard);
+
+        foreach (['web', 'superadmin'] as $name) {
+            $this->app['auth']->guard($name)->setUser($user);
+        }
+
+        $this->actor = $user;
+
+        Realm::useFallback(method_exists($user, 'isSuperAdmin') && $user->isSuperAdmin() ? Realm::PLATFORM : Realm::CUSTOMER);
+
+        return $this;
+    }
+
+    /*
+     | Many tests were written when a restaurant's back office was also under
+     | /superadmin. A restaurant's person asking for /superadmin/orders now asks
+     | for /orders - what a browser does - so those paths still read as before.
+     | Anyone else, and the Super Admin, are left exactly as written.
+     */
+    public function call($method, $uri, $parameters = [], $cookies = [], $files = [], $server = [], $content = null)
+    {
+        if ($this->actor && method_exists($this->actor, 'isSuperAdmin') && ! $this->actor->isSuperAdmin()) {
+            $uri = $this->restaurantPath((string) $uri);
+        }
+
+        return parent::call($method, $uri, $parameters, $cookies, $files, $server, $content);
+    }
+
+    private function restaurantPath(string $uri): string
+    {
+        $path = parse_url($uri, PHP_URL_PATH) ?: '';
+
+        if (! str_starts_with($path, '/superadmin/') || str_starts_with($path, '/superadmin/login')) {
+            return $uri;
+        }
+
+        return Realm::customerUrl($uri);
+    }
+
     protected function tearDown(): void
     {
         $this->forgetMemos();
+        $this->actor = null;
+        Realm::forget();
 
         parent::tearDown();
     }

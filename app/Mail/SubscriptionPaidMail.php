@@ -34,8 +34,8 @@ class SubscriptionPaidMail extends PlatformMail
             with: $this->brand() + [
                 'business' => $subscription?->shop?->name ?? $subscription?->tenant?->name,
                 'plan' => $subscription?->plan?->name,
-                'invoiceUrl' => route('admin.subscription.invoice', $this->payment->id),
-                'billingUrl' => route('admin.subscription.mine'),
+                'invoiceUrl' => \App\Support\Realm::customerRoute('admin.subscription.invoice', $this->payment->id),
+                'billingUrl' => \App\Support\Realm::customerRoute('admin.subscription.mine'),
             ],
         );
     }

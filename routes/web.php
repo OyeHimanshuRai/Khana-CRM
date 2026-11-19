@@ -117,6 +117,13 @@ Route::get('faq', [LandingController::class, 'section'])->defaults('section', 'f
     ->name('landing.faq');
 
 // Self-service sign-up: pick a plan, create a business, start the trial.
+// "Login as owner", the restaurant's end: the Super Admin's one-time link signs
+// the owner in on this side. See ImpersonationController.
+Route::get('impersonate/accept/{token}', [\App\Http\Controllers\Admin\ImpersonationController::class, 'accept'])
+    ->where('token', '[A-Za-z0-9]{64}')
+    ->middleware('throttle:20,1')
+    ->name('impersonate.accept');
+
 Route::middleware(['guest', 'ip.allowed'])->group(function () {
     Route::get('register', [\App\Http\Controllers\RegisterController::class, 'create'])->name('register');
     Route::post('register', [\App\Http\Controllers\RegisterController::class, 'store'])

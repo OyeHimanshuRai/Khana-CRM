@@ -40,7 +40,7 @@ class TrialWelcomeMail extends PlatformMail
                 'business' => $this->user->tenant?->name,
                 'plan' => $this->subscription->plan?->name,
                 'trialEnds' => $this->subscription->onTrial() ? $this->subscription->ends_at : null,
-                'billingUrl' => route('admin.subscription.mine'),
+                'billingUrl' => \App\Support\Realm::customerRoute('admin.subscription.mine'),
                 // The account opens once this is followed; null for one that needs no confirming.
                 'verifyUrl' => $this->user->needsEmailVerification() ? $this->user->emailVerificationUrl() : null,
             ],

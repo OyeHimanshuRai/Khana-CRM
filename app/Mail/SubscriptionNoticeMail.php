@@ -46,7 +46,7 @@ class SubscriptionNoticeMail extends PlatformMail
                 'business' => $this->subscription->shop?->name ?? $this->subscription->tenant?->name,
                 'plan' => $this->subscription->plan?->name,
                 'endsAt' => $this->subscription->ends_at,
-                'billingUrl' => route('admin.subscription.mine'),
+                'billingUrl' => \App\Support\Realm::customerRoute('admin.subscription.mine'),
             ],
         );
     }

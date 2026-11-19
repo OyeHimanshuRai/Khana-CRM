@@ -305,7 +305,7 @@ class AppServiceProvider extends ServiceProvider
                 'config' => $firebase->webConfig(),
                 'vapidKey' => $firebase->vapid_key,
                 'swUrl' => asset('firebase-messaging-sw.js'),
-                'scope' => rtrim(parse_url(url('/admin'), PHP_URL_PATH) ?: '/admin', '/').'/',
+                'scope' => \App\Support\Realm::isPlatform() ? '/'.\App\Support\Realm::PREFIX.'/' : '/',
                 'registerUrl' => route('admin.devices.fcm'),
             ] : null);
         });

@@ -124,9 +124,9 @@ class LoginRequest extends FormRequest
          | EnsureTenantIsActive gives; it needs the user on the guard to
          | resolve their company, so it is set without starting a session.
          */
-        Auth::guard('web')->setUser($user);
+        Auth::guard(\App\Support\Realm::guardName())->setUser($user);
         [$access, $reason] = \App\Support\AccountAccess::decide($user);
-        Auth::guard('web')->forgetUser();
+        Auth::guard(\App\Support\Realm::guardName())->forgetUser();
         \App\Support\CurrentTenant::forget();
         \App\Support\CurrentShop::forget();
         \App\Support\PlanAccess::forget();
