@@ -1,0 +1,33 @@
+name: Post-deploy check of the two sign-in sides (read-only, manual)
+
+# One-off helper, run by hand. Never runs on push. Requests only public pages;
+# prints status, redirect target and cookie NAMES/paths - never values.
+
+on:
+  workflow_dispatch:
+
+jobs:
+  check:
+    name: Probe the live site from the server
+    runs-on: ubuntu-latest
+    steps:
+      - name: Probe
+        uses: appleboy/ssh-action@v1.0.3
+        with:
+          host: ${{ secrets.VPS_HOST }}
+          username: ${{ secrets.VPS_USER }}
+          key: ${{ secrets.VPS_SSH_KEY }}
+          port: ${{ secrets.VPS_PORT }}
+          script: |
+            for u in /login /superadmin/login /dashboard /superadmin/platform /orders /pricing /register /superadmin/orders; do
+              printf '%-22s ' "$u"
+              curl -sk --resolve restroone.tech:443:127.0.0.1 -m 20 -o /dev/null -D - "https://restroone.tech$u" | tr -d '\r' | awk 'NR==1{st=$2} tolower($0) ~ /^location:/{loc=$2} tolower($0) ~ /^set-cookie:/{n=$2; sub(/=.*/,"",n); p=$0; sub(/.*[Pp]ath=/,"",p); sub(/;.*/,"",p); ck=ck" "n"@"p} END{sub(/https:\/\/restroone.tech/,"",loc); print st, "->", loc, "| cookies:", ck}'
+            done
+            echo "--- cookie flags on the Super Admin door"
+            curl -sk --resolve restroone.tech:443:127.0.0.1 -m 20 -o /dev/null -D - https://restroone.tech/superadmin/login | tr -d '\r' | grep -i '^set-cookie' | sed -E 's/=[^;]+;/=<v>;/' | cut -c1-200
+            echo "--- errors in today's application log (counts only)"
+            cd ${{ secrets.VPS_PROJECT_PATH }}
+            f=$(ls -t storage/logs/laravel*.log 2>/dev/null | head -1)
+            echo "file: $f"; echo "ERROR lines in last 400: $(tail -n 400 "$f" 2>/dev/null | grep -c '\.ERROR')"
+            tail -n 400 "$f" 2>/dev/null | grep '\.ERROR' | sed -E 's/^\[[^]]*\] //' | cut -c1-110 | sort | uniq -c | sort -rn | head -5
+            echo "### DONE"
