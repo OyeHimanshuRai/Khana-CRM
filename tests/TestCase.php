@@ -61,6 +61,9 @@ abstract class TestCase extends BaseTestCase
      */
     private ?UserContract $actor = null;
 
+    /** A test that needs the literal /superadmin path asked for by a restaurant's person sets this. */
+    protected bool $rawPaths = false;
+
     public function actingAs(UserContract $user, $guard = null)
     {
         parent::actingAs($user, $guard);
@@ -90,13 +93,17 @@ abstract class TestCase extends BaseTestCase
      */
     public function call($method, $uri, $parameters = [], $cookies = [], $files = [], $server = [], $content = null)
     {
-        if ($this->restaurantSide()) {
+        if (! $this->rawPaths && $this->restaurantSide()) {
             $uri = $this->restaurantPath((string) $uri);
         }
 
         // Like a browser: links on the page that came back read on the side of
         // the page asked for, so route() after a request matches what it redirected to.
-        Realm::useFallback(Realm::fromPath((string) (parse_url((string) $uri, PHP_URL_PATH) ?: '/')));
+        // (The Super Admin acting stays on the Super Admin's side: a look at the
+        // public home page in between does not turn their links into a restaurant's.)
+        if (! ($this->actor && method_exists($this->actor, 'isSuperAdmin') && $this->actor->isSuperAdmin())) {
+            Realm::useFallback(Realm::fromPath((string) (parse_url((string) $uri, PHP_URL_PATH) ?: '/')));
+        }
 
         return parent::call($method, $uri, $parameters, $cookies, $files, $server, $content);
     }

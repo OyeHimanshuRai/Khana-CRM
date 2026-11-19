@@ -5,6 +5,7 @@ namespace App\Services;
 use App\Models\Alert;
 use App\Models\DeviceToken;
 use App\Models\User;
+use App\Support\Realm;
 use App\Support\NotificationPreferences;
 use Illuminate\Support\Collection;
 use Illuminate\Support\Facades\Log;
@@ -50,11 +51,29 @@ class AlertPushService
 
             $title = $alert->title;
             $body = (string) ($alert->body ?: ($alert->shop?->name ?? ''));
-            $url = $alert->link ? url($alert->link) : route('admin.alerts.index');
             $data = ['type' => $alert->type, 'alert_id' => (string) $alert->id];
 
-            return $this->webPush->send($devices->where('kind', DeviceToken::WEB_PUSH)->values(), $title, $body, $url)
-                + $this->fcm->send($devices->where('kind', DeviceToken::FCM)->values(), $title, $body, $url, $data);
+            // The Super Admin's own screens are under /superadmin; a restaurant's
+            // person opens the same screen at the plain URL (App\Support\Realm).
+            // This runs in a queue worker, outside any request, so each side's
+            // link is written out explicitly.
+            $platformUrl = $alert->link ? url($alert->link) : route('admin.alerts.index');
+            $restaurantUrl = Realm::customerUrl($platformUrl);
+
+            [$platform, $restaurant] = $devices->partition(fn (DeviceToken $device) => (bool) $device->user?->isSuperAdmin());
+
+            $sent = 0;
+
+            foreach ([[$platform, $platformUrl], [$restaurant, $restaurantUrl]] as [$group, $url]) {
+                if ($group->isEmpty()) {
+                    continue;
+                }
+
+                $sent += $this->webPush->send($group->where('kind', DeviceToken::WEB_PUSH)->values(), $title, $body, $url)
+                    + $this->fcm->send($group->where('kind', DeviceToken::FCM)->values(), $title, $body, $url, $data);
+            }
+
+            return $sent;
         } catch (Throwable $e) {
             Log::warning('Alert push failed', ['alert' => $alert->id, 'error' => $e->getMessage()]);
 
