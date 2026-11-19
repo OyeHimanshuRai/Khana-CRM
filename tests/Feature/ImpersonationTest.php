@@ -75,7 +75,7 @@ class ImpersonationTest extends TestCase
 
         // Opening it signs the owner in on the restaurant's side, at plain URLs.
         $this->reset();
-        $this->get($link)->assertRedirect(route('admin.dashboard'));
+        $this->get($link)->assertRedirect('http://localhost/dashboard');
         $this->assertAuthenticatedAs($owner, 'web');
 
         // The link is good once.

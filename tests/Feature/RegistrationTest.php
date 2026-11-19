@@ -167,7 +167,7 @@ class RegistrationTest extends TestCase
     {
         $admin = User::query()->where('email', 'admin@erp.test')->firstOrFail();
 
-        $this->actingAs($admin)->get('/register')->assertRedirect(route('admin.dashboard'));
+        $this->actingAs($admin)->get('/register')->assertRedirect('http://localhost/dashboard');
     }
 
     public function test_the_form_is_one_card_with_dropdowns_and_the_india_code(): void
