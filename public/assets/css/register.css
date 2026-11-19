@@ -124,18 +124,19 @@
 .rg-hint { display: block; margin-top: 5px; font-size: 12px; color: var(--lp-muted); line-height: 1.4; }
 .rg-hint[hidden] { display: none; }
 
-/* The chosen plan's one line, as a small badge rather than loose grey text. */
-.rg-hint[data-plan-blurb] {
-    display: block;
-    margin-top: 6px;
-    padding: 5px 10px;
-    border: 1px solid rgba(194, 65, 12, .2);
-    border-radius: 6px;
-    background: rgba(194, 65, 12, .06);
+/* The chosen plan's one line, right-aligned on the label's own line. */
+.rg-label-row { display: flex; align-items: baseline; justify-content: space-between; gap: 10px; min-width: 0; margin: 0 0 4px; }
+.rg-card .lp-field .rg-label-row label { margin: 0; flex: none; }
+.rg-label-row .rg-hint[data-plan-blurb] {
+    margin: 0;
+    min-width: 0;
+    overflow: hidden;
+    text-overflow: ellipsis;
+    white-space: nowrap;
     color: #8a3411;
-    font-weight: 500;
-    line-height: 1.4;
-    text-align: center;
+    font-size: 12px;
+    font-weight: 600;
+    text-align: right;
 }
 
 .rg-error { display: block; margin-top: 5px; font-size: 12.5px; color: #c4262e; }

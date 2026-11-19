@@ -94,7 +94,11 @@
                 {{-- The plan, as a dropdown: each option carries its price and
                      trial, and the chosen one's blurb is shown under it. --}}
                 <p class="lp-field field">
-                    <label for="r-plan">Plan</label>
+                    {{-- The chosen plan's one line sits beside the label, so it adds no row of its own. --}}
+                    <span class="rg-label-row">
+                        <label for="r-plan">Plan</label>
+                        <span class="rg-hint" data-plan-blurb title="{{ $blurbTitle }}" @if (! $blurbOf) hidden @endif>{{ $blurbOf }}</span>
+                    </span>
                     <select id="r-plan" name="plan" required data-plan-select
                             aria-invalid="{{ $errors->has('plan') ? 'true' : 'false' }}">
                         @foreach ($plans as $p)
@@ -108,7 +112,6 @@
                             <option value="{{ $p->slug }}" @selected($chosenPlan === $p->slug) data-blurb="{{ $optionNote }}" data-full="{{ $optionFull }}">{{ $optionText }}</option>
                         @endforeach
                     </select>
-                    <span class="rg-hint" data-plan-blurb title="{{ $blurbTitle }}" @if (! $blurbOf) hidden @endif>{{ $blurbOf }}</span>
                     @error('plan')<span class="rg-error" role="alert">{{ $message }}</span>@enderror
                 </p>
 
