@@ -1,0 +1,47 @@
+name: Remove the MAIL_ lines from the server .env (manual)
+
+# One-off helper, run by hand. Never runs on push.
+# The mail settings live in the admin panel (Settings > Company > Mail
+# Configuration, stored in the database) and override .env at runtime, so the
+# .env copy is redundant. The removed lines are kept in a private file in the
+# deploy user's home (mode 600), never printed.
+
+on:
+  workflow_dispatch:
+
+jobs:
+  env:
+    name: Clean .env and re-cache
+    runs-on: ubuntu-latest
+    steps:
+      - name: Run on server
+        uses: appleboy/ssh-action@v1.0.3
+        with:
+          host: ${{ secrets.VPS_HOST }}
+          username: ${{ secrets.VPS_USER }}
+          key: ${{ secrets.VPS_SSH_KEY }}
+          port: ${{ secrets.VPS_PORT }}
+          script: |
+            set -e
+            cd ${{ secrets.VPS_PROJECT_PATH }}
+            echo "MAIL_ keys in .env BEFORE (names only):"
+            grep -E '^MAIL_' .env | sed -E 's/=.*//' || echo "(none)"
+            umask 077
+            grep -E '^MAIL_' .env > "$HOME/.env-mail-lines.removed" || true
+            chmod 600 "$HOME/.env-mail-lines.removed"
+            sed -i '/^MAIL_/d' .env
+            echo "MAIL_ lines in .env AFTER: $(grep -cE '^MAIL_' .env || true)"
+            php artisan config:clear
+            php artisan config:cache
+            php artisan queue:restart
+            cat > /tmp/mail_eff.php <<'PHP'
+            foreach (['mail.default','mail.mailers.smtp.host','mail.mailers.smtp.port','mail.mailers.smtp.scheme','mail.from.address','mail.from.name'] as $k) {
+              echo str_pad($k, 28).' = '.var_export(config($k), true)."\n";
+            }
+            echo str_pad('smtp username set', 28).' = '.(filled(config('mail.mailers.smtp.username')) ? 'yes' : 'NO')."\n";
+            echo str_pad('smtp password set', 28).' = '.(filled(config('mail.mailers.smtp.password')) ? 'yes' : 'NO')."\n";
+            PHP
+            echo "Effective mail settings now (from the admin panel):"
+            php artisan tinker --execute="$(cat /tmp/mail_eff.php)"
+            rm -f /tmp/mail_eff.php
+            echo "### DONE"
