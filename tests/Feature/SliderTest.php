@@ -415,6 +415,6 @@ class SliderTest extends TestCase
 
     public function test_guests_are_redirected(): void
     {
-        $this->get('/superadmin/sliders')->assertRedirect('http://localhost/login');
+        $this->get('/superadmin/sliders')->assertRedirect('http://localhost/superadmin/login');
     }
 }

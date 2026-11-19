@@ -69,7 +69,9 @@ final class Realm
     {
         $path = trim($path, '/');
 
-        return $path === 'up' || $path === 'api' || str_starts_with($path, 'api/');
+        // /api/v1 is the token API. (/api/scanner/... is a back-office AJAX
+        // endpoint with a session, so it is not on this list.)
+        return $path === 'up' || $path === 'api/v1' || str_starts_with($path, 'api/v1/');
     }
 
     public static function current(): ?string

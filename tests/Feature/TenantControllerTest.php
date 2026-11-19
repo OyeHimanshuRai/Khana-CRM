@@ -535,6 +535,6 @@ class TenantControllerTest extends TestCase
 
     public function test_guests_are_redirected(): void
     {
-        $this->get('/superadmin/tenants')->assertRedirect('http://localhost/login');
+        $this->get('/superadmin/tenants')->assertRedirect('http://localhost/superadmin/login');
     }
 }

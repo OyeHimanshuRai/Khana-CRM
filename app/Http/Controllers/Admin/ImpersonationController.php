@@ -103,17 +103,35 @@ class ImpersonationController extends Controller
     {
         $owner = $request->user();
 
+        // Nobody stepped in here: there is no way "back" to a Super Admin. The
+        // account is simply signed out, at its own door.
+        if (! $request->session()->has(self::SESSION_KEY)) {
+            Auth::guard('web')->logout();
+            $request->session()->invalidate();
+            $request->session()->regenerateToken();
+
+            return redirect()->to(Realm::loginRoute());
+        }
+
+        // Recorded while the owner is still the signed-in user, and attributed
+        // to the Super Admin, who is the person who stepped out.
+        $log = ActivityLog::record(
+            'auth.impersonate.stop',
+            "Left the owner view of {$owner?->name}",
+            $owner,
+        );
+
+        $admin = User::query()->withoutGlobalScopes()->find($request->session()->get(self::SESSION_KEY));
+
+        if ($admin) {
+            $log->forceFill(['user_id' => $admin->id, 'user_name' => $admin->name])->save();
+        }
+
         Auth::guard('web')->logout();
         $request->session()->invalidate();
         $request->session()->regenerateToken();
 
         $this->forgetContext();
-
-        ActivityLog::record(
-            'auth.impersonate.stop',
-            "Left the owner view of {$owner?->name}",
-            $owner,
-        );
 
         // The Super Admin's own session was never touched; this is their door.
         return redirect()->to(Realm::platformRoute('admin.platform.dashboard'));

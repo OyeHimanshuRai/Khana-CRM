@@ -95,7 +95,7 @@ class AccountStateEnforcementTest extends TestCase
 
         // And it stays that way: the session is gone, not just this page.
         $this->nextRequest();
-        $this->get('/superadmin/pos')->assertRedirect(route('login'));
+        $this->get('/pos')->assertRedirect(route('login'));
     }
 
     public function test_a_deactivated_member_of_staff_gets_a_json_refusal_on_an_ajax_call(): void

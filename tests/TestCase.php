@@ -65,13 +65,19 @@ abstract class TestCase extends BaseTestCase
     {
         parent::actingAs($user, $guard);
 
+        // Only the back office's own accounts (a storefront guest signs in on
+        // the `customer` guard and stays there).
+        if (! $user instanceof \App\Models\User) {
+            return $this;
+        }
+
         foreach (['web', 'superadmin'] as $name) {
             $this->app['auth']->guard($name)->setUser($user);
         }
 
         $this->actor = $user;
 
-        Realm::useFallback(method_exists($user, 'isSuperAdmin') && $user->isSuperAdmin() ? Realm::PLATFORM : Realm::CUSTOMER);
+        Realm::useFallback($user->isSuperAdmin() ? Realm::PLATFORM : Realm::CUSTOMER);
 
         return $this;
     }
@@ -84,11 +90,23 @@ abstract class TestCase extends BaseTestCase
      */
     public function call($method, $uri, $parameters = [], $cookies = [], $files = [], $server = [], $content = null)
     {
-        if ($this->actor && method_exists($this->actor, 'isSuperAdmin') && ! $this->actor->isSuperAdmin()) {
+        if ($this->restaurantSide()) {
             $uri = $this->restaurantPath((string) $uri);
         }
 
+        // Like a browser: links on the page that came back read on the side of
+        // the page asked for, so route() after a request matches what it redirected to.
+        Realm::useFallback(Realm::fromPath((string) (parse_url((string) $uri, PHP_URL_PATH) ?: '/')));
+
         return parent::call($method, $uri, $parameters, $cookies, $files, $server, $content);
+    }
+
+    /** Is the person this test is signed in as a restaurant's, not the Super Admin? */
+    private function restaurantSide(): bool
+    {
+        $user = $this->actor ?? $this->app['auth']->guard('web')->user();
+
+        return $user !== null && method_exists($user, 'isSuperAdmin') && ! $user->isSuperAdmin();
     }
 
     private function restaurantPath(string $uri): string

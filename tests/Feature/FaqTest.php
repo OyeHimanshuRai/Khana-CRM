@@ -252,6 +252,6 @@ class FaqTest extends TestCase
 
     public function test_guests_are_redirected(): void
     {
-        $this->get('/superadmin/faqs')->assertRedirect('http://localhost/login');
+        $this->get('/superadmin/faqs')->assertRedirect('http://localhost/superadmin/login');
     }
 }

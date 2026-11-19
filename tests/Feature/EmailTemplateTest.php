@@ -382,7 +382,7 @@ class EmailTemplateTest extends TestCase
 
     public function test_guests_are_redirected(): void
     {
-        $this->get('/superadmin/email/templates')->assertRedirect('http://localhost/login');
+        $this->get('/superadmin/email/templates')->assertRedirect('http://localhost/superadmin/login');
     }
 
     /* ------------------------------------------------------------ service */

@@ -310,7 +310,7 @@ class CompanySettingsTest extends TestCase
 
     public function test_guests_are_redirected(): void
     {
-        $this->get('/superadmin/settings/company')->assertRedirect('http://localhost/login');
+        $this->get('/superadmin/settings/company')->assertRedirect('http://localhost/superadmin/login');
     }
 
     /* -------------------------------------------------------------- store */

@@ -36,10 +36,10 @@ class HardeningTest extends TestCase
 
     public function test_a_header_a_controller_set_itself_is_not_overwritten(): void
     {
-        $this->app['router']->get('/__x', fn () => response('x')->header('X-Frame-Options', 'DENY'))
+        $this->app['router']->get('/pricing/__x', fn () => response('x')->header('X-Frame-Options', 'DENY'))
             ->middleware('web');
 
-        $this->get('/__x')->assertHeader('X-Frame-Options', 'DENY');
+        $this->get('/pricing/__x')->assertHeader('X-Frame-Options', 'DENY');
     }
 
     public function test_production_refuses_to_seed_a_weak_super_admin_password(): void

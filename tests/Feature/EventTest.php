@@ -384,6 +384,6 @@ class EventTest extends TestCase
 
     public function test_guests_are_redirected(): void
     {
-        $this->get('/superadmin/events')->assertRedirect('http://localhost/login');
+        $this->get('/superadmin/events')->assertRedirect('http://localhost/superadmin/login');
     }
 }

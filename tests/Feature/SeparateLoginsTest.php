@@ -132,7 +132,8 @@ class SeparateLoginsTest extends TestCase
         $this->assertGuest('web');
 
         $this->postJson('/superadmin/login', ['email' => 'admin@erp.test', 'password' => 'password'])->assertOk();
-        $this->assertAuthenticated('web');
+        $this->assertAuthenticated('superadmin');
+        $this->assertGuest('web');
     }
 
     public function test_a_wrong_password_says_nothing_about_which_door(): void
@@ -157,9 +158,13 @@ class SeparateLoginsTest extends TestCase
         $this->assertGuest('web');
     }
 
-    public function test_a_signed_out_visit_to_the_back_office_goes_to_the_restaurant_door(): void
+    public function test_a_signed_out_visit_goes_to_the_door_of_the_side_it_asked_for(): void
     {
-        $this->get('/superadmin/products')->assertRedirect(route('login'));
+        // The Super Admin's pages send a stranger to the Super Admin's door...
+        $this->get('/superadmin/products')->assertRedirect(route('admin.login'));
+
+        // ...and a restaurant's, on the plain URLs, to the restaurant's.
+        $this->get('/products')->assertRedirect(route('login'));
     }
 
     /* ------------------------------------------------------------ logout */

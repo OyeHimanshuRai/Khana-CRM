@@ -63,14 +63,26 @@ class ImpersonationTest extends TestCase
     {
         $owner = $this->staffOf('Tenant Owner');
 
-        $this->actingAs($this->super)
+        // The Super Admin's click mints a one-time link and changes nothing
+        // about their own session.
+        $link = $this->actingAs($this->super)
             ->post(route('admin.tenants.impersonate', $this->shop->tenant_id))
-            ->assertRedirect(route('admin.dashboard'));
+            ->assertRedirect()
+            ->headers->get('Location');
 
-        $this->assertAuthenticatedAs($owner);
+        $this->assertStringContainsString('/impersonate/accept/', $link);
+        $this->assertAuthenticatedAs($this->super, 'superadmin');
+
+        // Opening it signs the owner in on the restaurant's side, at plain URLs.
+        $this->reset();
+        $this->get($link)->assertRedirect(route('admin.dashboard'));
+        $this->assertAuthenticatedAs($owner, 'web');
+
+        // The link is good once.
+        $this->get($link)->assertForbidden();
 
         $this->reset();
-        $this->get(route('admin.dashboard'))
+        $this->get('/dashboard')
             ->assertOk()
             ->assertSee('Viewing as '.$owner->name)
             ->assertSee('Exit to Platform')
@@ -78,13 +90,24 @@ class ImpersonationTest extends TestCase
 
         $this->assertSame(0, UserSession::query()->where('user_id', $owner->id)->count());
 
-        $this->post(route('admin.impersonate.stop'))->assertRedirect(route('admin.platform.dashboard'));
+        // Leaving ends only the restaurant session; the Super Admin never left.
+        $this->post(route('admin.impersonate.stop'))
+            ->assertRedirect(\App\Support\Realm::platformRoute('admin.platform.dashboard'));
 
-        $this->assertAuthenticatedAs($this->super);
+        $this->assertGuest('web');
+        $this->assertAuthenticatedAs($this->super, 'superadmin');
         $this->assertNull(session(\App\Http\Controllers\Admin\ImpersonationController::SESSION_KEY));
 
         $this->assertDatabaseHas('activity_logs', ['user_id' => $this->super->id, 'event' => 'auth.impersonate.start']);
         $this->assertDatabaseHas('activity_logs', ['user_id' => $this->super->id, 'event' => 'auth.impersonate.stop']);
+    }
+
+    public function test_a_stale_or_made_up_link_signs_nobody_in(): void
+    {
+        $this->staffOf('Tenant Owner');
+
+        $this->get(route('impersonate.accept', ['token' => str_repeat('a', 64)]))->assertForbidden();
+        $this->assertGuest('web');
     }
 
     public function test_a_company_with_no_owner_cannot_be_entered(): void
@@ -117,7 +140,7 @@ class ImpersonationTest extends TestCase
     {
         $owner = $this->staffOf('Tenant Owner');
 
-        $this->actingAs($owner)->post(route('admin.impersonate.stop'))->assertRedirect(route('admin.login'));
+        $this->actingAs($owner)->post(route('admin.impersonate.stop'))->assertRedirect(route('login'));
 
         $this->assertGuest();
     }

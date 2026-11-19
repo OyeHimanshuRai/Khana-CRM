@@ -591,8 +591,8 @@ class TableAndQrTest extends TestCase
 
     public function test_guests_are_redirected(): void
     {
-        $this->get('/superadmin/tables')->assertRedirect('http://localhost/login');
-        $this->get('/superadmin/qr')->assertRedirect('http://localhost/login');
+        $this->get('/superadmin/tables')->assertRedirect('http://localhost/superadmin/login');
+        $this->get('/superadmin/qr')->assertRedirect('http://localhost/superadmin/login');
     }
 
     /* -------------------------------------------------------------- tenancy */

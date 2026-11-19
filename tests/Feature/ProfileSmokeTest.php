@@ -153,7 +153,7 @@ class ProfileSmokeTest extends TestCase
 
     public function test_guests_are_redirected(): void
     {
-        $this->get('/superadmin/profile')->assertRedirect('http://localhost/login');
+        $this->get('/superadmin/profile')->assertRedirect('http://localhost/superadmin/login');
     }
 
     /* ------------------------------------------------------------ avatar */
