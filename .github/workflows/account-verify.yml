@@ -1,0 +1,53 @@
+name: Check one account's mail record and confirm its email (manual)
+
+# One-off helper, run by hand. Never runs on push. Prints no password or token.
+# Always shows the mail record for the address. Confirms the address only
+# when `confirm` is "yes".
+
+on:
+  workflow_dispatch:
+    inputs:
+      email:
+        description: "The account's email"
+        required: true
+      confirm:
+        description: "yes = mark the email confirmed"
+        required: false
+        default: "no"
+
+jobs:
+  run:
+    name: Look and (optionally) confirm
+    runs-on: ubuntu-latest
+    steps:
+      - name: Run on server
+        uses: appleboy/ssh-action@v1.0.3
+        env:
+          WHO: ${{ github.event.inputs.email }}
+          CONFIRM: ${{ github.event.inputs.confirm }}
+        with:
+          host: ${{ secrets.VPS_HOST }}
+          username: ${{ secrets.VPS_USER }}
+          key: ${{ secrets.VPS_SSH_KEY }}
+          port: ${{ secrets.VPS_PORT }}
+          envs: WHO,CONFIRM
+          script: |
+            cd ${{ secrets.VPS_PROJECT_PATH }}
+            cat > /tmp/acct.php <<'PHP'
+            use Illuminate\Support\Facades\DB;
+            $e = strtolower(trim((string) getenv('WHO')));
+            $u = DB::table('users')->whereRaw('LOWER(email) = ?', [$e])->first(['id','email_verified_at','is_active','created_at']);
+            echo $u ? "user #{$u->id} active={$u->is_active} created={$u->created_at} email_verified_at=".($u->email_verified_at ?? 'NULL')."\n" : "no such user\n";
+            echo "-- mail record for this address (metadata only)\n";
+            foreach (DB::table('email_logs')->whereRaw('LOWER(to_email) = ?', [$e])->orderBy('id')->get(['created_at','mailable','subject','mailer','status','error']) as $r) {
+              echo "  {$r->created_at} | ".class_basename((string) $r->mailable)." | {$r->mailer} | {$r->status}".($r->error ? ' | '.substr(preg_replace('/[A-Za-z0-9._%+-]+@[A-Za-z0-9.-]+/', '<email>', $r->error), 0, 160) : '')."\n";
+            }
+            echo "-- mail outcomes, whole system: ".DB::table('email_logs')->select('status', DB::raw('count(*) n'))->groupBy('status')->get()->map(fn ($r) => "{$r->status}={$r->n}")->implode(', ')."\n";
+            if ($u && strtolower((string) getenv('CONFIRM')) === 'yes' && $u->email_verified_at === null) {
+              DB::table('users')->where('id', $u->id)->update(['email_verified_at' => now()]);
+              echo "CONFIRMED the email of user #{$u->id}\n";
+            }
+            PHP
+            php artisan tinker --execute="$(cat /tmp/acct.php)"
+            rm -f /tmp/acct.php
+            echo "### DONE"
