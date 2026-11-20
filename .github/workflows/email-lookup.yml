@@ -1,0 +1,50 @@
+name: Look up one email in the live database (read-only, manual)
+
+# One-off helper, run by hand. Never runs on push. Changes nothing, prints no
+# password or token.
+
+on:
+  workflow_dispatch:
+    inputs:
+      email:
+        description: "The email to look up"
+        required: true
+
+jobs:
+  look:
+    name: Look up
+    runs-on: ubuntu-latest
+    steps:
+      - name: Run on server
+        uses: appleboy/ssh-action@v1.0.3
+        env:
+          LOOKUP: ${{ github.event.inputs.email }}
+        with:
+          host: ${{ secrets.VPS_HOST }}
+          username: ${{ secrets.VPS_USER }}
+          key: ${{ secrets.VPS_SSH_KEY }}
+          port: ${{ secrets.VPS_PORT }}
+          envs: LOOKUP
+          script: |
+            cd ${{ secrets.VPS_PROJECT_PATH }}
+            cat > /tmp/lookup.php <<'PHP'
+            use Illuminate\Support\Facades\DB;
+            $e = strtolower(trim((string) getenv('LOOKUP')));
+            echo "looking for: $e\n";
+            $users = DB::table('users')->whereRaw('LOWER(email) = ?', [$e])->get(['id','tenant_id','name','is_active','is_admin','created_at']);
+            echo "users with this email: ".$users->count()."\n";
+            foreach ($users as $u) {
+              $t = $u->tenant_id ? DB::table('tenants')->where('id', $u->tenant_id)->first(['id','name','is_active','deleted_at','email']) : null;
+              $roles = DB::table('model_has_roles')->join('roles','roles.id','=','model_has_roles.role_id')->where('model_has_roles.model_id',$u->id)->where('model_has_roles.model_type','App\\Models\\User')->pluck('roles.name')->implode(',');
+              $shops = DB::table('shop_user')->where('user_id',$u->id)->count();
+              echo "  user #{$u->id} tenant={$u->tenant_id} active={$u->is_active} admin={$u->is_admin} roles=[$roles] shops=$shops created={$u->created_at}\n";
+              if ($t) echo "    company #{$t->id} \"{$t->name}\" active={$t->is_active} deleted_at=".($t->deleted_at ?? 'null')."\n";
+            }
+            $tn = DB::table('tenants')->whereRaw('LOWER(email) = ?', [$e])->get(['id','name','is_active','deleted_at']);
+            echo "companies listing this as their email: ".$tn->count()."\n";
+            foreach ($tn as $t) echo "  company #{$t->id} \"{$t->name}\" active={$t->is_active} deleted_at=".($t->deleted_at ?? 'null')."\n";
+            echo "customers (storefront) with this email: ".DB::table('customers')->whereRaw('LOWER(email) = ?', [$e])->count()."\n";
+            PHP
+            php artisan tinker --execute="$(cat /tmp/lookup.php)"
+            rm -f /tmp/lookup.php
+            echo "### DONE"
