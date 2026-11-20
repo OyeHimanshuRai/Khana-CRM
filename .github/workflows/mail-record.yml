@@ -1,0 +1,42 @@
+name: Show the live mail record (read-only, manual)
+
+# One-off helper, run by hand. Never runs on push. Changes nothing. Shows who each
+# mail went to (address partly masked), what kind it was and how it ended.
+# No body, link, password or token is printed.
+
+on:
+  workflow_dispatch:
+
+jobs:
+  look:
+    name: Mail record
+    runs-on: ubuntu-latest
+    steps:
+      - name: Run on server
+        uses: appleboy/ssh-action@v1.0.3
+        with:
+          host: ${{ secrets.VPS_HOST }}
+          username: ${{ secrets.VPS_USER }}
+          key: ${{ secrets.VPS_SSH_KEY }}
+          port: ${{ secrets.VPS_PORT }}
+          script: |
+            cd ${{ secrets.VPS_PROJECT_PATH }}
+            cat > /tmp/mrec.php <<'PHP'
+            use Illuminate\Support\Facades\DB;
+            $mask = fn ($e) => preg_replace('/^(.{2}).*(@.*)$/', '$1***$2', (string) $e);
+            echo "effective: mailer=".config('mail.default')." host=".config('mail.mailers.smtp.host')." from=".$mask(config('mail.from.address'))." name=".config('mail.from.name')."\n";
+            echo "id | when | kind | to (masked) | to_name | from_name | status | sent_at | error\n";
+            foreach (DB::table('email_logs')->orderByDesc('id')->limit(40)->get() as $r) {
+              $err = $r->error ? substr(preg_replace('/[A-Za-z0-9._%+-]+@[A-Za-z0-9.-]+/', '<email>', $r->error), 0, 110) : '';
+              echo "{$r->id} | {$r->created_at} | ".class_basename((string) $r->mailable)." | ".$mask($r->to_email)." | {$r->to_name} | {$r->from_name} | {$r->status} | ".($r->sent_at ?? '-')." | $err\n";
+            }
+            echo "\nusers (masked): id | name | email | tenant | verified | created\n";
+            foreach (DB::table('users')->orderByDesc('id')->limit(8)->get(['id','name','email','tenant_id','email_verified_at','created_at']) as $u) {
+              echo "{$u->id} | {$u->name} | ".$mask($u->email)." | {$u->tenant_id} | ".($u->email_verified_at ? 'yes' : 'NO')." | {$u->created_at}\n";
+            }
+            echo "\ncompanies: id | name | email (masked) | created\n";
+            foreach (DB::table('tenants')->orderByDesc('id')->limit(8)->get(['id','name','email','created_at']) as $t) echo "{$t->id} | {$t->name} | ".$mask($t->email)." | {$t->created_at}\n";
+            PHP
+            php artisan tinker --execute="$(cat /tmp/mrec.php)"
+            rm -f /tmp/mrec.php
+            echo "### DONE"
