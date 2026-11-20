@@ -1,0 +1,96 @@
+name: Remove every company and account belonging to one email (manual)
+
+# One-off helper, run by hand. Never runs on push.
+# apply = "no" (default): only LISTS what would go. apply = "yes": takes a backup
+# first, then deletes inside one transaction (all or nothing).
+#
+# "Belongs to" means: companies whose contact email is this address or whose
+# Tenant Owner has it, everything in those companies (branches and all their
+# records cascade), and any user with this address. The platform's own company
+# (id 1) and Super Admin accounts are never touched.
+
+on:
+  workflow_dispatch:
+    inputs:
+      email:
+        description: "The email whose companies and accounts go"
+        required: true
+      apply:
+        description: "yes = really delete (a backup is taken first)"
+        required: false
+        default: "no"
+
+jobs:
+  purge:
+    name: List or delete
+    runs-on: ubuntu-latest
+    steps:
+      - name: Run on server
+        uses: appleboy/ssh-action@v1.0.3
+        env:
+          WHO: ${{ github.event.inputs.email }}
+          APPLY: ${{ github.event.inputs.apply }}
+        with:
+          host: ${{ secrets.VPS_HOST }}
+          username: ${{ secrets.VPS_USER }}
+          key: ${{ secrets.VPS_SSH_KEY }}
+          port: ${{ secrets.VPS_PORT }}
+          envs: WHO,APPLY
+          script: |
+            set -e
+            cd ${{ secrets.VPS_PROJECT_PATH }}
+            if [ "$(echo "$APPLY" | tr 'A-Z' 'a-z')" = "yes" ]; then php artisan backup:run; fi
+            cat > /tmp/purge.php <<'PHP'
+            use Illuminate\Support\Facades\DB;
+            use Illuminate\Support\Facades\Schema;
+            $e = strtolower(trim((string) getenv('WHO')));
+            $apply = strtolower((string) getenv('APPLY')) === 'yes';
+            $mask = fn ($x) => preg_replace('/^(.{2}).*(@.*)$/', '$1***$2', (string) $x);
+            $userModel = 'App\\Models\\User';
+
+            $superIds = DB::table('model_has_roles')->join('roles', 'roles.id', '=', 'model_has_roles.role_id')
+              ->where('roles.name', 'Super Admin')->where('model_has_roles.model_type', $userModel)->pluck('model_id');
+            $ownerTenantIds = DB::table('users')
+              ->join('model_has_roles', function ($j) use ($userModel) { $j->on('model_has_roles.model_id', '=', 'users.id')->where('model_has_roles.model_type', $userModel); })
+              ->join('roles', 'roles.id', '=', 'model_has_roles.role_id')
+              ->where('roles.name', 'Tenant Owner')->whereRaw('LOWER(users.email) = ?', [$e])->whereNotNull('users.tenant_id')->pluck('users.tenant_id');
+            $tenantIds = DB::table('tenants')->where('id', '!=', 1)
+              ->where(fn ($q) => $q->whereRaw('LOWER(email) = ?', [$e])->orWhereIn('id', $ownerTenantIds))->pluck('id');
+            $userIds = DB::table('users')->whereNotIn('id', $superIds)
+              ->where(fn ($q) => $q->whereIn('tenant_id', $tenantIds)->orWhereRaw('LOWER(email) = ?', [$e]))->pluck('id');
+            $shopIds = DB::table('shops')->whereIn('tenant_id', $tenantIds)->pluck('id');
+
+            echo "target: ".$mask($e)."  mode: ".($apply ? 'DELETE' : 'LIST ONLY')."\n";
+            echo "companies (".$tenantIds->count()."):\n";
+            foreach (DB::table('tenants')->whereIn('id', $tenantIds)->get(['id','name','created_at']) as $t) {
+              $s = DB::table('shops')->where('tenant_id', $t->id)->pluck('id');
+              $inv = $s->isEmpty() ? 0 : DB::table('invoices')->whereIn('shop_id', $s)->count();
+              $ord = $s->isEmpty() ? 0 : DB::table('orders')->whereIn('shop_id', $s)->count();
+              echo "  #{$t->id} \"{$t->name}\" created {$t->created_at} | branches ".$s->count()." | orders $ord | invoices $inv | users ".DB::table('users')->where('tenant_id', $t->id)->count()."\n";
+            }
+            echo "users (".$userIds->count()."):\n";
+            foreach (DB::table('users')->whereIn('id', $userIds)->get(['id','name','email','tenant_id']) as $u) echo "  #{$u->id} {$u->name} | ".$mask($u->email)." | company {$u->tenant_id}\n";
+            echo "mail records to this address: ".DB::table('email_logs')->whereRaw('LOWER(to_email) = ?', [$e])->count()."\n";
+            if ($superIds->intersect($userIds)->isNotEmpty() || $tenantIds->contains(1)) { echo "ABORT: would touch the platform account\n"; return; }
+            if (! $apply) { echo "(nothing deleted)\n"; return; }
+
+            DB::transaction(function () use ($tenantIds, $userIds, $shopIds, $e, $userModel) {
+              DB::table('shops')->whereIn('id', $shopIds)->delete();
+              DB::table('model_has_roles')->where('model_type', $userModel)->whereIn('model_id', $userIds)->delete();
+              DB::table('model_has_permissions')->where('model_type', $userModel)->whereIn('model_id', $userIds)->delete();
+              foreach ([['personal_access_tokens', 'tokenable_id', ['tokenable_type', $userModel]], ['sessions', 'user_id', null], ['activity_logs', 'user_id', null], ['login_histories', 'user_id', null], ['user_sessions', 'user_id', null], ['device_tokens', 'user_id', null]] as [$table, $col, $extra]) {
+                if (Schema::hasTable($table) && Schema::hasColumn($table, $col)) {
+                  $q = DB::table($table)->whereIn($col, $userIds); if ($extra) $q->where($extra[0], $extra[1]); $q->delete();
+                }
+              }
+              DB::table('users')->whereIn('id', $userIds)->delete();
+              DB::table('tenants')->whereIn('id', $tenantIds)->delete();
+              DB::table('email_logs')->whereRaw('LOWER(to_email) = ?', [$e])->delete();
+            });
+            echo "DELETED.\n";
+            echo "left: users with this email=".DB::table('users')->whereRaw('LOWER(email) = ?', [$e])->count()." | companies with this email=".DB::table('tenants')->whereRaw('LOWER(email) = ?', [$e])->count()."\n";
+            PHP
+            php artisan tinker --execute="$(cat /tmp/purge.php)"
+            rm -f /tmp/purge.php
+            php artisan cache:clear > /dev/null
+            echo "### DONE"
