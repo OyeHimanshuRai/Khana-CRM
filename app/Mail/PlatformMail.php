@@ -18,7 +18,7 @@ use Illuminate\Queue\SerializesModels;
  */
 abstract class PlatformMail extends Mailable implements ShouldQueue
 {
-    use Queueable, SerializesModels;
+    use Queueable, SerializesModels, \App\Mail\Concerns\RetriesSafely;
 
     protected function company(): string
     {

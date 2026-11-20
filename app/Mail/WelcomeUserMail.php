@@ -23,7 +23,7 @@ use Illuminate\Queue\SerializesModels;
  */
 class WelcomeUserMail extends Mailable implements ShouldQueue
 {
-    use Queueable, SerializesModels;
+    use Queueable, SerializesModels, \App\Mail\Concerns\RetriesSafely;
 
     /**
      * @param  string|null  $setPasswordUrl  Signed link, or null when the

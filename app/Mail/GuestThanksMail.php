@@ -23,7 +23,7 @@ use Illuminate\Queue\SerializesModels;
  */
 class GuestThanksMail extends Mailable implements ShouldQueue
 {
-    use Queueable, SerializesModels;
+    use Queueable, SerializesModels, \App\Mail\Concerns\RetriesSafely;
 
     public function __construct(
         public Invoice $invoice,
