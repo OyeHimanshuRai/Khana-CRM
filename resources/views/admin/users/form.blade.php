@@ -110,6 +110,34 @@
             </div>
         </div>
 
+        @if (($shops ?? collect())->isNotEmpty())
+            {{-- Without a branch a person can sign in and still see nothing: the till,
+                 the kitchen and the bills all belong to a branch. --}}
+            <div class="card">
+                <div class="card-header">
+                    <div>
+                        <div class="card-title">Branches</div>
+                        <div class="text-xs text-muted">Where this person works. They see nothing until at least one is ticked.</div>
+                    </div>
+                </div>
+
+                <div class="card-body">
+                    <input type="hidden" name="shops_submitted" value="1">
+                    <div style="display:flex;flex-wrap:wrap;gap:9px">
+                        @foreach ($shops as $shop)
+                            <label class="pmchip tone-info">
+                                <input type="checkbox" name="shops[]" value="{{ $shop->id }}"
+                                       @checked(in_array($shop->id, array_map('intval', (array) old('shops', $assignedShops ?? [])), true))>
+                                <span>{{ $shop->name }}</span>
+                            </label>
+                        @endforeach
+                    </div>
+
+                    @error('shops')<span class="field-error" role="alert">{{ $message }}</span>@enderror
+                </div>
+            </div>
+        @endif
+
         <div class="card">
             <div class="card-header">
                 <div>

@@ -30,6 +30,18 @@
                 </div>
             @endif
 
+            {{-- A restaurant's person with no branch can sign in and still see nothing: the
+                 till, the kitchen and the bills all belong to a branch. Say so, rather than
+                 leave them looking at empty screens. --}}
+            @if (auth()->user() && ! auth()->user()->isSuperAdmin() && auth()->user()->tenant_id && \App\Support\CurrentShop::accessible()->isEmpty())
+                <div class="banner banner-warning" role="alert">
+                    <div class="banner-body">
+                        <strong>You have not been given a branch yet.</strong>
+                        Ask the owner to tick a branch for you (Users, then your name, then Branches). Until then there is nothing to show here.
+                    </div>
+                </div>
+            @endif
+
             {{-- Set at sign-in when the password is a well-known one; see RequireStrongPassword. --}}
             @if (session('password_is_weak') && ! request()->routeIs('admin.profile.*'))
                 <div class="banner banner-warning" role="alert">

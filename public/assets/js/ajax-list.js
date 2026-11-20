@@ -24,6 +24,11 @@
 |
 | whose contents replace whatever that selector matches on the page.
 |
+| A listing that carries no such template but has summary tiles (.stat-grid) or
+| a one-line fact under the page title (.page-sub) above it gets them refreshed after a save, a delete or any other change that
+| calls AjaxList.reload() - the tiles are re-read from the page itself, so the
+| count of "tables" never disagrees with the table of tables beneath it.
+|
 | Progressive enhancement: without JavaScript the filters are plain forms and
 | the page links are plain links, so the listing still works - this file only
 | intercepts what it can handle.
@@ -91,6 +96,39 @@
 
             template.remove();
         });
+    }
+
+    /**
+     * Summary tiles and the page's one-line fact ("51 products in the
+     * catalogue"), drawn outside the listing, re-read from the page.
+     *
+     * Only after a change (reload): what a person changed is exactly what they
+     * count. Skipped when the fragment redrew them itself (the oob template
+     * above), and for tiles inside a listing, which the swap handles.
+     */
+    function refreshTiles(url) {
+        var tiles = document.querySelectorAll('.stat-grid');
+        var sub = document.querySelector('.page-header .page-sub');
+
+        if (!tiles.length && !sub) { return; }
+
+        fetch(url, { credentials: 'same-origin' })
+            .then(function (response) { return response.ok ? response.text() : Promise.reject(); })
+            .then(function (html) {
+                var page = new DOMParser().parseFromString(html, 'text/html');
+                var fresh = page.querySelectorAll('.stat-grid');
+
+                tiles.forEach(function (old, i) {
+                    if (fresh[i] && !old.closest('[data-ajax-list]')) {
+                        old.innerHTML = fresh[i].innerHTML;
+                    }
+                });
+
+                var freshSub = page.querySelector('.page-header .page-sub');
+
+                if (sub && freshSub) { sub.textContent = freshSub.textContent; }
+            })
+            .catch(function () { /* the figures stay as they were; the list is already right */ });
     }
 
     /* The pages seen in this page's lifetime, by URL. Memory only, and short. */
@@ -176,6 +214,10 @@
 
             if (options.scroll) {
                 list.scrollIntoView({ behavior: 'smooth', block: 'start' });
+            }
+
+            if (options.refreshTiles && html.indexOf('data-ajax-oob') === -1) {
+                refreshTiles(url);
             }
 
             list.dispatchEvent(new CustomEvent('ajaxlist:loaded', {
@@ -301,7 +343,7 @@
         reload: function (list) {
             var el = typeof list === 'string' ? document.querySelector(list) : list;
             pageCache = {};   // a reload is asked for because something is not as it was
-            if (el) { load(el, collect(el), { push: false }); }
+            if (el) { load(el, collect(el), { push: false, refreshTiles: true }); }
         }
     };
 })(window, document);

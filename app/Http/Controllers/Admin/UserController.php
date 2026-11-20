@@ -7,6 +7,7 @@ use App\Models\ActivityLog;
 use App\Models\User;
 use App\Models\UserSession;
 use App\Support\ApiResponse;
+use App\Support\CurrentShop;
 use App\Support\CurrentTenant;
 use App\Support\PermissionRegistry;
 use App\Support\PlanAccess;
@@ -190,7 +191,47 @@ class UserController extends Controller
             'assignedRoles' => [],
             'directPermissions' => [],
             'inherited' => [],
+            'shops' => $this->assignableShops(),
+            // A restaurant with one branch has nowhere else to put a new person.
+            'assignedShops' => $this->assignableShops()->count() === 1 ? $this->assignableShops()->pluck('id')->all() : [],
         ]);
+    }
+
+    /**
+     * The branches this account may put somebody on: the ones of the company
+     * being worked in. Nothing outside a company (the Super Admin's own view),
+     * where "which branch" has no single answer.
+     *
+     * @return \Illuminate\Support\Collection<int, \App\Models\Shop>
+     */
+    private function assignableShops(): \Illuminate\Support\Collection
+    {
+        return CurrentTenant::id() === null ? collect() : CurrentShop::accessible();
+    }
+
+    /**
+     * Put a person on the ticked branches (and only those, of the ones this
+     * account can assign), leaving any branch it cannot see untouched.
+     *
+     * @param  array<int, int|string>  $ticked
+     */
+    private function syncShops(User $user, array $ticked): void
+    {
+        $assignable = $this->assignableShops()->pluck('id');
+        $ticked = collect($ticked)->map(fn ($id) => (int) $id)->intersect($assignable)->values();
+
+        $kept = $user->shops()->pluck('shops.id')->reject(fn ($id) => $assignable->contains($id));
+        $final = $kept->merge($ticked)->unique()->values();
+
+        $default = $user->shops()->wherePivot('is_default', true)->value('shops.id');
+        $default = $final->contains($default) ? $default : $final->first();
+
+        $user->shops()->sync($final->mapWithKeys(fn ($id) => [$id => ['is_default' => $id === $default]])->all());
+
+        // A pointer to a branch they can no longer open is re-resolved on their next request.
+        if ($user->current_shop_id !== null && ! $final->contains($user->current_shop_id)) {
+            $user->forceFill(['current_shop_id' => null])->saveQuietly();
+        }
     }
 
     public function store(Request $request): RedirectResponse
@@ -203,6 +244,8 @@ class UserController extends Controller
             'send_welcome' => ['boolean'],
             'roles' => ['array'],
             'roles.*' => ['string', Rule::in($this->assignableRoles()->pluck('name')->all())],
+            'shops' => ['array'],
+            'shops.*' => ['integer', Rule::in($this->assignableShops()->pluck('id')->all())],
         ]);
 
         /*
@@ -234,6 +277,16 @@ class UserController extends Controller
             ]);
 
             $user->syncRoles($data['roles'] ?? []);
+
+            // Without a branch a person can sign in and see nothing. With only
+            // one to choose from there is nothing to choose, so it is theirs.
+            $branches = $data['shops'] ?? [];
+
+            if ($branches === [] && $this->assignableShops()->count() === 1) {
+                $branches = [$this->assignableShops()->first()->id];
+            }
+
+            $this->syncShops($user, $branches);
 
             return $user;
         });
@@ -299,6 +352,8 @@ class UserController extends Controller
 
         return view('admin.users.form', [
             'user' => $user,
+            'shops' => $this->assignableShops(),
+            'assignedShops' => $user->shops()->pluck('shops.id')->all(),
             'roles' => $this->assignableRoles(),
             'tree' => PermissionRegistry::tree(),
             'assignedRoles' => $user->roles->pluck('name')->all(),
@@ -316,11 +371,22 @@ class UserController extends Controller
             'is_admin' => ['boolean'],
             'roles' => ['array'],
             'roles.*' => ['string', Rule::in($this->assignableRoles()->pluck('name')->all())],
+            'shops_submitted' => ['nullable', 'boolean'],
+            'shops' => ['array'],
+            'shops.*' => ['integer', Rule::in($this->assignableShops()->pluck('id')->all())],
         ]);
 
         $this->guardSelfLockout($request, $user, $data['roles'] ?? []);
 
-        DB::transaction(function () use ($user, $data) {
+        // Only when the branch ticks were on the form (a form without them must
+        // not clear a person's branches), and never to leave oneself on none.
+        $syncShops = $request->boolean('shops_submitted') && $this->assignableShops()->isNotEmpty();
+
+        if ($syncShops && $request->user()->is($user) && ($data['shops'] ?? []) === []) {
+            return back()->withInput()->withErrors(['shops' => 'You cannot take yourself off every branch.']);
+        }
+
+        DB::transaction(function () use ($user, $data, $syncShops) {
             $user->fill([
                 'name' => $data['name'],
                 'email' => $data['email'],
@@ -333,6 +399,10 @@ class UserController extends Controller
 
             $user->save();
             $user->syncRoles($data['roles'] ?? []);
+
+            if ($syncShops) {
+                $this->syncShops($user, $data['shops'] ?? []);
+            }
         });
 
         ActivityLog::record('user.updated', "Updated user \"{$user->name}\"", $user, [
