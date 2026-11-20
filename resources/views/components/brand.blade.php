@@ -3,6 +3,8 @@
     'sub' => 'Administration',
     /* Where the logo links to, or null for a plain block (the login screen). */
     'href' => null,
+    /* The sidebar: the whole Site Logo, with the square mark kept for the collapsed rail. */
+    'wide' => false,
 ])
 
 @php
@@ -23,13 +25,20 @@
     $name = Setting::get('company_name', config('app.name'));
 
     $mark = Str::upper(Str::substr($name, 0, 3));
+
+    // Only where asked for (the sidebar), and only when a Site Logo was uploaded.
+    $wideLogo = $wide ? CompanySettings::fileUrl('site_logo') : null;
 @endphp
 
 <{{ $href ? 'a' : 'div' }}
     @if ($href) href="{{ $href }}" @endif
     {{ $attributes->class(['brand']) }}
 >
-    <span class="brand-mark {{ $logo ? 'has-logo' : '' }}" aria-hidden="true">
+    @if ($wideLogo)
+        <img class="brand-wide" src="{{ $wideLogo }}" alt="{{ $name }}">
+    @endif
+
+    <span class="brand-mark {{ $logo ? 'has-logo' : '' }} {{ $wideLogo ? 'brand-rail' : '' }}" aria-hidden="true">
         @if ($logo)
             <img src="{{ $logo }}" alt="">
         @else
@@ -37,7 +46,7 @@
         @endif
     </span>
 
-    <span class="brand-text">
+    <span class="brand-text {{ $wideLogo ? 'brand-text-hidden' : '' }}">
         <span class="brand-name">{{ $name }}</span>
         @if ($sub)
             <span class="brand-sub">{{ $sub }}</span>

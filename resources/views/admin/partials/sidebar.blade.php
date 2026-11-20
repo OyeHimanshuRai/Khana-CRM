@@ -116,7 +116,7 @@
 <aside class="sidebar" id="sidebar">
     <div class="sidebar-head">
         {{-- Uploaded Site Logo when there is one, lettermark otherwise. --}}
-        <x-brand :href="auth()->user()?->homeUrl() ?? route('admin.dashboard')" />
+        <x-brand :wide="true" :href="auth()->user()?->homeUrl() ?? route('admin.dashboard')" />
 
         {{-- Drawer dismiss, mobile only. --}}
         <button type="button" class="header-btn sidebar-toggle-mobile" data-sidebar-close
