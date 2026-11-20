@@ -1,0 +1,54 @@
+name: Show failed jobs and clear the stale ones (manual)
+
+# One-off helper, run by hand. Never runs on push.
+# Always lists the failed jobs (kind, when, first line of the error, address masked).
+# apply = "yes" also deletes the ones that failed more than a day ago; anything
+# newer is kept so a fresh problem is not hidden.
+
+on:
+  workflow_dispatch:
+    inputs:
+      apply:
+        description: "yes = delete failed jobs older than a day"
+        required: false
+        default: "no"
+
+jobs:
+  run:
+    name: Failed jobs
+    runs-on: ubuntu-latest
+    steps:
+      - name: Run on server
+        uses: appleboy/ssh-action@v1.0.3
+        env:
+          APPLY: ${{ github.event.inputs.apply }}
+        with:
+          host: ${{ secrets.VPS_HOST }}
+          username: ${{ secrets.VPS_USER }}
+          key: ${{ secrets.VPS_SSH_KEY }}
+          port: ${{ secrets.VPS_PORT }}
+          envs: APPLY
+          script: |
+            cd ${{ secrets.VPS_PROJECT_PATH }}
+            cat > /tmp/fj.php <<'PHP'
+            use Illuminate\Support\Facades\DB;
+            $show = function ($title) {
+              echo "$title\n";
+              foreach (DB::table('failed_jobs')->orderBy('id')->get(['id','queue','payload','exception','failed_at']) as $j) {
+                $name = json_decode($j->payload, true)['displayName'] ?? '?';
+                $line = preg_replace('/[A-Za-z0-9._%+-]+@[A-Za-z0-9.-]+/', '<email>', strtok((string) $j->exception, "\n"));
+                echo "  #{$j->id} {$j->failed_at} | $name | ".substr($line, 0, 130)."\n";
+              }
+              echo "  (".DB::table('failed_jobs')->count()." total)\n";
+            };
+            $show('failed jobs now:');
+            echo 'queue worker: '.trim((string) shell_exec("systemctl list-units --type=service --state=running 2>/dev/null | grep -i 'queue\|worker' | head -3"))."\n";
+            if (strtolower((string) getenv('APPLY')) === 'yes') {
+              $n = DB::table('failed_jobs')->where('failed_at', '<', now()->subDay())->delete();
+              echo "deleted $n stale failed job(s)\n";
+              $show('failed jobs after:');
+            }
+            PHP
+            php artisan tinker --execute="$(cat /tmp/fj.php)"
+            rm -f /tmp/fj.php
+            echo "### DONE"
