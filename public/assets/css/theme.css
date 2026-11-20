@@ -1661,6 +1661,8 @@ th.num { text-align: right; }
 .banner-body strong { color: var(--heading); font-weight: 600; }
 .banner-warning { background: var(--warning-soft); border-color: transparent; }
 .banner-warning .banner-body, .banner-warning .banner-body strong { color: var(--warning); }
+.banner-info { background: var(--info-soft); border-color: transparent; }
+.banner-info .banner-body, .banner-info .banner-body strong { color: var(--info); }
 
 /* --------------------------------------------------------- empty state */
 .empty {

@@ -17,8 +17,11 @@ use Illuminate\View\View;
 /**
  * Confirming the email of an account a business made for itself.
  *
- * See User::needsEmailVerification for who is asked and
- * EnsureEmailIsConfirmed for what an unconfirmed account can reach.
+ * See User::needsEmailVerification for who is asked. Nobody is held up by it:
+ * the link goes out the moment the business signs up, the account opens at
+ * once, and the admin layout carries a reminder (with "send the link again")
+ * until the address is confirmed. This screen is the longer version of that
+ * reminder, for whoever goes looking for it.
  */
 class EmailVerificationController extends Controller
 {

@@ -41,8 +41,6 @@ return Application::configure(basePath: dirname(__DIR__))
             'admin' => \App\Http\Middleware\EnsureUserIsAdmin::class,
             // Runs after `admin`: a suspended company's staff are signed out.
             'tenant.active' => \App\Http\Middleware\EnsureTenantIsActive::class,
-            // A self-signed-up account stays shut until its email is confirmed.
-            'email.confirmed' => \App\Http\Middleware\EnsureEmailIsConfirmed::class,
             // Keeps a well-known password from being used past the profile screen.
             'password.strong' => \App\Http\Middleware\RequireStrongPassword::class,
             // Narrower than tenant.active: refuses one outlet whose own

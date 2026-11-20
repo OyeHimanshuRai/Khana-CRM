@@ -89,7 +89,7 @@ class SignupNoticesTest extends TestCase
         $this->postJson('/register', $this->payload(['email' => '  Asha@SpiceGarden.TEST ']))
             ->assertOk()
             ->assertJsonPath('success', true)
-            ->assertJsonPath('redirect', route('landing'))
+            ->assertJsonPath('redirect', route('admin.dashboard'))
             ->assertJsonFragment(['message' => 'Registration successful! Your 7-day free trial of the Restaurant plan has started. A welcome email has been sent to asha@spicegarden.test.']);
 
         // Stored the way it will be typed to sign in.
@@ -157,7 +157,7 @@ class SignupNoticesTest extends TestCase
 
         $this->postJson('/register', $this->payload())
             ->assertOk()
-            ->assertJsonPath('redirect', route('landing'))
+            ->assertJsonPath('redirect', route('admin.dashboard'))
             ->assertJsonFragment(['message' => 'Registration successful! Your 7-day free trial of the Restaurant plan has started. We could not send the welcome email to asha@spicegarden.test, but your account is ready - sign in at http://localhost/login.']);
 
         // The account exists, and the failure is on record without any secret.

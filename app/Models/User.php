@@ -92,7 +92,7 @@ class User extends Authenticatable
     }
 
     /**
-     * Does this account still have to confirm its email before it opens?
+     * Has this account still to confirm its email? (A reminder - it opens either way.)
      *
      * Only an account a business made for itself is asked (`must_verify_email`,
      * set at sign-up); staff an owner or the platform created were vouched

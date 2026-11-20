@@ -215,7 +215,7 @@ class RegisterController extends Controller
         // A trial plan ends at the homepage; a plan that is paid up front goes
         // to the subscription page, where the payment has to happen.
         [$route, $message] = $trial
-            ? ['landing', sprintf('Registration successful! Your %d-day free trial of the %s plan has started. %s', (int) $plan->trial_days, $plan->name, $emailNote)]
+            ? ['admin.dashboard', sprintf('Registration successful! Your %d-day free trial of the %s plan has started. %s', (int) $plan->trial_days, $plan->name, $emailNote)]
             : ['admin.subscription.mine', 'Registration successful! Pick your plan below and pay to get started. '.$emailNote];
 
         if ($request->expectsJson()) {

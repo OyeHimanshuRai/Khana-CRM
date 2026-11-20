@@ -30,6 +30,21 @@
                 </div>
             @endif
 
+            {{-- The address a business signed up with has not been confirmed yet. A reminder, not a gate:
+                 the link was emailed at sign-up and the account is already open. --}}
+            @if (auth()->user() && auth()->user()->needsEmailVerification() && ! request()->routeIs('admin.verification.*'))
+                <div class="banner banner-info" role="status">
+                    <div class="banner-body">
+                        <strong>Please confirm your email.</strong>
+                        We sent a link to {{ auth()->user()->email }} - open it to finish setting up. Not there? Check the spam folder.
+                    </div>
+                    <form method="POST" action="{{ route('admin.verification.send') }}" data-ajax>
+                        @csrf
+                        <button type="submit" class="btn btn-sm">Send the link again</button>
+                    </form>
+                </div>
+            @endif
+
             {{-- A restaurant's person with no branch can sign in and still see nothing: the
                  till, the kitchen and the bills all belong to a branch. Say so, rather than
                  leave them looking at empty screens. --}}

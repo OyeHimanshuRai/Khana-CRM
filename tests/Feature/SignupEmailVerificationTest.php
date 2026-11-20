@@ -77,19 +77,35 @@ class SignupEmailVerificationTest extends TestCase
             && str_contains($mail->render(), '/email/verify/'.$owner->id.'/'));
     }
 
-    public function test_until_then_the_account_opens_nothing_but_the_confirmation_screen(): void
+    public function test_until_then_the_account_is_open_with_a_reminder(): void
     {
         $owner = $this->signUp();
 
-        $this->get('/superadmin/dashboard')->assertRedirect(route('admin.verification.notice'));
+        // Not held up: the dashboard opens at once, with a reminder and a way to resend.
+        $this->get('/superadmin/dashboard')->assertOk()
+            ->assertSee('Please confirm your email')
+            ->assertSee('asha@spicegarden.test')
+            ->assertSee('Send the link again');
+
         $this->resetState();
-        $this->getJson('/superadmin/products')->assertForbidden()
-            ->assertJsonPath('message', 'Please confirm your email address first. We sent a link to asha@spicegarden.test.');
+        $this->getJson('/superadmin/products')->assertOk();
+
+        // The longer version of the reminder is still there for whoever goes looking.
         $this->resetState();
         $this->get(route('admin.verification.notice'))->assertOk()->assertSee('asha@spicegarden.test');
+
         $this->resetState();
         $this->post('/superadmin/logout')->assertRedirect();
         $this->assertGuest();
+    }
+
+    public function test_the_reminder_goes_once_the_address_is_confirmed(): void
+    {
+        $owner = $this->signUp();
+        $this->get($this->verifyUrl($owner))->assertRedirect(route('admin.dashboard'));
+
+        $this->resetState();
+        $this->get('/superadmin/dashboard')->assertOk()->assertDontSee('Please confirm your email');
     }
 
     public function test_the_link_confirms_the_address_and_opens_the_account(): void
