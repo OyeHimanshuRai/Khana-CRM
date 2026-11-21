@@ -102,7 +102,7 @@ class LoginRequest extends FormRequest
          | password, so it tells nobody without it that the address is registered.
          */
         if ($user->needsEmailVerification()) {
-            $this->failed('email', \App\Support\AccountMessages::unverified($user->email), 'email_unverified', $user);
+            $this->failed('account', \App\Support\AccountMessages::unverified($user->email), 'email_unverified', $user);
         }
 
         if (! $user->is_admin) {

@@ -101,11 +101,11 @@ class SignupEmailVerificationTest extends TestCase
         $this->signUp();
 
         $this->signIn()->assertStatus(422)
-            ->assertJsonPath('errors.email.0', \App\Support\AccountMessages::unverified('asha@spicegarden.test'));
+            ->assertJsonPath('errors.account.0', \App\Support\AccountMessages::unverified('asha@spicegarden.test'));
         $this->assertGuest();
 
         $this->post('/login', ['email' => 'asha@spicegarden.test', 'password' => 'Secret123'])
-            ->assertSessionHasErrors('email');
+            ->assertSessionHasErrors('account');
         $this->assertGuest();
     }
 

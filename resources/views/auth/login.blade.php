@@ -93,7 +93,7 @@
             </form>
 
             {{-- Shown when sign-in says the email is not verified yet. --}}
-            <div class="lp-resend" data-resend @unless (str_contains((string) $errors->first('email').(string) session('error'), 'verify your email')) hidden @endunless>
+            <div class="lp-resend" data-resend @unless (str_contains((string) $errors->first('account').(string) session('error'), 'verify your email')) hidden @endunless>
                 <p>Did not get the verification email?</p>
                 <button type="button" class="lp-btn lp-btn-ghost" data-resend-button>Send the verification link again</button>
                 <p class="lp-resend-msg" role="status" data-resend-message></p>
@@ -120,7 +120,7 @@
         // The sign-in answered "verify your email first": offer to send the link again.
         form.addEventListener('ajax:error', function (event) {
             var errors = event.detail && event.detail.payload && event.detail.payload.errors;
-            var text = errors && errors.email ? String(errors.email[0] || '') : '';
+            var text = errors && errors.account ? String(errors.account[0] || '') : '';
             if (/verify your email/i.test(text)) { box.hidden = false; }
         });
 
