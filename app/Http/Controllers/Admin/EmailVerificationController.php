@@ -11,41 +11,44 @@ use Illuminate\Http\JsonResponse;
 use Illuminate\Http\RedirectResponse;
 use Illuminate\Http\Request;
 use Illuminate\Support\Facades\Auth;
+use Illuminate\Support\Facades\Hash;
 use Illuminate\Support\Facades\Mail;
-use Illuminate\View\View;
+use Illuminate\Support\Str;
 
 /**
  * Confirming the email of an account a business made for itself.
  *
- * See User::needsEmailVerification for who is asked. Nobody is held up by it:
- * the link goes out the moment the business signs up, the account opens at
- * once, and the admin layout carries a reminder (with "send the link again")
- * until the address is confirmed. This screen is the longer version of that
- * reminder, for whoever goes looking for it.
+ * Nobody is signed in by signing up: the link in the sign-up email confirms the
+ * address, and only then can the account sign in (see User::needsEmailVerification
+ * and LoginRequest). Whoever did not get the email, or lost it, asks for it again
+ * from the sign-in page - with the password, so an address cannot be mailed at
+ * by a stranger.
  */
 class EmailVerificationController extends Controller
 {
-    /** "Check your inbox", with a way to send the link again. */
-    public function notice(Request $request): View|RedirectResponse
+    /** Send the link again, from the sign-in page. Throttled on the route. */
+    public function resend(Request $request): JsonResponse|RedirectResponse
     {
-        if (! $request->user()->needsEmailVerification()) {
-            return redirect()->route('admin.dashboard');
+        $data = $request->validate([
+            'email' => ['required', 'string', 'email'],
+            'password' => ['required', 'string'],
+        ]);
+
+        $user = User::query()->withoutGlobalScopes()
+            ->whereRaw('LOWER(email) = ?', [Str::lower($data['email'])])
+            ->first();
+
+        // One answer for "no such address", "wrong password" and "nothing to confirm".
+        if (! $user || ! Hash::check($data['password'], (string) $user->password) || ! $user->needsEmailVerification()) {
+            return $request->expectsJson()
+                ? ApiResponse::error('Enter the email and password you registered with.', ['email' => ['Enter the email and password you registered with.']], 422)
+                : back()->withErrors(['email' => 'Enter the email and password you registered with.']);
         }
 
-        return view('admin.auth.verify-email', ['email' => $request->user()->email]);
-    }
+        Mail::to($user->email, $user->name)->send(new VerifyEmailMail($user));
+        ActivityLog::record('auth.verification_sent', 'Sent the email confirmation link again', $user);
 
-    /** Send the link again. Throttled on the route. */
-    public function send(Request $request): JsonResponse|RedirectResponse
-    {
-        $user = $request->user();
-
-        if ($user->needsEmailVerification()) {
-            Mail::to($user->email, $user->name)->send(new VerifyEmailMail($user));
-            ActivityLog::record('auth.verification_sent', 'Sent the email confirmation link again', $user);
-        }
-
-        $message = "We sent a new link to {$user->email}.";
+        $message = "We sent a new verification link to {$user->email}. Open it to activate your account.";
 
         return $request->expectsJson()
             ? ApiResponse::success($message)
@@ -68,10 +71,10 @@ class EmailVerificationController extends Controller
             ActivityLog::record('auth.email_verified', "Confirmed {$user->email}", $user);
         }
 
-        $message = 'Email confirmed. Thank you.';
+        $message = 'Your email is verified and your account is active. Please sign in.';
 
         return Auth::id() === $user->id
             ? redirect()->route('admin.dashboard')->with('status', $message)
-            : redirect()->route('login')->with('status', $message.' Sign in to continue.');
+            : redirect()->route('login')->with('status', $message);
     }
 }

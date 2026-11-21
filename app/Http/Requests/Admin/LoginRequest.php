@@ -96,6 +96,15 @@ class LoginRequest extends FormRequest
             $this->failed('email', 'This account has been deactivated.', 'inactive', $user);
         }
 
+        /*
+         | An account a business made for itself opens only once its address has
+         | been confirmed, from the link in the sign-up email. Said after the
+         | password, so it tells nobody without it that the address is registered.
+         */
+        if ($user->needsEmailVerification()) {
+            $this->failed('email', \App\Support\AccountMessages::unverified($user->email), 'email_unverified', $user);
+        }
+
         if (! $user->is_admin) {
             $this->failed('email', 'This account does not have administrator access.', 'no_admin_access', $user);
         }

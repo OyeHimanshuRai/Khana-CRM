@@ -3,22 +3,16 @@
 namespace App\Http\Controllers;
 
 use App\Models\ActivityLog;
-use App\Models\LoginHistory;
 use App\Models\Page;
 use App\Models\Plan;
-use App\Models\UserSession;
 use App\Services\Payments\GatewayManager;
 use App\Services\TenantProvisioningService;
-use App\Support\CurrentShop;
-use App\Support\CurrentTenant;
-use App\Support\PlanAccess;
 use App\Support\SignupMailer;
 use App\Support\SiteBrand;
 use Illuminate\Http\JsonResponse;
 use Illuminate\Http\RedirectResponse;
 use Illuminate\Http\Request;
 use Illuminate\Support\Collection;
-use Illuminate\Support\Facades\Auth;
 use Illuminate\Support\Facades\RateLimiter;
 use Illuminate\Support\Facades\Storage;
 use Illuminate\Support\Str;
@@ -177,28 +171,14 @@ class RegisterController extends Controller
 
         RateLimiter::hit($limitKey, 3600);
 
-        Auth::login($user);
-
-        // A fresh session id, so a pre-login session cannot be replayed.
-        $request->session()->regenerate();
-
-        UserSession::start($user, $request);
-        LoginHistory::record(LoginHistory::SUCCESS, $user->email, $user, null, $request);
-
-        $user->forceFill([
-            'last_login_at' => now(),
-            'last_seen_at' => now(),
-            'login_count' => $user->login_count + 1,
-        ])->saveQuietly();
-
         ActivityLog::record('auth.register', sprintf('Signed up "%s" on the %s plan', $user->tenant?->name, $plan->name), $user->tenant);
 
-        // This request resolved who the visitor was while they were a guest.
-        CurrentTenant::forget();
-        CurrentShop::forget();
-        PlanAccess::forget();
+        // Nobody is signed in by signing up. The account opens when the address on
+        // it has been confirmed, from the link in the email; until then sign-in says so.
+        // (Nothing here resolved a company or a branch: the visitor is still a guest.)
 
-        // Welcome to the owner (sent now, so a failure is known), "new sign-up" to us (queued). Never throws.
+        // The verification link, in the welcome email (sent now, so a failure is known),
+        // and "new sign-up" to us (queued). Never throws.
         $emailed = SignupMailer::send($user);
 
         // And on the platform's bell, and its phones.
@@ -206,26 +186,26 @@ class RegisterController extends Controller
 
         $trial = (int) $plan->trial_days > 0;
 
-        // Honest about the email: the account exists either way, but the
+        // What the home page shows, as a notice that stays until it is closed: the
         // person is only told a message is on its way when one was sent.
-        $emailNote = $emailed
-            ? "A welcome email has been sent to {$user->email}."
-            : "We could not send the welcome email to {$user->email}, but your account is ready - sign in at ".route('login').'.';
+        $notice = [
+            'email' => $user->email,
+            'sent' => $emailed,
+            'plan' => $plan->name,
+            'trial_days' => $trial ? (int) $plan->trial_days : 0,
+        ];
 
-        // A trial plan ends at the homepage; a plan that is paid up front goes
-        // to the subscription page, where the payment has to happen.
-        [$route, $message] = $trial
-            ? ['admin.dashboard', sprintf('Registration successful! Your %d-day free trial of the %s plan has started. %s', (int) $plan->trial_days, $plan->name, $emailNote)]
-            : ['admin.subscription.mine', 'Registration successful! Pick your plan below and pay to get started. '.$emailNote];
+        $message = $emailed
+            ? "Thank you for registering! We have sent a verification link to {$user->email}. Open it to verify your email and activate your account, then sign in."
+            : "Thank you for registering! We could not send the verification email to {$user->email} just now. Sign in at ".route('login').' and choose "Send the verification link again".';
+
+        $request->session()->flash('signup_notice', $notice);
 
         if ($request->expectsJson()) {
-            // Shown again on the next page, for whoever missed the toast.
-            $request->session()->flash('status', $message);
-
-            return json_success($message, [], route($route));
+            return json_success($message, [], route('landing'));
         }
 
-        return redirect()->route($route)->with('status', $message);
+        return redirect()->route('landing');
     }
 
     /** @return Collection<int, Plan> */

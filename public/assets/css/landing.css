@@ -1430,3 +1430,22 @@ html { scroll-behavior: smooth; }
 .lp-field input::placeholder,
 .lp-field textarea::placeholder { color: #8a8a93; font-size: var(--ui-fs-body); opacity: 1; }
 .lp-field textarea { min-height: 62px; }
+
+
+/* The thank-you shown on the home page after signing up. */
+.lp-notice { background: rgba(19, 108, 62, .10); border-bottom: 1px solid rgba(19, 108, 62, .22); }
+.lp-notice-in { display: flex; align-items: flex-start; gap: 14px; padding-block: 16px; }
+.lp-notice-icon { flex: none; display: grid; place-items: center; width: 30px; height: 30px; border-radius: 50%; background: #136c3e; color: #fff; font-weight: 700; }
+.lp-notice-body { flex: 1; min-width: 0; color: #0f5132; font-size: 14.5px; line-height: 1.5; }
+.lp-notice-body strong { display: block; font-size: 16px; margin-bottom: 2px; }
+.lp-notice-body p { margin: 0 0 4px; }
+.lp-notice-body a { color: #0b3d25; font-weight: 600; text-decoration: underline; }
+.lp-notice-small { font-size: 13px; opacity: .9; }
+.lp-notice-close { flex: none; width: 30px; height: 30px; border: 0; border-radius: 8px; background: transparent; color: #0f5132; font-size: 22px; line-height: 1; cursor: pointer; }
+.lp-notice-close:hover { background: rgba(19, 108, 62, .15); }
+
+/* "Send the verification link again", under the sign-in form. */
+.lp-resend { margin: 14px 0 0; padding: 12px 14px; border-radius: 12px; background: var(--lp-bg-alt, #f4f4f6); text-align: center; font-size: 14px; }
+.lp-resend[hidden] { display: none; }
+.lp-resend p { margin: 0 0 8px; }
+.lp-resend-msg { margin-top: 8px; font-weight: 600; }

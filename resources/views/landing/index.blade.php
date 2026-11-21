@@ -74,6 +74,8 @@
     'actions' => [['Sign in', route('login'), 'ghost'], ['See pricing', route('pricing'), 'solid']],
 ])
 
+@include('site._signup-notice')
+
 <main>
     {{-- --------------------------------------------------------- hero -- --}}
     {{--

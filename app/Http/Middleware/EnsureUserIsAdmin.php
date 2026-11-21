@@ -35,6 +35,8 @@ class EnsureUserIsAdmin
         $message = match (true) {
             ! $user instanceof User || ! $user->is_admin => __('You do not have administrator access.'),
             ! $user->is_active => __('This account has been deactivated. Please contact your administrator.'),
+            // A business's own sign-up that never confirmed its address (also ends a session that predates the rule).
+            $user->needsEmailVerification() => \App\Support\AccountMessages::unverified($user->email),
             // Each side takes only its own accounts: the Super Admin on
             // /superadmin, a restaurant's people on the normal URLs.
             Realm::isPlatform() && ! $user->isSuperAdmin() => __('This sign-in is for the platform administrator.'),

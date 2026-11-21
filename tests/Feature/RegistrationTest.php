@@ -103,6 +103,24 @@ class RegistrationTest extends TestCase
         return $owner;
     }
 
+    /**
+     * Signing up signs nobody in: the owner confirms the address from the email,
+     * then signs in at /login. This does both, as the person would.
+     */
+    private function signUpAndSignIn(array $overrides = []): User
+    {
+        $this->post('/register', $this->payload($overrides))->assertRedirect(route('landing'));
+        $this->assertGuest();
+
+        $owner = $this->newOwner();          // confirms the address, as the email link does
+        $this->resetState();
+
+        $this->post('/login', ['email' => $owner->email, 'password' => $this->payload($overrides)['password']])->assertRedirect();
+        $this->resetState();
+
+        return $owner->fresh();
+    }
+
     private function signOut(): void
     {
         Auth::guard('web')->logout();
@@ -199,7 +217,7 @@ class RegistrationTest extends TestCase
             'latitude' => '26.9124000',
             'longitude' => '75.7873000',
             'logo' => UploadedFile::fake()->image('business.png')->size(256),
-        ]))->assertRedirect(route('admin.dashboard'));
+        ]))->assertRedirect(route('landing'));
 
         $tenant = $this->newOwner()->tenant;
         $shop = Shop::query()->withoutGlobalScopes()->where('tenant_id', $tenant->id)->firstOrFail();
@@ -224,20 +242,25 @@ class RegistrationTest extends TestCase
     public function test_a_ten_digit_mobile_is_stored_with_the_india_code(): void
     {
         $this->post('/register', $this->payload(['mobile' => '9876543210']))
-            ->assertRedirect(route('admin.dashboard'));
+            ->assertRedirect(route('landing'));
 
         $this->assertSame('+91 9876543210', $this->newOwner()->mobile);
     }
 
     /* -------------------------------------------------------- provisioning */
 
-    public function test_signing_up_creates_a_business_ready_to_trade_and_signs_the_owner_in(): void
+    public function test_signing_up_creates_a_business_ready_to_trade_and_signs_nobody_in(): void
     {
         $this->post('/register', $this->payload())
-            ->assertRedirect(route('admin.dashboard'))
-            ->assertSessionHas('status');
+            ->assertRedirect(route('landing'))
+            ->assertSessionHas('signup_notice', fn (array $n) => $n['email'] === 'asha@spicegarden.test' && $n['sent'] === true);
 
-        $owner = $this->newOwner();
+        // Nobody is signed in: the account opens when the address is confirmed.
+        $this->assertGuest();
+
+        $owner = User::query()->where('email', 'asha@spicegarden.test')->firstOrFail();
+        $this->assertTrue($owner->needsEmailVerification());
+
         $tenant = $owner->tenant;
         $shop = Shop::query()->withoutGlobalScopes()->where('tenant_id', $tenant->id)->firstOrFail();
 
@@ -254,8 +277,13 @@ class RegistrationTest extends TestCase
 
         $this->assertNotNull(Warehouse::allShops()->where('shop_id', $shop->id)->first());
 
-        $this->assertAuthenticatedAs($owner);
-        $this->get('/superadmin/dashboard')->assertOk();
+        // ...and once it is confirmed, they can sign in and work.
+        $owner->forceFill(['email_verified_at' => now()])->saveQuietly();
+        $this->resetState();
+        $this->post('/login', ['email' => 'asha@spicegarden.test', 'password' => 'Secret123'])->assertRedirect();
+        $this->assertAuthenticatedAs($owner->fresh());
+        $this->resetState();
+        $this->get('/dashboard')->assertOk();
     }
 
     public function test_the_trial_is_exactly_seven_days_with_no_grace_and_full_price_after(): void
@@ -306,7 +334,7 @@ class RegistrationTest extends TestCase
     public function test_the_email_is_stored_in_lower_case(): void
     {
         $this->post('/register', $this->payload(['email' => '  Asha@SpiceGarden.TEST ']))
-            ->assertRedirect(route('admin.dashboard'));
+            ->assertRedirect(route('landing'));
 
         $this->assertSame('asha@spicegarden.test', $this->newOwner()->email);
     }
@@ -340,15 +368,14 @@ class RegistrationTest extends TestCase
         $this->assertGuest();
     }
 
-    public function test_a_plan_with_no_trial_lands_the_owner_on_the_billing_screen(): void
+    public function test_a_plan_with_no_trial_keeps_the_owner_on_the_billing_screen_after_signing_in(): void
     {
         $this->enableOnlineBilling();
         $this->plan('starter')->forceFill(['trial_days' => 0])->save();
 
-        $this->post('/register', $this->payload(['plan' => 'starter']))
-            ->assertRedirect(route('admin.subscription.mine'));
+        $owner = $this->signUpAndSignIn(['plan' => 'starter']);
 
-        $subscription = Subscription::query()->where('tenant_id', $this->newOwner()->tenant_id)->firstOrFail();
+        $subscription = Subscription::query()->where('tenant_id', $owner->tenant_id)->firstOrFail();
 
         $this->assertFalse($subscription->isUsable());
         $this->assertNotNull($subscription->ends_at);
@@ -427,7 +454,7 @@ class RegistrationTest extends TestCase
     {
         for ($i = 1; $i <= 5; $i++) {
             $this->post('/register', $this->payload(['email' => "owner{$i}@spicegarden.test"]))
-                ->assertRedirect(route('admin.dashboard'));
+                ->assertRedirect(route('landing'));
             $this->signOut();
         }
 
@@ -446,7 +473,7 @@ class RegistrationTest extends TestCase
             $this->from('/register')->post('/register', $this->payload(['email' => 'nope']));
         }
 
-        $this->post('/register', $this->payload())->assertRedirect(route('admin.dashboard'));
+        $this->post('/register', $this->payload())->assertRedirect(route('landing'));
     }
 
     /* ----------------------------------------------------------- atomicity */
@@ -483,9 +510,7 @@ class RegistrationTest extends TestCase
 
     private function ownerOfLapsedAccount(): User
     {
-        $this->post('/register', $this->payload());
-
-        $owner = $this->newOwner();
+        $owner = $this->signUpAndSignIn();
 
         // Eight days on: the seven-day trial is over.
         Carbon::setTestNow(now()->addDays(8));
@@ -557,8 +582,7 @@ class RegistrationTest extends TestCase
     public function test_a_company_suspended_by_a_person_signs_everyone_out_owners_included(): void
     {
         $this->enableOnlineBilling();
-        $this->post('/register', $this->payload());
-        $owner = $this->newOwner();
+        $owner = $this->signUpAndSignIn();
         $owner->tenant->suspend('Chargeback dispute under review');
         $this->resetState();
 

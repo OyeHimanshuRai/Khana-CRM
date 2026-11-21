@@ -89,12 +89,12 @@ class SignupNoticesTest extends TestCase
         $this->postJson('/register', $this->payload(['email' => '  Asha@SpiceGarden.TEST ']))
             ->assertOk()
             ->assertJsonPath('success', true)
-            ->assertJsonPath('redirect', route('admin.dashboard'))
-            ->assertJsonFragment(['message' => 'Registration successful! Your 7-day free trial of the Restaurant plan has started. A welcome email has been sent to asha@spicegarden.test.']);
+            ->assertJsonPath('redirect', route('landing'))
+            ->assertJsonFragment(['message' => 'Thank you for registering! We have sent a verification link to asha@spicegarden.test. Open it to verify your email and activate your account, then sign in.']);
 
         // Stored the way it will be typed to sign in.
         $this->assertDatabaseHas('users', ['email' => 'asha@spicegarden.test']);
-        $this->assertAuthenticated();
+        $this->assertGuest();
     }
 
     public function test_a_wrong_password_comes_back_on_the_password_field(): void
@@ -157,8 +157,8 @@ class SignupNoticesTest extends TestCase
 
         $this->postJson('/register', $this->payload())
             ->assertOk()
-            ->assertJsonPath('redirect', route('admin.dashboard'))
-            ->assertJsonFragment(['message' => 'Registration successful! Your 7-day free trial of the Restaurant plan has started. We could not send the welcome email to asha@spicegarden.test, but your account is ready - sign in at http://localhost/login.']);
+            ->assertJsonPath('redirect', route('landing'))
+            ->assertJsonFragment(['message' => 'Thank you for registering! We could not send the verification email to asha@spicegarden.test just now. Sign in at http://localhost/login and choose "Send the verification link again".']);
 
         // The account exists, and the failure is on record without any secret.
         $this->assertDatabaseHas('users', ['email' => 'asha@spicegarden.test']);

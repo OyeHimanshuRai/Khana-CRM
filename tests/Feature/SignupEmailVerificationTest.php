@@ -18,11 +18,10 @@ use Tests\TestCase;
 /**
  * A business that signs itself up proves the email address is theirs.
  *
- * Without it anybody could open an account in somebody else's name - and,
- * because an address can only be used once, keep the real owner from ever
- * signing up. Until the link in the welcome email is opened the account
- * shows nothing but "confirm your email". Staff an owner or the platform
- * creates are not asked: whoever made the account vouched for the address.
+ * Signing up does not sign anybody in: the visitor goes back to the home page
+ * with a thank-you, and the account cannot sign in until the link in the
+ * email is opened. Staff an owner or the platform creates are not asked:
+ * whoever made the account vouched for the address.
  */
 class SignupEmailVerificationTest extends TestCase
 {
@@ -65,69 +64,78 @@ class SignupEmailVerificationTest extends TestCase
         ]);
     }
 
-    public function test_a_new_sign_up_has_to_confirm_its_email(): void
+    private function signIn(string $email = 'asha@spicegarden.test', string $password = 'Secret123')
     {
-        $owner = $this->signUp();
+        return $this->postJson('/login', ['email' => $email, 'password' => $password]);
+    }
 
-        $this->assertTrue($owner->must_verify_email);
-        $this->assertNull($owner->email_verified_at);
+    public function test_signing_up_sends_the_link_and_signs_nobody_in(): void
+    {
+        $this->post('/register', [
+            'business_name' => 'Spice Garden', 'name' => 'Asha Rao', 'email' => 'asha@spicegarden.test',
+            'mobile' => '+91 98765 43210', 'password' => 'Secret123', 'plan' => 'restaurant', 'period' => 'monthly', 'terms' => '1',
+        ])->assertRedirect(route('landing'))->assertSessionHas('signup_notice');
+
+        $this->assertGuest();
+        $owner = User::query()->withoutGlobalScopes()->where('email', 'asha@spicegarden.test')->firstOrFail();
         $this->assertTrue($owner->needsEmailVerification());
 
         Mail::assertSent(TrialWelcomeMail::class, fn (TrialWelcomeMail $mail) => $mail->hasTo('asha@spicegarden.test')
             && str_contains($mail->render(), '/email/verify/'.$owner->id.'/'));
     }
 
-    public function test_until_then_the_account_is_open_with_a_reminder(): void
+    public function test_the_home_page_says_thank_you_and_where_the_link_went(): void
     {
-        $owner = $this->signUp();
+        $this->post('/register', [
+            'business_name' => 'Spice Garden', 'name' => 'Asha Rao', 'email' => 'asha@spicegarden.test',
+            'mobile' => '+91 98765 43210', 'password' => 'Secret123', 'plan' => 'restaurant', 'period' => 'monthly', 'terms' => '1',
+        ]);
 
-        // Not held up: the dashboard opens at once, with a reminder and a way to resend.
-        $this->get('/superadmin/dashboard')->assertOk()
-            ->assertSee('Please confirm your email')
-            ->assertSee('asha@spicegarden.test')
-            ->assertSee('Send the link again');
+        $this->get(route('landing'))->assertOk()
+            ->assertSee('Thank you for registering')
+            ->assertSee('asha@spicegarden.test');
+    }
 
-        $this->resetState();
-        $this->getJson('/superadmin/products')->assertOk();
+    public function test_until_the_link_is_opened_the_account_cannot_sign_in(): void
+    {
+        $this->signUp();
 
-        // The longer version of the reminder is still there for whoever goes looking.
-        $this->resetState();
-        $this->get(route('admin.verification.notice'))->assertOk()->assertSee('asha@spicegarden.test');
+        $this->signIn()->assertStatus(422)
+            ->assertJsonPath('errors.email.0', \App\Support\AccountMessages::unverified('asha@spicegarden.test'));
+        $this->assertGuest();
 
-        $this->resetState();
-        $this->post('/superadmin/logout')->assertRedirect();
+        $this->post('/login', ['email' => 'asha@spicegarden.test', 'password' => 'Secret123'])
+            ->assertSessionHasErrors('email');
         $this->assertGuest();
     }
 
-    public function test_the_reminder_goes_once_the_address_is_confirmed(): void
+    public function test_a_wrong_password_still_gets_the_ordinary_message(): void
     {
-        $owner = $this->signUp();
-        $this->get($this->verifyUrl($owner))->assertRedirect(route('admin.dashboard'));
+        $this->signUp();
 
-        $this->resetState();
-        $this->get('/superadmin/dashboard')->assertOk()->assertDontSee('Please confirm your email');
+        $this->signIn(password: 'nope-nope')->assertStatus(422);
+        $this->assertStringNotContainsString('verify your email', strtolower((string) $this->signIn(password: 'nope-nope')->json('errors.email.0')));
     }
 
-    public function test_the_link_confirms_the_address_and_opens_the_account(): void
+    public function test_the_link_confirms_the_address_and_then_sign_in_works(): void
     {
         $owner = $this->signUp();
-
-        $this->get($this->verifyUrl($owner))->assertRedirect(route('admin.dashboard'));
-        $this->assertNotNull($owner->fresh()->email_verified_at);
-
-        $this->resetState();
-        $this->get('/superadmin/dashboard')->assertOk();
-    }
-
-    public function test_the_link_works_on_another_device_where_nobody_is_signed_in(): void
-    {
-        $owner = $this->signUp();
-        Auth::guard('web')->logout();
-        $this->flushSession();
-        $this->resetState();
 
         $this->get($this->verifyUrl($owner))->assertRedirect(route('login'))->assertSessionHas('status');
         $this->assertNotNull($owner->fresh()->email_verified_at);
+        $this->assertGuest();
+
+        $this->resetState();
+        $this->signIn()->assertOk();
+        $this->assertAuthenticated();
+    }
+
+    public function test_a_session_that_is_still_open_is_ended_if_the_account_is_unconfirmed(): void
+    {
+        $owner = $this->signUp();
+
+        $this->resetState();
+        $this->actingAs($owner)->get('/dashboard')->assertRedirect(route('login'));
         $this->assertGuest();
     }
 
@@ -145,18 +153,29 @@ class SignupEmailVerificationTest extends TestCase
         $this->assertNull($owner->fresh()->email_verified_at);
     }
 
-    public function test_the_link_can_be_sent_again_but_not_endlessly(): void
+    public function test_the_link_can_be_sent_again_with_the_password_but_not_endlessly(): void
     {
         $this->signUp();
 
-        $this->postJson(route('admin.verification.send'))->assertOk();
-        Mail::assertQueued(VerifyEmailMail::class, 1);
+        $this->postJson(route('verification.resend'), ['email' => 'asha@spicegarden.test', 'password' => 'Secret123'])
+            ->assertOk()->assertJsonPath('success', true);
+        Mail::assertQueued(VerifyEmailMail::class, fn ($m) => $m->hasTo('asha@spicegarden.test'));
 
         for ($i = 0; $i < 5; $i++) {
-            $this->resetState();
-            $last = $this->postJson(route('admin.verification.send'));
+            $last = $this->postJson(route('verification.resend'), ['email' => 'asha@spicegarden.test', 'password' => 'Secret123']);
         }
         $last->assertStatus(429);
+    }
+
+    public function test_the_link_is_not_sent_to_a_stranger(): void
+    {
+        $this->signUp();
+
+        $this->postJson(route('verification.resend'), ['email' => 'asha@spicegarden.test', 'password' => 'wrong-password'])
+            ->assertStatus(422)->assertJsonPath('errors.email.0', 'Enter the email and password you registered with.');
+        $this->postJson(route('verification.resend'), ['email' => 'nobody@nowhere.test', 'password' => 'Secret123'])
+            ->assertStatus(422)->assertJsonPath('errors.email.0', 'Enter the email and password you registered with.');
+        Mail::assertNotQueued(VerifyEmailMail::class);
     }
 
     public function test_staff_somebody_created_are_never_asked(): void
@@ -173,6 +192,6 @@ class SignupEmailVerificationTest extends TestCase
 
         $this->assertFalse($staff->fresh()->needsEmailVerification());
         $this->resetState();
-        $this->actingAs($staff->fresh())->get('/superadmin/dashboard')->assertOk();
+        $this->actingAs($staff->fresh())->get('/dashboard')->assertOk();
     }
 }

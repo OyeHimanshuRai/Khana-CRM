@@ -74,6 +74,10 @@ class LapsedAccountAccessTest extends TestCase
         // Confirmed: what is tested here comes after that step (see SignupEmailVerificationTest).
         User::query()->where('email', 'asha@spicegarden.test')->update(['email_verified_at' => now()]);
 
+        // Signing up signs nobody in; the owner signs in once the address is confirmed.
+        $this->resetState();
+        $this->post('/login', ['email' => 'asha@spicegarden.test', 'password' => 'Secret123'])->assertRedirect();
+
         Carbon::setTestNow(now()->addDays(8));
         $this->resetState();
 

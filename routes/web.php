@@ -199,6 +199,12 @@ Route::get('/clear-all', function () {
 | The link in a sign-up's welcome email. Signed and short-lived instead of
 | behind a sign-in, so it works from the inbox on whatever device opened it.
 */
+// The sign-in page's "send the link again": asks for the password too, so an
+// address cannot be mailed at by a stranger. Public (nobody is signed in yet).
+Route::post('email/resend', [\App\Http\Controllers\Admin\EmailVerificationController::class, 'resend'])
+    ->middleware(['ip.allowed', 'throttle:3,10'])
+    ->name('verification.resend');
+
 Route::get('email/verify/{id}/{hash}', [\App\Http\Controllers\Admin\EmailVerificationController::class, 'verify'])
     ->whereNumber('id')
     ->middleware(['signed', 'throttle:6,1'])
@@ -413,21 +419,6 @@ Route::prefix('superadmin')->name('admin.')->group(function () {
     |
     | The permission itself is checked per route, below.
     */
-    /*
-    | Confirming the email of an account a business made for itself.
-    |
-    | Outside the main group on purpose: the billing and password rules there
-    | redirect to screens of their own, and an unconfirmed account bounced
-    | between those and this one would never land anywhere.
-    */
-    Route::middleware(['auth', 'admin'])->group(function () {
-        Route::get('email/confirm', [\App\Http\Controllers\Admin\EmailVerificationController::class, 'notice'])
-            ->name('verification.notice');
-        Route::post('email/confirm', [\App\Http\Controllers\Admin\EmailVerificationController::class, 'send'])
-            ->middleware('throttle:3,10')
-            ->name('verification.send');
-    });
-
     // The way back from "login as owner". Only `auth`, so it still works when
     // the company has been suspended or the owner must change a password.
     Route::post('impersonate/stop', [\App\Http\Controllers\Admin\ImpersonationController::class, 'stop'])
