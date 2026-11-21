@@ -896,6 +896,9 @@ th.num { text-align: right; }
     font-size: 12px;
     font-weight: 600;
     text-transform: uppercase;
+    /* A tall or wide picture must be cropped to the circle, never spill out of it. */
+    position: relative;
+    overflow: hidden;
 }
 
 .avatar-sm { width: 26px; height: 26px; font-size: 10.5px; }
@@ -905,8 +908,11 @@ th.num { text-align: right; }
 /* An uploaded picture fills the same box the initials occupy, so swapping
    between the two never reflows the row around it. */
 .avatar img {
+    position: absolute;
+    inset: 0;
     width: 100%;
     height: 100%;
+    max-width: none;
     object-fit: cover;
     border-radius: inherit;
 }
