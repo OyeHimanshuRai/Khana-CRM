@@ -12,6 +12,6 @@ final class AccountMessages
     public static function unverified(string $email): string
     {
         return "Please verify your email first. We sent a verification link to {$email} - open it to activate your account, then sign in. "
-            .'Not in your inbox? Check the spam folder, or send the link again.';
+            .'Not in your inbox? Check the spam folder.';
     }
 }

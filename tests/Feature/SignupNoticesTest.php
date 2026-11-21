@@ -158,7 +158,7 @@ class SignupNoticesTest extends TestCase
         $this->postJson('/register', $this->payload())
             ->assertOk()
             ->assertJsonPath('redirect', route('landing'))
-            ->assertJsonFragment(['message' => 'Thank you for registering! We could not send the verification email to asha@spicegarden.test just now. Sign in at http://localhost/login and choose "Send the verification link again".']);
+            ->assertJsonFragment(['message' => 'Thank you for registering! We could not send the verification email to asha@spicegarden.test just now. Please contact us and we will activate your account.']);
 
         // The account exists, and the failure is on record without any secret.
         $this->assertDatabaseHas('users', ['email' => 'asha@spicegarden.test']);

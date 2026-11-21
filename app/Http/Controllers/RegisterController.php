@@ -197,7 +197,7 @@ class RegisterController extends Controller
 
         $message = $emailed
             ? "Thank you for registering! We have sent a verification link to {$user->email}. Open it to verify your email and activate your account, then sign in."
-            : "Thank you for registering! We could not send the verification email to {$user->email} just now. Sign in at ".route('login').' and choose "Send the verification link again".';
+            : "Thank you for registering! We could not send the verification email to {$user->email} just now. Please contact us and we will activate your account.";
 
         $request->session()->flash('signup_notice', $notice);
 

@@ -1444,8 +1444,3 @@ html { scroll-behavior: smooth; }
 .lp-notice-close { flex: none; width: 30px; height: 30px; border: 0; border-radius: 8px; background: transparent; color: #0f5132; font-size: 22px; line-height: 1; cursor: pointer; }
 .lp-notice-close:hover { background: rgba(19, 108, 62, .15); }
 
-/* "Send the verification link again", under the sign-in form. */
-.lp-resend { margin: 14px 0 0; padding: 12px 14px; border-radius: 12px; background: var(--lp-bg-alt, #f4f4f6); text-align: center; font-size: 14px; }
-.lp-resend[hidden] { display: none; }
-.lp-resend p { margin: 0 0 8px; }
-.lp-resend-msg { margin-top: 8px; font-weight: 600; }

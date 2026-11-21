@@ -93,11 +93,6 @@
             </form>
 
             {{-- Shown when sign-in says the email is not verified yet. --}}
-            <div class="lp-resend" data-resend @unless (str_contains((string) $errors->first('account').(string) session('error'), 'verify your email')) hidden @endunless>
-                <p>Did not get the verification email?</p>
-                <button type="button" class="lp-btn lp-btn-ghost" data-resend-button>Send the verification link again</button>
-                <p class="lp-resend-msg" role="status" data-resend-message></p>
-            </div>
 
             <p class="lp-meta lp-auth-foot">
                 New to {{ $site['name'] }}? <a href="{{ route('register') }}">Start your free trial</a>
@@ -107,45 +102,6 @@
 </main>
 
 @include('site._footer')
-
-<script>
-    (function () {
-        var form = document.querySelector('form[action="{{ route('login.store') }}"]');
-        var box = document.querySelector('[data-resend]');
-        if (!form || !box) { return; }
-
-        var button = box.querySelector('[data-resend-button]');
-        var message = box.querySelector('[data-resend-message]');
-
-        // The sign-in answered "verify your email first": offer to send the link again.
-        form.addEventListener('ajax:error', function (event) {
-            var errors = event.detail && event.detail.payload && event.detail.payload.errors;
-            var text = errors && errors.account ? String(errors.account[0] || '') : '';
-            if (/verify your email/i.test(text)) { box.hidden = false; }
-        });
-
-        button.addEventListener('click', function () {
-            message.textContent = 'Sending...';
-            button.disabled = true;
-
-            fetch('{{ route('verification.resend') }}', {
-                method: 'POST',
-                credentials: 'same-origin',
-                headers: {
-                    'Content-Type': 'application/json', 'Accept': 'application/json',
-                    'X-Requested-With': 'XMLHttpRequest',
-                    'X-CSRF-TOKEN': form.querySelector('input[name=_token]').value
-                },
-                body: JSON.stringify({ email: form.email.value, password: form.password.value })
-            }).then(function (r) { return r.json().catch(function () { return {}; }); })
-              .then(function (data) {
-                  message.textContent = data.message || 'Could not send it just now. Please try again in a few minutes.';
-              })
-              .catch(function () { message.textContent = 'Could not send it just now. Please try again in a few minutes.'; })
-              .then(function () { button.disabled = false; });
-        });
-    })();
-</script>
 
 <script src="{{ asset('assets/js/app.js') }}?v={{ filemtime(public_path('assets/js/app.js')) }}"></script>
 <script src="{{ asset('assets/js/topbar.js') }}?v={{ filemtime(public_path('assets/js/topbar.js')) }}" defer></script>
