@@ -252,14 +252,29 @@ class MenuImportTest extends TestCase
         $this->assertFalse(Product::query()->where('name', 'Perfectly Fine Dish')->exists());
     }
 
-    public function test_a_new_dish_without_a_unit_is_refused(): void
+    public function test_a_new_dish_without_a_unit_is_added_by_the_piece(): void
     {
         $path = $this->csv(['Name', 'Selling Price'], [['Unitless', '100']]);
 
-        $this->expectException(RuntimeException::class);
-        $this->expectExceptionMessage('needs a unit');
-
         app(MenuImportService::class)->import($path);
+
+        $dish = Product::query()->where('name', 'Unitless')->firstOrFail();
+        $this->assertNotNull($dish->unit_id);
+        $this->assertSame('PCS', strtoupper((string) $dish->unit?->code));
+    }
+
+    public function test_an_unknown_unit_names_the_units_that_exist(): void
+    {
+        $path = $this->csv(['Name', 'Unit', 'Selling Price'], [['Odd Unit', 'Bucketful', '100']]);
+
+        try {
+            app(MenuImportService::class)->import($path);
+            $this->fail('An unknown unit should be refused.');
+        } catch (RuntimeException $e) {
+            $this->assertStringContainsString('no unit called "Bucketful"', $e->getMessage());
+            $this->assertStringContainsString('Units here:', $e->getMessage());
+            $this->assertStringContainsString('PCS', $e->getMessage());
+        }
     }
 
     public function test_a_file_with_no_name_column_is_refused(): void

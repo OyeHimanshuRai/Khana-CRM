@@ -297,4 +297,19 @@ class ProductControllerTest extends TestCase
 
         $this->assertSame(0, Product::count());
     }
+
+    public function test_a_bad_menu_file_is_a_readable_error_not_a_server_error(): void
+    {
+        $staff = $this->staff(['inventory.products.view', 'inventory.products.import']);
+
+        $empty = \Illuminate\Http\UploadedFile::fake()->createWithContent('menu.csv', "Name,Unit,Selling Price\n");
+        $this->actingAs($staff)->postJson(route('admin.products.import'), ['file' => $empty])
+            ->assertStatus(422)
+            ->assertJsonPath('success', false)
+            ->assertJsonPath('message', 'That file has no rows in it.');
+
+        $odd = \Illuminate\Http\UploadedFile::fake()->createWithContent('menu.csv', "Name,Unit,Selling Price\nPaneer,Bucketful,100\n");
+        $response = $this->actingAs($staff)->postJson(route('admin.products.import'), ['file' => $odd])->assertStatus(422);
+        $this->assertStringContainsString('no unit called "Bucketful"', $response->json('message'));
+    }
 }

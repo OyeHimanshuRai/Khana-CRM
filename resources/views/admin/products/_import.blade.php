@@ -42,7 +42,7 @@
             </p>
             <div class="form-hint">
                 Order does not matter and spare columns are ignored. Only <strong>Name</strong>
-                is required, and a new dish also needs a <strong>Unit</strong>.
+                is required. A new dish with no <strong>Unit</strong> is added by the piece (PCS).
             </div>
         </div>
 

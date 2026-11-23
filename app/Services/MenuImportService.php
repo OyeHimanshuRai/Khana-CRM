@@ -231,6 +231,9 @@ class MenuImportService
                 ->keyBy(fn (Category $c) => $this->key($c->name)),
             'brands' => Brand::query()->get(['id', 'name'])
                 ->keyBy(fn (Brand $b) => $this->key($b->name)),
+            'default_unit' => ($units = Unit::query()->get(['id', 'name', 'code']))
+                ->first(fn (Unit $u) => in_array(Str::lower((string) $u->code), ['pcs', 'pc', 'nos', 'plate', 'portion'], true))?->id
+                ?? $units->first()?->id,
             'units' => Unit::query()->get(['id', 'name', 'code'])
                 ->flatMap(fn (Unit $u) => [
                     $this->key($u->code) => $u->id,
@@ -274,12 +277,22 @@ class MenuImportService
          | prices, and clearing the unit of forty dishes would be a
          | catastrophic reading of a blank cell.
          */
-        $unit = $this->resolve($lookups['units'], $row['unit'] ?? '', 'unit', $line);
+        try {
+            $unit = $this->resolve($lookups['units'], $row['unit'] ?? '', 'unit', $line);
+        } catch (RuntimeException $e) {
+            // Say which units exist: the person is looking at a spreadsheet, not at the unit list.
+            throw new RuntimeException($e->getMessage().' Units here: '.Unit::query()->orderBy('code')->pluck('code')->implode(', ').'.');
+        }
 
         if ($unit !== null) {
             $attributes['unit_id'] = $unit;
         } elseif ($existing === null) {
-            throw new RuntimeException('a new dish needs a unit (PCS, KG, PLT…).');
+            // A dish almost always comes by the piece or the plate: a blank Unit is not worth stopping a menu for.
+            if ($lookups['default_unit'] === null) {
+                throw new RuntimeException('a new dish needs a unit (PCS, KG, PLT…).');
+            }
+
+            $attributes['unit_id'] = $lookups['default_unit'];
         }
 
         $tax = $this->resolve($lookups['taxes'], $row['tax'] ?? '', 'tax rate', $line);
