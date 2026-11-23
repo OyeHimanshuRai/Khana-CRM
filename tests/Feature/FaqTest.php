@@ -254,4 +254,51 @@ class FaqTest extends TestCase
     {
         $this->get('/superadmin/faqs')->assertRedirect('http://localhost/superadmin/login');
     }
+
+    /* ------------------------------------------------------- the default set */
+
+    public function test_the_default_questions_are_written_once_and_never_overwritten(): void
+    {
+        Faq::query()->delete();
+
+        $made = \App\Support\DefaultFaqs::publish();
+        $this->assertGreaterThanOrEqual(25, $made);
+        $this->assertSame($made, Faq::query()->count());
+
+        // Super Admin rewrites one and switches another off; publishing again changes nothing.
+        $faq = Faq::query()->where('question', 'Is there a free trial?')->firstOrFail();
+        $faq->update(['answer' => 'Rewritten by the owner.', 'is_active' => false]);
+
+        $this->assertSame(0, \App\Support\DefaultFaqs::publish());
+        $this->assertSame('Rewritten by the owner.', $faq->fresh()->answer);
+        $this->assertFalse($faq->fresh()->is_active);
+    }
+
+    public function test_the_faq_page_lists_every_question_under_its_category_but_the_home_page_only_a_few(): void
+    {
+        Faq::query()->delete();
+        \App\Support\DefaultFaqs::publish();
+        $total = Faq::query()->active()->count();
+        $this->assertGreaterThan(8, $total);
+
+        $page = $this->get('/faq')->assertOk()
+            ->assertSee('Getting started')
+            ->assertSee('Plans and payment')
+            ->assertSee('Is there a free trial?')
+            ->assertSee('Can I take table reservations?')
+            ->assertSee('"@type":"FAQPage"', false);
+        $this->assertSame($total, substr_count($page->getContent(), '<details class="lp-faq">'));
+
+        $home = $this->get('/')->assertOk();
+        $this->assertSame(8, substr_count($home->getContent(), '<details class="lp-faq">'));
+    }
+
+    public function test_a_switched_off_question_is_not_on_the_faq_page(): void
+    {
+        Faq::query()->delete();
+        \App\Support\DefaultFaqs::publish();
+        Faq::query()->where('question', 'Is there a free trial?')->update(['is_active' => false]);
+
+        $this->get('/faq')->assertOk()->assertDontSee('Is there a free trial?');
+    }
 }

@@ -63,7 +63,14 @@ class LandingController extends Controller
     {
         abort_unless(in_array($section, ['how-it-works', 'features', 'billing', 'faq'], true), 404);
 
-        return view('landing.section', $this->pageData() + ['section' => $section]);
+        $data = $this->pageData() + ['section' => $section];
+
+        // The FAQ page carries every question; the home page only the first few.
+        if ($section === 'faq') {
+            $data['faqs'] = Faq::query()->active()->orderBy('sort_order')->orderBy('id')->get();
+        }
+
+        return view('landing.section', $data);
     }
 
     /**

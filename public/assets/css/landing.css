@@ -1444,3 +1444,7 @@ html { scroll-behavior: smooth; }
 .lp-notice-close { flex: none; width: 30px; height: 30px; border: 0; border-radius: 8px; background: transparent; color: #0f5132; font-size: 22px; line-height: 1; cursor: pointer; }
 .lp-notice-close:hover { background: rgba(19, 108, 62, .15); }
 
+
+/* The FAQ page groups its questions under a heading each. */
+.lp-faq-group { margin: 32px 0 6px; font-size: 15px; font-weight: 700; letter-spacing: .02em; color: var(--lp-brand); text-transform: uppercase; }
+.lp-faq-group:first-of-type { margin-top: 0; }

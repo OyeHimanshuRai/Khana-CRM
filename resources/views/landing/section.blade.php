@@ -107,14 +107,30 @@
                     </div>
                 </article>
             @elseif ($section === 'faq')
-                @forelse ($faqs as $faq)
-                    <details class="lp-faq">
-                        <summary>{{ $faq->question }}</summary>
-                        <div class="lp-faq-body">{{ $faq->answer }}</div>
-                    </details>
+                @forelse ($faqs->groupBy(fn ($f) => $f->category ?: 'More questions') as $category => $group)
+                    <h3 class="lp-faq-group">{{ $category }}</h3>
+                    @foreach ($group as $faq)
+                        <details class="lp-faq">
+                            <summary>{{ $faq->question }}</summary>
+                            <div class="lp-faq-body">{{ $faq->answer }}</div>
+                        </details>
+                    @endforeach
                 @empty
                     <p class="lp-meta">Have a question? <a href="{{ route('demo') }}">Book a demo</a> and our team will help.</p>
                 @endforelse
+
+                {{-- The questions, in a form a search engine can read. --}}
+                @if ($faqs->isNotEmpty())
+                    <script type="application/ld+json">{!! json_encode([
+                        '@context' => 'https://schema.org',
+                        '@type' => 'FAQPage',
+                        'mainEntity' => $faqs->map(fn ($f) => [
+                            '@type' => 'Question',
+                            'name' => $f->question,
+                            'acceptedAnswer' => ['@type' => 'Answer', 'text' => $f->answer],
+                        ])->values()->all(),
+                    ], JSON_UNESCAPED_UNICODE | JSON_UNESCAPED_SLASHES | JSON_HEX_TAG) !!}</script>
+                @endif
             @endif
         </div>
     </section>
