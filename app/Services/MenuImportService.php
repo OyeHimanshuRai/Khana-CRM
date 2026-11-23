@@ -42,9 +42,12 @@ use RuntimeException;
  * What it matches on
  * ---------------------------------------------------------------------------
  *
- * The SKU, and the name when there is no SKU. That makes the export/import
+ * The dish name. A restaurant's menu has no SKUs - nobody at a counter reads a
+ * product code - so the file carries none. That still makes the export/import
  * pair a round trip: download the menu, change forty prices in a spreadsheet,
  * upload it, and forty dishes are updated rather than four hundred duplicated.
+ * (A code is made for each new dish behind the scenes, for the parts of the
+ * system that keep one; it is never asked for here.)
  */
 class MenuImportService
 {
@@ -58,7 +61,7 @@ class MenuImportService
      * @var array<int, string>
      */
     public const COLUMNS = [
-        'SKU', 'Name', 'Category', 'Sub-category', 'Brand', 'Unit', 'HSN', 'Tax',
+        'Name', 'Category', 'Sub-category', 'Brand', 'Unit', 'HSN', 'Tax',
         'Food Type', 'Spice', 'Serves', 'Prep Minutes',
         'Purchase Price', 'Selling Price', 'Dine-in Price', 'Takeaway Price', 'Delivery Price',
         'Tax Inclusive', 'Kitchen Station', 'Made To Order', 'Ingredient', 'Batch Tracked',
@@ -261,29 +264,7 @@ class MenuImportService
             throw new RuntimeException('a dish needs a name.');
         }
 
-        $sku = $row['sku'] ?? '';
-
-        $existing = $sku !== ''
-            ? Product::query()->where('sku', $sku)->first()
-            : Product::query()->where('name', $name)->first();
-
-        /*
-         | A deleted dish still holds its SKU against the unique index, and a
-         | soft-deleted row is invisible to the query above. Without this the
-         | import would try to insert, hit the index, and hand somebody a raw
-         | database error instead of a row number - and roll the whole file
-         | back while doing it.
-         |
-         | Reported rather than restored. A dish was deleted for a reason, and
-         | quietly bringing it back because a spreadsheet mentioned its code is
-         | a surprise nobody asked for. The message says exactly what to do.
-         */
-        if ($existing === null && $sku !== '' && Product::withTrashed()->where('sku', $sku)->exists()) {
-            throw new RuntimeException(sprintf(
-                'a deleted dish already uses the SKU "%s". Restore it, or give this row a different SKU.',
-                $sku,
-            ));
-        }
+        $existing = Product::query()->where('name', $name)->first();
 
         $attributes = ['name' => $name];
 
@@ -368,7 +349,6 @@ class MenuImportService
 
         return [
             'existing' => $existing,
-            'sku' => $sku,
             'attributes' => $attributes,
             // Resolved at apply time, because a category named twice in one
             // file must be created once.
@@ -399,7 +379,7 @@ class MenuImportService
         if ($product === null) {
             $product = new Product($attributes);
             $product->slug = Product::uniqueSlug($attributes['name']);
-            $product->sku = $plan['sku'] !== '' ? $plan['sku'] : Product::generateSku($attributes['name']);
+            $product->sku = Product::generateSku($attributes['name']);
             $product->save();
 
             return;
@@ -603,7 +583,6 @@ class MenuImportService
         $num = fn ($value) => $value === null ? '' : rtrim(rtrim(number_format((float) $value, 4, '.', ''), '0'), '.');
 
         return [
-            $product->sku,
             $product->name,
             // The parent is the Category column and the child the Sub-category
             // one, so a re-import rebuilds the same two levels it came from.

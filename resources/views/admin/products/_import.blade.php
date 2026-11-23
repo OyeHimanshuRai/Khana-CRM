@@ -49,7 +49,7 @@
         <div class="field field-full">
             <div class="form-label">What it does with each row</div>
             <ul class="text-sm" style="margin:0; padding-left:18px">
-                <li>Matched on <strong>SKU</strong>, or on the name when there is no SKU.</li>
+                <li>A dish is matched by its <strong>name</strong>: the same name updates it, a new name adds it.</li>
                 <li>A blank cell leaves that field alone — it does not clear it.</li>
                 <li>Categories that do not exist are created, and named back to you.</li>
                 <li>Stock is never imported. It moves through receipts and adjustments,

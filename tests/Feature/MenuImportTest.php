@@ -174,8 +174,8 @@ class MenuImportTest extends TestCase
         $before = Product::query()->count();
 
         $path = $this->csv(
-            ['SKU', 'Name', 'Unit', 'Selling Price'],
-            [[$existing->sku, $existing->name, 'PCS', '999']],
+            ['Name', 'Unit', 'Selling Price'],
+            [[$existing->name, 'PCS', '999']],
         );
 
         $result = app(MenuImportService::class)->import($path);
@@ -186,7 +186,7 @@ class MenuImportTest extends TestCase
         $this->assertSame(999.0, (float) $existing->fresh()->selling_price);
     }
 
-    /** Matched on the name when there is no SKU column at all. */
+    /** A restaurant's file has no SKU column: a dish is matched on its name. */
     public function test_a_file_with_no_sku_matches_on_the_name(): void
     {
         $existing = $this->dish();
@@ -214,8 +214,8 @@ class MenuImportTest extends TestCase
         $unitId = $existing->unit_id;
 
         $path = $this->csv(
-            ['SKU', 'Name', 'Unit', 'Selling Price'],
-            [[$existing->sku, $existing->name, '', '555']],
+            ['Name', 'Unit', 'Selling Price'],
+            [[$existing->name, '', '555']],
         );
 
         app(MenuImportService::class)->import($path);
@@ -282,33 +282,47 @@ class MenuImportTest extends TestCase
         app(MenuImportService::class)->import($path);
     }
 
-    /**
-     * A deleted dish still holds its SKU against the unique index.
-     *
-     * Without the check this would insert, hit the index, and hand somebody a
-     * raw database error instead of a row number - while rolling the whole
-     * file back.
-     */
-    public function test_a_sku_held_by_a_deleted_dish_is_reported_not_crashed(): void
+    /** The template and the export carry no SKU: nobody at a counter reads a product code. */
+    public function test_the_columns_have_no_sku(): void
+    {
+        $this->assertNotContains('SKU', MenuImportService::COLUMNS);
+        $this->assertSame('Name', MenuImportService::COLUMNS[0]);
+    }
+
+    /** A file saved from an older export still has a SKU column; it is ignored, not an error. */
+    public function test_an_old_file_with_a_sku_column_still_imports_by_name(): void
+    {
+        $existing = $this->dish('Old Export Dish');
+
+        $path = $this->csv(
+            ['SKU', 'Name', 'Unit', 'Selling Price'],
+            [['SOMETHING-ELSE', $existing->name, 'PCS', '321']],
+        );
+
+        $result = app(MenuImportService::class)->import($path);
+
+        $this->assertSame(1, $result['updated']);
+        $this->assertSame(0, $result['created']);
+        $this->assertSame(321.0, (float) $existing->fresh()->selling_price);
+    }
+
+    /** A dish added by the import gets an internal code, and a deleted dish's code is never reused. */
+    public function test_a_new_dish_gets_its_own_code_and_a_deleted_name_imports_cleanly(): void
     {
         $gone = $this->dish('Retired Dish');
-        $sku = $gone->sku;
+        $oldSku = $gone->sku;
         $gone->delete();
 
         $path = $this->csv(
-            ['SKU', 'Name', 'Unit'],
-            [[$sku, 'Brand New Dish', 'PCS']],
+            ['Name', 'Unit'],
+            [['Retired Dish', 'PCS']],
         );
 
-        try {
-            app(MenuImportService::class)->import($path);
-            $this->fail('A SKU held by a deleted dish should be refused.');
-        } catch (RuntimeException $e) {
-            $this->assertStringContainsString('deleted dish', $e->getMessage());
-            $this->assertStringContainsString($sku, $e->getMessage());
-        }
+        app(MenuImportService::class)->import($path);
 
-        $this->assertFalse(Product::query()->where('name', 'Brand New Dish')->exists());
+        $fresh = Product::query()->where('name', 'Retired Dish')->firstOrFail();
+        $this->assertNotSame($oldSku, $fresh->sku);
+        $this->assertNotEmpty($fresh->sku);
     }
 
     /* ------------------------------------------------------- the previews */
