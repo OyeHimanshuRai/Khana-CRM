@@ -19,13 +19,13 @@
                        style="max-width:560px;background:#ffffff;border:1px solid #e6e9ef;">
 
                     <tr>
-                        <td style="padding:26px 30px 0;text-align:{{ $align }};">
+                        <td style="padding:26px 30px 0;text-align:center;">
                             @if ($logoUrl || ! empty($logoPath))
                                 {{-- Inside the email when it is being sent ($message), else the website's copy. --}}
                                 <img src="{{ (! empty($logoPath) && isset($message)) ? $message->embed($logoPath) : $logoUrl }}" alt="{{ $company }}"
-                                     style="max-width:180px;max-height:56px;display:block;border:0;@if ($align === 'center') margin:0 auto;@endif">
+                                     style="max-width:180px;max-height:56px;display:block;border:0;margin:0 auto;">
                             @else
-                                <div style="font-size:18px;font-weight:700;color:#111827;">{{ $company }}</div>
+                                <div style="font-size:18px;font-weight:700;color:#111827;text-align:center;">{{ $company }}</div>
                             @endif
                         </td>
                     </tr>

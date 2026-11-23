@@ -182,7 +182,9 @@ class SignupNoticesTest extends TestCase
 
         $html = (new TrialWelcomeMail($owner, $this->subscription($owner)))->render();
 
-        $this->assertStringContainsString('asha@spicegarden.test', $html);
+        // No "sign in with ... and the password you chose" block: just the greeting and the button.
+        $this->assertStringNotContainsString('Sign in with', $html);
+        $this->assertStringNotContainsString('password you chose', $html);
         $this->assertStringContainsString(route('login'), $html);
         $this->assertStringNotContainsString('Secret123', $html);
     }

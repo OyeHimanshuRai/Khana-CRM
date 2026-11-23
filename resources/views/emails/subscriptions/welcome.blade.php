@@ -9,12 +9,6 @@
     @endif
 @endsection
 
-@section('details')
-    <strong style="color:#111827;">Sign in with</strong><br>
-    {{ $user->email }}
-    <span style="color:#7b8493;">and the password you chose.</span>
-@endsection
-
 @section('cta')
     {{-- A self-signed-up account opens once its email is confirmed, so that is the button. --}}
     <a href="{{ $verifyUrl ?? $loginUrl }}"
