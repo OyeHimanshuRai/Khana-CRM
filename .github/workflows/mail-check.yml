@@ -1,0 +1,45 @@
+name: Check the mail queue and recent errors (manual)
+
+# One-off helper, run by hand. Never runs on push. Prints failed jobs, the queue
+# worker state, the newest log errors and the newest mail records (addresses masked).
+
+on:
+  workflow_dispatch:
+
+jobs:
+  run:
+    name: Mail check
+    runs-on: ubuntu-latest
+    steps:
+      - name: Run on server
+        uses: appleboy/ssh-action@v1.0.3
+        with:
+          host: ${{ secrets.VPS_HOST }}
+          username: ${{ secrets.VPS_USER }}
+          key: ${{ secrets.VPS_SSH_KEY }}
+          port: ${{ secrets.VPS_PORT }}
+          script: |
+            cd ${{ secrets.VPS_PROJECT_PATH }}
+            git log --oneline -1
+            echo "--- queue worker"
+            systemctl is-active khana-queue.service 2>&1 | head -2
+            echo "--- errors today"
+            grep -h "ERROR" storage/logs/laravel-$(date +%F).log 2>/dev/null | tail -5 | cut -c1-300 | sed -E 's/[A-Za-z0-9._%+-]+@[A-Za-z0-9.-]+/<email>/g'
+            cat > /tmp/mc.php <<'PHP'
+            use Illuminate\Support\Facades\DB;
+            $mask = fn ($s) => preg_replace('/[A-Za-z0-9._%+-]+@[A-Za-z0-9.-]+/', '<email>', (string) $s);
+            echo "mail: ".\App\Models\Setting::get('mail_mailer')." host=".(\App\Models\Setting::get('mail_host') ? 'set' : 'empty')." from=".($mask(\App\Models\Setting::get('mail_from_address')))."\n";
+            echo "pending jobs: ".DB::table('jobs')->count()." failed: ".DB::table('failed_jobs')->count()."\n";
+            foreach (DB::table('failed_jobs')->orderByDesc('id')->limit(3)->get(['failed_at','exception']) as $j) {
+              echo " failed ".$j->failed_at." | ".substr($mask(strtok((string) $j->exception, "\n")), 0, 160)."\n";
+            }
+            try {
+              foreach (DB::table('email_logs')->orderByDesc('id')->limit(6)->get() as $r) {
+                $a = (array) $r; echo " mail#".($a['id'] ?? '')." ".($a['created_at'] ?? '')." | ".($a['status'] ?? '')." | ".substr($mask($a['subject'] ?? ''), 0, 50)." | ".substr($mask($a['error'] ?? ''), 0, 120)."\n";
+              }
+            } catch (\Throwable $e) { echo "no email_logs: ".$e->getMessage()."\n"; }
+            echo "reset tokens waiting: ".DB::table('password_reset_tokens')->count()."\n";
+            PHP
+            php artisan tinker --execute="$(cat /tmp/mc.php)"
+            rm -f /tmp/mc.php
+            echo "### DONE"
