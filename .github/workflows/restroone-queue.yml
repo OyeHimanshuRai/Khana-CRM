@@ -1,0 +1,73 @@
+name: Give RestroOne its own queue worker (manual)
+
+# One-off, run by hand. Never runs on push.
+# RestroOne's background jobs (queued emails) were going to the shared Redis "default"
+# queue, where another app's worker picked them up. This moves RestroOne to its own
+# queue name (REDIS_QUEUE=restroone) and starts a worker service that listens only to it.
+# Nothing of the other apps is changed (their .env is only read).
+
+on:
+  workflow_dispatch:
+
+jobs:
+  run:
+    name: Own queue worker
+    runs-on: ubuntu-latest
+    steps:
+      - name: Run on server
+        uses: appleboy/ssh-action@v1.0.3
+        with:
+          host: ${{ secrets.VPS_HOST }}
+          username: ${{ secrets.VPS_USER }}
+          key: ${{ secrets.VPS_SSH_KEY }}
+          port: ${{ secrets.VPS_PORT }}
+          script: |
+            set -e
+            cd ${{ secrets.VPS_PROJECT_PATH }}
+            APPDIR="$(pwd -P)"
+            RUNAS="$(stat -c %U storage)"
+            PHPBIN="$(command -v php)"
+            echo "run as: $RUNAS"
+
+            echo "--- RestroOne .env before"
+            grep -E '^(QUEUE_CONNECTION|REDIS_QUEUE|REDIS_PREFIX|CACHE_STORE|SESSION_DRIVER)=' .env || true
+            echo "--- the other app (read only)"
+            grep -E '^(QUEUE_CONNECTION|REDIS_QUEUE|REDIS_PREFIX)=' /var/www/khana/current/.env || true
+
+            cp .env ".env.bak-queue-$(date +%s)"
+            if grep -q '^REDIS_QUEUE=' .env; then
+              sed -i 's/^REDIS_QUEUE=.*/REDIS_QUEUE=restroone/' .env
+            else
+              printf '\nREDIS_QUEUE=restroone\n' >> .env
+            fi
+            php artisan config:clear
+            php artisan config:cache
+            echo "--- RestroOne .env after"
+            grep -E '^(QUEUE_CONNECTION|REDIS_QUEUE)=' .env
+
+            cat > /etc/systemd/system/restroone-queue.service <<UNIT
+            [Unit]
+            Description=RestroOne queue worker
+            After=network.target redis-server.service
+
+            [Service]
+            User=$RUNAS
+            WorkingDirectory=$APPDIR
+            ExecStart=$PHPBIN $APPDIR/artisan queue:work redis --queue=restroone --sleep=3 --tries=3 --max-time=3600
+            Restart=always
+            RestartSec=5
+
+            [Install]
+            WantedBy=multi-user.target
+            UNIT
+            systemctl daemon-reload
+            systemctl enable --now restroone-queue.service
+            sleep 4
+            echo "service: $(systemctl is-active restroone-queue.service)"
+
+            echo "--- test job"
+            php artisan tinker --execute="dispatch(function () { \Illuminate\Support\Facades\Log::info('restroone-queue-ok'); }); echo 'queued';"
+            sleep 10
+            if grep -q 'restroone-queue-ok' storage/logs/laravel-$(date +%F).log 2>/dev/null; then echo "TEST JOB RAN on the new worker"; else echo "TEST JOB DID NOT RUN"; fi
+            echo "redis restroone queue length: $(redis-cli llen queues:restroone)"
+            echo "### DONE"
