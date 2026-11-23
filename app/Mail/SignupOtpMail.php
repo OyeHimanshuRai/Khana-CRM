@@ -19,6 +19,8 @@ class SignupOtpMail extends PlatformMail
     {
         return new Content(
             view: 'emails.users.signup-otp',
+            // A plain-text version as well: mail with only an HTML part is judged more harshly by spam filters.
+            text: 'emails.users.signup-otp-text',
             with: $this->brand() + ['code' => $this->code, 'minutes' => \App\Support\SignupOtp::TTL_MINUTES],
         );
     }
