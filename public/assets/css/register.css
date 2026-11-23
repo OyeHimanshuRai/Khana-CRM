@@ -440,8 +440,8 @@
 .rg-page { --rg-radius: 2px; --rg-border: #c9c9ce; --rg-h: 40px; padding: 28px 16px 40px; }
 
 .rg-card {
-    max-width: 460px;
-    padding: 26px 32px 20px;
+    max-width: 660px;
+    padding: 24px 32px 18px;
     border-radius: 0;
     border-top: 5px solid var(--lp-brand);
 }
@@ -449,9 +449,11 @@
 .rg-head { margin-bottom: 20px; }
 .rg-head h1 { font-size: 26px; font-weight: 800; letter-spacing: -.01em; line-height: 1.2; }
 
-.rg-grid { grid-template-columns: minmax(0, 1fr); gap: 16px; }
-.rg-field-wide, .rg-location, .rg-field-address, .rg-field-business, .rg-terms-cell, .rg-otp { grid-column: auto; }
-.rg-field-pin { align-self: start; }
+/* Two boxes to a row, so the form is not a long ribbon; the logo, the code row and the terms take both. */
+.rg-grid { grid-template-columns: repeat(2, minmax(0, 1fr)); gap: 14px 16px; }
+.rg-location, .rg-field-address, .rg-field-business { grid-column: auto; }
+.rg-field-wide, .rg-terms-cell, .rg-otp { grid-column: 1 / -1; }
+.rg-field-pin { align-self: end; }
 .rg-label-spacer { display: none; }
 
 /* The icon square, laid over the left end of the box. */
@@ -494,8 +496,12 @@
 
 .rg-foot { margin-top: 16px; }
 
-@media (max-width: 520px) {
+@media (max-width: 560px) {
     .rg-page { padding: 14px 10px 32px; }
     .rg-card { padding: 22px 18px 16px; }
     .rg-head h1 { font-size: 23px; }
+    /* One to a row on a phone. */
+    .rg-grid { grid-template-columns: minmax(0, 1fr); gap: 14px; }
+    .rg-field-wide, .rg-terms-cell, .rg-otp { grid-column: auto; }
+    .rg-field-pin { align-self: start; }
 }
