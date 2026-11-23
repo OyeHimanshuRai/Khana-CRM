@@ -141,7 +141,7 @@
                     @error('address_line1')<span class="rg-error" role="alert">{{ $message }}</span>@enderror
                 </p>
 
-                <p class="lp-field field">
+                <p class="lp-field field rg-field-address2">
                     <label for="r-address2" class="rg-sr">Address line 2</label>
                     <input id="r-address2" type="text" name="address_line2" maxlength="190"
                            value="{{ old('address_line2') }}" autocomplete="address-line2"
@@ -215,7 +215,7 @@
                     @error('longitude')<span class="rg-error" role="alert">{{ $message }}</span>@enderror
                 </div>
 
-                <p class="lp-field field rg-field-wide">
+                <p class="lp-field field rg-field-wide rg-field-logo">
                     <label for="r-logo">Business logo <span class="rg-optional">(optional)</span></label>
                     <input id="r-logo" type="file" name="logo" accept="image/jpeg,image/png,image/webp"
                            aria-describedby="r-logo-hint" data-logo-input>
@@ -269,6 +269,17 @@
                     @error('mobile')<span class="rg-error" role="alert">{{ $message }}</span>@enderror
                 </p>
 
+                <p class="lp-field field">
+                    <label for="r-password" class="rg-sr">Password</label>
+                    <span class="rg-password">
+                        <input id="r-password" type="password" name="password" required minlength="8"
+                               autocomplete="new-password" placeholder="Password * (min 8)"
+                               aria-invalid="{{ $errors->has('password') ? 'true' : 'false' }}">
+                        @include('register._eye', ['for' => 'r-password'])
+                    </span>
+                    @error('password')<span class="rg-error" role="alert">{{ $message }}</span>@enderror
+                </p>
+
                 {{-- The email is confirmed with a one-time code before the Register button appears
                      (register.js; the server refuses an unconfirmed address as well). --}}
                 <div class="lp-field field rg-otp" data-otp
@@ -288,17 +299,6 @@
 
                     <p class="rg-otp-msg" role="status" data-otp-msg hidden></p>
                 </div>
-
-                <p class="lp-field field">
-                    <label for="r-password" class="rg-sr">Password</label>
-                    <span class="rg-password">
-                        <input id="r-password" type="password" name="password" required minlength="8"
-                               autocomplete="new-password" placeholder="Password * (min 8)"
-                               aria-invalid="{{ $errors->has('password') ? 'true' : 'false' }}">
-                        @include('register._eye', ['for' => 'r-password'])
-                    </span>
-                    @error('password')<span class="rg-error" role="alert">{{ $message }}</span>@enderror
-                </p>
 
                 <div class="rg-terms-cell">
                     <label class="rg-terms">
