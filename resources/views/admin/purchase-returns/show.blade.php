@@ -122,7 +122,6 @@
                         <tr>
                             <td>
                                 <strong>{{ $item->product_name }}</strong>
-                                <span class="text-xs text-muted" style="display:block">{{ $item->sku }}</span>
                             </td>
 
                             <td class="text-sm">{{ $item->batch_no ?: '—' }}</td>

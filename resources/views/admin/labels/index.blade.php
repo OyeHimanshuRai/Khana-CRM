@@ -82,7 +82,7 @@
                 <div class="line-search field" style="max-width:520px">
                     <label for="label-search" class="sr-only">Find a product</label>
                     <input id="label-search" type="search" class="form-control" data-line-search
-                           placeholder="Scan a barcode, or search by name or SKU…" autocomplete="off">
+                           placeholder="Scan a barcode, or search by name…" autocomplete="off">
                     <div class="line-results" data-line-results hidden></div>
                 </div>
 
@@ -113,7 +113,6 @@
                     <td>
                         <input type="hidden" name="items[@{{index}}][product_id]" value="@{{product_id}}">
                         <strong>@{{name}}</strong>
-                        <span class="text-xs text-muted" style="display:block">@{{sku}}</span>
                     </td>
 
                     <td style="text-align:right" class="text-sm">₹@{{price}}</td>

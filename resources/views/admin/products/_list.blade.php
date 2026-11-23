@@ -81,10 +81,7 @@
                         @endif
 
                         <span class="text-xs text-muted" style="display:block">
-                            <span class="list-ref">{{ $product->sku }}</span>
-                            @if ($product->barcode) · {{ $product->barcode }} @endif
-                            @if ($product->brand) · {{ $product->brand->name }} @endif
-                            @if ($product->servingWindowLabel()) · {{ $product->servingWindowLabel() }} @endif
+                            {{ collect([$product->barcode, $product->brand?->name, $product->servingWindowLabel()])->filter()->implode(' · ') }}
                         </span>
                     </td>
 
@@ -282,9 +279,7 @@
                            data-modal-size="lg">{{ $product->name }}</a>
                     </strong>
                     <span class="text-xs text-muted product-card-sub">
-                        <span class="list-ref">{{ $product->sku }}</span>
-                        @if ($product->barcode) · {{ $product->barcode }} @endif
-                        @if ($product->brand) · {{ $product->brand->name }} @endif
+                        {{ collect([$product->barcode, $product->brand?->name])->filter()->implode(' · ') }}
                     </span>
                 </div>
             </div>

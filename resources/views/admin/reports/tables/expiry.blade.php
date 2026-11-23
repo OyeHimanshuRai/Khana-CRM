@@ -27,7 +27,6 @@
             <tr>
                 <td>
                     <strong>{{ $row->product?->name ?? '—' }}</strong>
-                    <span class="text-xs text-muted" style="display:block">{{ $row->product?->sku }}</span>
                 </td>
 
                 @if ($showsShop)

@@ -65,7 +65,7 @@
                 <x-icon name="search" :size="15" />
                 <label for="stock-search" class="sr-only">Search stock</label>
                 <input id="stock-search" type="search" name="q" value="{{ $search }}"
-                       placeholder="Search product, SKU or barcode…" autocomplete="off" data-ajax-filter>
+                       placeholder="Search product or barcode…" autocomplete="off" data-ajax-filter>
             </div>
 
             <div class="list-filters">

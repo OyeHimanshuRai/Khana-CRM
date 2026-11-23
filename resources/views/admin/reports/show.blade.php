@@ -471,7 +471,6 @@
                             <tr>
                                 <td>
                                     {{ $row->product_name }}
-                                    <span class="text-xs text-muted" style="display:block">{{ $row->sku }}</span>
                                 </td>
                                 <td style="text-align:right">{{ $qty($row->quantity) }}</td>
                                 <td style="text-align:right">{{ $money($row->revenue) }}</td>

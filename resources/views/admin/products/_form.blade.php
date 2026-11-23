@@ -483,7 +483,6 @@
                     <tr>
                         <th style="width:34%">Size</th>
                         <th style="width:20%">Price (₹)</th>
-                        <th style="width:20%">Code</th>
                         <th style="width:12%">Opens on</th>
                         <th style="width:12%">Available</th>
                         <th class="col-action"></th>
@@ -505,13 +504,6 @@
                                 <input id="var-price-{{ $index }}" type="number" step="0.01" min="0"
                                        name="options[{{ $index }}][price]" class="form-control"
                                        value="{{ (float) $variant->price }}" aria-invalid="false">
-                            </td>
-                            <td>
-                                <label class="sr-only" for="var-sku-{{ $index }}">Code</label>
-                                <input id="var-sku-{{ $index }}" type="text"
-                                       name="options[{{ $index }}][sku]" class="form-control"
-                                       value="{{ $variant->sku }}" autocomplete="off" aria-invalid="false"
-                                       maxlength="60" placeholder="Optional">
                             </td>
                             <td>
                                 <label class="check">
@@ -557,11 +549,6 @@
                 <td>
                     <input type="number" step="0.01" min="0" name="options[@{{i}}][price]"
                            class="form-control" value="0" aria-invalid="false" aria-label="Price">
-                </td>
-                <td>
-                    <input type="text" name="options[@{{i}}][sku]" class="form-control"
-                           autocomplete="off" aria-invalid="false" maxlength="60"
-                           aria-label="Code" placeholder="Optional">
                 </td>
                 <td>
                     <label class="check">

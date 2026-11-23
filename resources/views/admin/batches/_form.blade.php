@@ -24,7 +24,7 @@
                     <option value="">Choose a product…</option>
                     @foreach ($products as $product)
                         <option value="{{ $product->id }}">
-                            {{ $product->name }} ({{ $product->sku }}){{ $product->track_batches ? '' : ' — not batch tracked' }}
+                            {{ $product->name }}{{ $product->track_batches ? '' : ' — not batch tracked' }}
                         </option>
                     @endforeach
                 </select>
@@ -34,7 +34,7 @@
             <div class="field field-full">
                 <div class="form-label">Product</div>
                 <div class="form-control" style="background:var(--panel-alt);pointer-events:none">
-                    {{ $batch->product?->name }} ({{ $batch->product?->sku }})
+                    {{ $batch->product?->name }}
                 </div>
             </div>
         @endif

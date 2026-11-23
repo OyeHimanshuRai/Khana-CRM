@@ -29,8 +29,7 @@
                     <td>
                         <strong>{{ $product?->name ?? '—' }}</strong>
                         <span class="text-xs text-muted" style="display:block">
-                            <span class="list-ref">{{ $product?->sku }}</span>
-                            @if ($product?->barcode) · {{ $product->barcode }} @endif
+                            {{ $product?->barcode }}
                         </span>
                     </td>
 

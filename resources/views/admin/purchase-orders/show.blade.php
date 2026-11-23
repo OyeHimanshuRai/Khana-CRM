@@ -124,7 +124,6 @@
                         <tr>
                             <td>
                                 <strong>{{ $item->product_name }}</strong>
-                                <span class="text-xs text-muted" style="display:block">{{ $item->sku }}</span>
                             </td>
 
                             <td style="text-align:right" class="text-sm">

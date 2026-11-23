@@ -29,7 +29,6 @@
             <tr>
                 <td>
                     <strong>{{ $row->product_name }}</strong>
-                    <span class="text-xs text-muted" style="display:block">{{ $row->sku }}</span>
                 </td>
                 <td style="text-align:right" class="text-sm">{{ $qty($row->quantity) }}</td>
                 <td style="text-align:right"><strong>{{ $money($row->revenue) }}</strong></td>

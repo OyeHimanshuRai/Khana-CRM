@@ -23,8 +23,7 @@
     <div class="cat-view-body">
         <div class="sec-name">{{ $product->name }}</div>
         <div class="text-sm text-muted">
-            <span class="list-ref">{{ $product->sku }}</span>
-            @if ($product->barcode) · {{ $product->barcode }} @endif
+            {{ $product->barcode }}
         </div>
 
         <div style="display:flex;flex-wrap:wrap;gap:7px;margin:8px 0 14px">

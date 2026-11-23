@@ -161,8 +161,8 @@
                                    data-line-search autocomplete="off"
                                    @if (ScannerSettings::autoFocus()) autofocus @endif
                                    placeholder="{{ $wirelessScanner
-                                       ? 'Scan a barcode, or search by name or SKU…'
-                                       : 'Search by name or SKU…' }}">
+                                       ? 'Scan a barcode, or search by name…'
+                                       : 'Search by name…' }}">
 
                             {{-- F2 jumps here from anywhere on the till (pos.js). Drawn, so it is found. --}}
                             <span class="kbd-group pos-kbd" data-kbd-hint aria-hidden="true"><kbd class="kbd">F2</kbd></span>
@@ -325,7 +325,7 @@
                     <div class="dish-empty" data-dish-empty hidden>
                         <x-icon name="search" :size="26" />
                         <h3>Nothing matches that</h3>
-                        <p>Try another category, or search by name, SKU or barcode above.</p>
+                        <p>Try another category, or search by name or barcode above.</p>
                     </div>
                 </section>
 
@@ -395,7 +395,7 @@
                             @elseif ($cameraScanner)
                                 Tap a dish, or use <strong>Scan Barcode</strong> to add one with the camera.
                             @else
-                                Tap a dish on the left, or search for it by name, SKU or barcode.
+                                Tap a dish on the left, or search for it by name or barcode.
                             @endif
                         </p>
                     </div>

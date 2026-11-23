@@ -40,7 +40,6 @@
 
                     <td>
                         {{ $batch->product?->name ?? '—' }}
-                        <span class="text-xs text-muted" style="display:block">{{ $batch->product?->sku }}</span>
                     </td>
 
                     @if ($showsShop)

@@ -87,13 +87,12 @@
             <div class="table-wrap" style="margin-top:16px">
                 <table class="table table-list">
                     <thead>
-                        <tr><th>Product</th><th>SKU</th><th style="text-align:right">Qty</th><th style="text-align:right">Unit price</th><th style="text-align:right">Line total</th></tr>
+                        <tr><th>Product</th><th style="text-align:right">Qty</th><th style="text-align:right">Unit price</th><th style="text-align:right">Line total</th></tr>
                     </thead>
                     <tbody>
                         @foreach ($order->items as $item)
                             <tr>
                                 <td>{{ $item->product_name }}</td>
-                                <td class="text-sm text-muted">{{ $item->sku }}</td>
                                 <td style="text-align:right">{{ rtrim(rtrim(number_format($item->quantity, 3), '0'), '.') }}</td>
                                 <td style="text-align:right">₹{{ number_format($item->unit_price, 2) }}</td>
                                 <td style="text-align:right">₹{{ number_format($item->line_total, 2) }}</td>

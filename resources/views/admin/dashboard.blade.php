@@ -754,7 +754,6 @@
 
                                                     <span class="cell-name">
                                                         <strong>{{ $row->product_name }}</strong>
-                                                        <small>{{ $row->sku }}</small>
                                                     </span>
                                                 </div>
                                             </td>

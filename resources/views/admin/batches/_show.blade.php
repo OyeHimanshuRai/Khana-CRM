@@ -12,7 +12,7 @@
         Batch <span class="list-ref">{{ $batch->batch_no }}</span>
     </div>
     <div class="text-sm text-muted">
-        {{ $batch->product?->name }} · {{ $batch->product?->sku }}
+        {{ $batch->product?->name }}
     </div>
 
     <div style="display:flex;flex-wrap:wrap;gap:7px;margin:8px 0 14px">

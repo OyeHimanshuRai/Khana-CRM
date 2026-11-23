@@ -159,7 +159,7 @@
                             <td>
                                 <strong>{{ $item->product_name }}</strong>
                                 <span class="text-xs text-muted" style="display:block">
-                                    {{ $item->sku }}@if ($item->hsn_code) · HSN {{ $item->hsn_code }}@endif
+                                    @if ($item->hsn_code)HSN {{ $item->hsn_code }}@endif
                                 </span>
                             </td>
 

@@ -70,7 +70,7 @@
                 <x-icon name="search" :size="15" />
                 <label for="batch-search" class="sr-only">Search batches</label>
                 <input id="batch-search" type="search" name="q" value="{{ $search }}"
-                       placeholder="Search batch number, product or SKU…" autocomplete="off" data-ajax-filter>
+                       placeholder="Search batch number or product…" autocomplete="off" data-ajax-filter>
             </div>
 
             <div class="list-filters">

@@ -75,9 +75,6 @@
             @endif
 
             <table style="width:100%;border-collapse:collapse;margin-top:20px;font-size:14px;">
-                @if ($product->sku)
-                    <tr><td style="padding:6px 0;color:var(--shop-muted);width:160px;">SKU</td><td>{{ $product->sku }}</td></tr>
-                @endif
                 @if ($product->manufacturer)
                     <tr><td style="padding:6px 0;color:var(--shop-muted);">Manufacturer</td><td>{{ $product->manufacturer }}</td></tr>
                 @endif

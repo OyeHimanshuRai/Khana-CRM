@@ -18,9 +18,8 @@
     <div>
         <strong>{{ $product->name }}</strong>
         <span class="text-xs text-muted" style="display:block">
-            {{ $product->sku }}
             @if ($tracked)
-                · {{ rtrim(rtrim(number_format((float) $onHand, 3, '.', ''), '0'), '.') ?: '0' }} {{ $unit }} on hand now
+                {{ rtrim(rtrim(number_format((float) $onHand, 3, '.', ''), '0'), '.') ?: '0' }} {{ $unit }} on hand now
             @endif
         </span>
     </div>

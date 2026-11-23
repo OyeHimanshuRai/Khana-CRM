@@ -202,9 +202,6 @@
                                         <input type="hidden" name="items[{{ $index }}][invoice_item_id]"
                                                value="{{ $line->id }}">
                                         <strong>{{ $line->product_name }}</strong>
-                                        <span class="text-xs text-muted" style="display:block">
-                                            {{ $line->sku }}
-                                        </span>
                                     </td>
 
                                     <td class="text-sm">{{ $line->batch_no ?: '—' }}</td>

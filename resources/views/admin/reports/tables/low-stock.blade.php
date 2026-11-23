@@ -26,7 +26,6 @@
             <tr>
                 <td>
                     <strong>{{ $row->name }}</strong>
-                    <span class="text-xs text-muted" style="display:block">{{ $row->sku }}</span>
                 </td>
                 <td style="text-align:right">
                     <strong style="color:var({{ $onHand <= 0 ? '--danger' : '--warning' }})">

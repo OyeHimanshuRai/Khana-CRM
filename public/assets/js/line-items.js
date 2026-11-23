@@ -556,8 +556,7 @@
 
             return '<button type="button" class="line-result" data-line-pick="' + index + '">'
                 + '<span class="line-result-name">' + escapeHtml(product.name) + '</span>'
-                + '<span class="line-result-meta">' + escapeHtml(product.sku)
-                + (product.barcode ? ' · ' + escapeHtml(product.barcode) : '')
+                + '<span class="line-result-meta">' + (product.barcode ? escapeHtml(product.barcode) : '')
                 + '</span>'
                 + '<span class="line-result-price">₹' + money(num(product.selling_price)) + '</span>'
                 + '<span class="line-result-stock' + stockClass + '">'

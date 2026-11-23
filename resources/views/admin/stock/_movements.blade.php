@@ -9,7 +9,6 @@
 <div class="cat-view-body">
     <div class="sec-name">{{ $product->name }}</div>
     <div class="text-sm text-muted">
-        <span class="list-ref">{{ $product->sku }}</span> ·
         on hand {{ $product->unit?->format($onHand) ?? number_format($onHand, 3) }}
     </div>
 </div>

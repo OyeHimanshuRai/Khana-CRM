@@ -85,7 +85,7 @@
                 <x-icon name="search" :size="15" />
                 <label for="prod-search" class="sr-only">Search products</label>
                 <input id="prod-search" type="search" name="q" value="{{ $search }}"
-                       placeholder="Search name, SKU, barcode, HSN or brand…"
+                       placeholder="Search name, barcode, HSN or brand…"
                        autocomplete="off" data-ajax-filter>
             </div>
 
@@ -131,8 +131,7 @@
                 <select id="f-sort" name="sort" data-ajax-filter>
                     <option value="name_asc" @selected($sort === 'name_asc')>Name A–Z</option>
                     <option value="name_desc" @selected($sort === 'name_desc')>Name Z–A</option>
-                    <option value="sku" @selected($sort === 'sku')>SKU</option>
-                    <option value="price_asc" @selected($sort === 'price_asc')>Price low to high</option>
+                                        <option value="price_asc" @selected($sort === 'price_asc')>Price low to high</option>
                     <option value="price_desc" @selected($sort === 'price_desc')>Price high to low</option>
                     <option value="newest" @selected($sort === 'newest')>Newest first</option>
                     <option value="oldest" @selected($sort === 'oldest')>Oldest first</option>

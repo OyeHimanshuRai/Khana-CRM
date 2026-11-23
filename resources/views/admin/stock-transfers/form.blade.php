@@ -101,7 +101,7 @@
                 <div class="line-search field" style="max-width:520px">
                     <label for="trf-search" class="sr-only">Find a product</label>
                     <input id="trf-search" type="search" class="form-control" data-line-search
-                           placeholder="Scan a barcode, or search by name or SKU…" autocomplete="off">
+                           placeholder="Scan a barcode, or search by name…" autocomplete="off">
                     <div class="line-results" data-line-results hidden></div>
                 </div>
 
@@ -128,9 +128,6 @@
                                         <input type="hidden" name="items[{{ $index }}][product_id]"
                                                value="{{ $item->product_id }}">
                                         <strong>{{ $item->product?->name }}</strong>
-                                        <span class="text-xs text-muted" style="display:block">
-                                            {{ $item->product?->sku }}
-                                        </span>
                                     </td>
 
                                     <td class="text-sm">
@@ -183,7 +180,6 @@
                     <td>
                         <input type="hidden" name="items[@{{index}}][product_id]" value="@{{product_id}}">
                         <strong>@{{name}}</strong>
-                        <span class="text-xs text-muted" style="display:block">@{{sku}}</span>
                     </td>
 
                     <td class="text-sm">

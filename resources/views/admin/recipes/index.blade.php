@@ -70,7 +70,7 @@
                 <x-icon name="search" :size="15" />
                 <label for="rc-search" class="sr-only">Search dishes</label>
                 <input id="rc-search" type="search" name="q" value="{{ $search }}"
-                       placeholder="Search dish, SKU or code…" autocomplete="off" data-ajax-filter>
+                       placeholder="Search dish or code…" autocomplete="off" data-ajax-filter>
             </div>
 
             <div class="list-filters">
