@@ -358,4 +358,186 @@
             }
         });
     });
+
+    /* ------------------------------------------------ email one-time code */
+
+    /*
+     | The Register button only appears once the email has been confirmed with a
+     | code mailed to it. The server checks the same thing (a confirmed address
+     | is remembered in the visitor's own session), so this is the friendly half.
+     */
+    (function () {
+        var box = form.querySelector('[data-otp]');
+        var emailInput = inputFor('email');
+        var submit = form.querySelector('[data-register-submit]');
+        var gate = form.querySelector('[data-register-gate]');
+
+        if (!box || !emailInput || !submit) { return; }
+
+        var sendButton = box.querySelector('[data-otp-send]');
+        var panel = box.querySelector('[data-otp-panel]');
+        var codeInput = box.querySelector('[data-otp-input]');
+        var verifyButton = box.querySelector('[data-otp-verify]');
+        var resendButton = box.querySelector('[data-otp-resend]');
+        var message = box.querySelector('[data-otp-msg]');
+        var token = form.querySelector('input[name="_token"]');
+        var verifiedEmail = '';
+        // The address the server has confirmed in this visit; typing it back restores the button.
+        var confirmedEmail = box.dataset.verifiedEmail || '';
+        var timer = null;
+
+        function say(text, kind) {
+            message.textContent = text || '';
+            message.hidden = !text;
+            message.className = 'rg-otp-msg' + (kind ? ' is-' + kind : '');
+        }
+
+        function current() {
+            return (emailInput.value || '').trim().toLowerCase();
+        }
+
+        function post(url, body) {
+            return fetch(url, {
+                method: 'POST',
+                credentials: 'same-origin',
+                headers: {
+                    'Content-Type': 'application/json', 'Accept': 'application/json',
+                    'X-Requested-With': 'XMLHttpRequest',
+                    'X-CSRF-TOKEN': token ? token.value : ''
+                },
+                body: JSON.stringify(body)
+            }).then(function (r) {
+                return r.json().catch(function () { return {}; }).then(function (data) { return { ok: r.ok, status: r.status, data: data }; });
+            });
+        }
+
+        function setVerified(on) {
+            verifiedEmail = on ? current() : '';
+            submit.hidden = !on;
+            if (gate) { gate.hidden = on; }
+            sendButton.hidden = on;
+            panel.hidden = true;
+            if (on) { say('Email verified. You can register now.', 'ok'); }
+        }
+
+        function countdown(seconds) {
+            clearInterval(timer);
+            var left = seconds;
+            resendButton.disabled = true;
+            resendButton.textContent = 'Resend OTP in ' + left + 's';
+            timer = setInterval(function () {
+                left -= 1;
+                if (left <= 0) {
+                    clearInterval(timer);
+                    resendButton.disabled = false;
+                    resendButton.textContent = 'Resend OTP';
+                    return;
+                }
+                resendButton.textContent = 'Resend OTP in ' + left + 's';
+            }, 1000);
+        }
+
+        function sendCode() {
+            var email = current();
+            var problem = RULES.email(email, form);
+
+            if (problem) {
+                mark(emailInput, problem);
+                emailInput.focus();
+                return;
+            }
+
+            sendButton.disabled = true;
+            resendButton.disabled = true;
+            say('Sending the code…');
+
+            post(box.dataset.sendUrl, { email: email }).then(function (res) {
+                sendButton.disabled = false;
+
+                if (res.ok && res.data.success) {
+                    // Asking for a code for another address makes the server forget the confirmed one.
+                    if (email !== confirmedEmail) { confirmedEmail = ''; }
+                    sendButton.hidden = true;
+                    panel.hidden = false;
+                    say(res.data.message, '');
+                    countdown((res.data.data && res.data.data.wait) || 60);
+                    codeInput.value = '';
+                    codeInput.focus();
+                    return;
+                }
+
+                var wait = res.data && res.data.data && res.data.data.wait;
+                say((res.data && res.data.message) || 'Could not send the code. Please try again.', 'error');
+                if (wait) { panel.hidden = false; sendButton.hidden = true; countdown(wait); } else { resendButton.disabled = false; }
+            }).catch(function () {
+                sendButton.disabled = false;
+                resendButton.disabled = false;
+                say('Could not reach the server. Check your connection and try again.', 'error');
+            });
+        }
+
+        function verifyCode() {
+            var code = (codeInput.value || '').replace(/\s+/g, '');
+
+            if (!/^\d{6}$/.test(code)) {
+                say('Enter the 6-digit code from the email.', 'error');
+                codeInput.focus();
+                return;
+            }
+
+            verifyButton.disabled = true;
+
+            post(box.dataset.verifyUrl, { email: current(), otp: code }).then(function (res) {
+                verifyButton.disabled = false;
+
+                if (res.ok && res.data.success) {
+                    clearInterval(timer);
+                    clear(emailInput);
+                    confirmedEmail = current();
+                    setVerified(true);
+                    return;
+                }
+
+                say((res.data && res.data.message) || 'That code is not right.', 'error');
+                codeInput.select();
+            }).catch(function () {
+                verifyButton.disabled = false;
+                say('Could not reach the server. Check your connection and try again.', 'error');
+            });
+        }
+
+        sendButton.addEventListener('click', sendCode);
+        resendButton.addEventListener('click', sendCode);
+        verifyButton.addEventListener('click', verifyCode);
+        codeInput.addEventListener('keydown', function (event) {
+            if (event.key === 'Enter') { event.preventDefault(); verifyCode(); }
+        });
+        codeInput.addEventListener('input', function () {
+            codeInput.value = codeInput.value.replace(/\D+/g, '').slice(0, 6);
+        });
+
+        // Another address than the confirmed one: start again.
+        emailInput.addEventListener('input', function () {
+            if (verifiedEmail !== '' && current() === verifiedEmail) { return; }
+
+            if (confirmedEmail !== '' && current() === confirmedEmail) {
+                clearInterval(timer);
+                setVerified(true);
+                return;
+            }
+
+            clearInterval(timer);
+            submit.hidden = true;
+            if (gate) { gate.hidden = false; }
+            sendButton.hidden = false;
+            panel.hidden = true;
+            verifiedEmail = '';
+            say('');
+        });
+
+        // Refreshed after confirming: the session still remembers the address.
+        if (confirmedEmail !== '' && confirmedEmail === current()) {
+            setVerified(true);
+        }
+    })();
 })(window, document);

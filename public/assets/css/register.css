@@ -389,3 +389,18 @@
     .rg-submit { width: 100%; }
     .rg-terms-cell { align-self: stretch; }
 }
+
+/* ------------------------------------------- email one-time code */
+
+.rg-otp { margin: -4px 0 14px; }
+.rg-otp .rg-otp-send { width: 100%; }
+.rg-otp-panel[hidden], .rg-otp-send[hidden], .rg-otp-msg[hidden], .rg-gate[hidden], .rg-submit[hidden] { display: none; }
+.rg-otp-row { display: flex; gap: 10px; align-items: stretch; }
+.rg-otp-row input { flex: 1; min-width: 0; letter-spacing: .35em; text-align: center; font-weight: 600; }
+.rg-otp-row .lp-btn { flex: none; }
+.rg-otp-resend { margin: 8px 0 0; padding: 0; border: 0; background: none; font: inherit; font-size: 13px; color: var(--lp-accent, #c2410c); cursor: pointer; text-decoration: underline; }
+.rg-otp-resend:disabled { color: var(--lp-muted); cursor: default; text-decoration: none; }
+.rg-otp-msg { margin: 8px 0 0; font-size: 13px; line-height: 1.4; color: var(--lp-muted); }
+.rg-otp-msg.is-ok { color: #15803d; font-weight: 600; }
+.rg-otp-msg.is-error { color: #c4262e; }
+.rg-gate { margin: 4px 0 0; padding: 12px 14px; border-radius: 12px; background: var(--lp-bg-alt, #f4f4f6); color: var(--lp-muted); font-size: 13.5px; text-align: center; }

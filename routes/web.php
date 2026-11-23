@@ -129,6 +129,14 @@ Route::middleware(['guest', 'ip.allowed'])->group(function () {
     Route::post('register', [\App\Http\Controllers\RegisterController::class, 'store'])
         ->middleware('throttle:20,10')
         ->name('register.store');
+
+    // The one-time code that confirms the email address before the form can be submitted.
+    Route::post('register/otp/send', [\App\Http\Controllers\SignupOtpController::class, 'send'])
+        ->middleware('throttle:10,10')
+        ->name('register.otp.send');
+    Route::post('register/otp/verify', [\App\Http\Controllers\SignupOtpController::class, 'verify'])
+        ->middleware('throttle:20,10')
+        ->name('register.otp.verify');
 });
 
 /*

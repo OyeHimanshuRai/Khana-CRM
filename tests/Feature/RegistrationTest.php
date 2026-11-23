@@ -259,7 +259,7 @@ class RegistrationTest extends TestCase
         $this->assertGuest();
 
         $owner = User::query()->where('email', 'asha@spicegarden.test')->firstOrFail();
-        $this->assertTrue($owner->needsEmailVerification());
+        $this->assertFalse($owner->needsEmailVerification(), 'the one-time code already confirmed the address');
 
         $tenant = $owner->tenant;
         $shop = Shop::query()->withoutGlobalScopes()->where('tenant_id', $tenant->id)->firstOrFail();

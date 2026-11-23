@@ -57,6 +57,15 @@ class SignupEmailVerificationTest extends TestCase
         return User::query()->withoutGlobalScopes()->where('email', 'asha@spicegarden.test')->firstOrFail();
     }
 
+    /** An account made before sign-up asked for the one-time code: still has to confirm its address. */
+    private function signUpUnconfirmed(): User
+    {
+        $owner = $this->signUp();
+        $owner->forceFill(['must_verify_email' => true, 'email_verified_at' => null])->saveQuietly();
+
+        return $owner->fresh();
+    }
+
     private function verifyUrl(User $user): string
     {
         return URL::temporarySignedRoute('verification.verify', now()->addDays(7), [
@@ -69,7 +78,7 @@ class SignupEmailVerificationTest extends TestCase
         return $this->postJson('/login', ['email' => $email, 'password' => $password]);
     }
 
-    public function test_signing_up_sends_the_link_and_signs_nobody_in(): void
+    public function test_signing_up_signs_nobody_in_and_the_account_is_already_confirmed(): void
     {
         $this->post('/register', [
             'business_name' => 'Spice Garden', 'name' => 'Asha Rao', 'email' => 'asha@spicegarden.test',
@@ -78,13 +87,18 @@ class SignupEmailVerificationTest extends TestCase
 
         $this->assertGuest();
         $owner = User::query()->withoutGlobalScopes()->where('email', 'asha@spicegarden.test')->firstOrFail();
-        $this->assertTrue($owner->needsEmailVerification());
+        $this->assertFalse($owner->needsEmailVerification());
+        $this->assertNotNull($owner->email_verified_at);
 
+        // The welcome mail's button is the sign-in page, not another confirmation.
         Mail::assertSent(TrialWelcomeMail::class, fn (TrialWelcomeMail $mail) => $mail->hasTo('asha@spicegarden.test')
-            && str_contains($mail->render(), '/email/verify/'.$owner->id.'/'));
+            && ! str_contains($mail->render(), '/email/verify/'));
+
+        $this->resetState();
+        $this->signIn()->assertOk();
     }
 
-    public function test_the_home_page_says_thank_you_and_where_the_link_went(): void
+    public function test_the_home_page_says_thank_you_and_to_sign_in(): void
     {
         $this->post('/register', [
             'business_name' => 'Spice Garden', 'name' => 'Asha Rao', 'email' => 'asha@spicegarden.test',
@@ -93,12 +107,13 @@ class SignupEmailVerificationTest extends TestCase
 
         $this->get(route('landing'))->assertOk()
             ->assertSee('Thank you for registering')
-            ->assertSee('asha@spicegarden.test');
+            ->assertSee('asha@spicegarden.test')
+            ->assertSee('is verified and your account is ready', false);
     }
 
     public function test_until_the_link_is_opened_the_account_cannot_sign_in(): void
     {
-        $this->signUp();
+        $this->signUpUnconfirmed();
 
         $this->signIn()->assertStatus(422)
             ->assertJsonPath('errors.account.0', \App\Support\AccountMessages::unverified('asha@spicegarden.test'));
@@ -111,7 +126,7 @@ class SignupEmailVerificationTest extends TestCase
 
     public function test_a_wrong_password_still_gets_the_ordinary_message(): void
     {
-        $this->signUp();
+        $this->signUpUnconfirmed();
 
         $this->signIn(password: 'nope-nope')->assertStatus(422);
         $this->assertStringNotContainsString('verify your email', strtolower((string) $this->signIn(password: 'nope-nope')->json('errors.email.0')));
@@ -119,7 +134,7 @@ class SignupEmailVerificationTest extends TestCase
 
     public function test_the_link_confirms_the_address_and_then_sign_in_works(): void
     {
-        $owner = $this->signUp();
+        $owner = $this->signUpUnconfirmed();
 
         $this->get($this->verifyUrl($owner))->assertRedirect(route('login'))->assertSessionHas('status');
         $this->assertNotNull($owner->fresh()->email_verified_at);
@@ -132,7 +147,7 @@ class SignupEmailVerificationTest extends TestCase
 
     public function test_a_session_that_is_still_open_is_ended_if_the_account_is_unconfirmed(): void
     {
-        $owner = $this->signUp();
+        $owner = $this->signUpUnconfirmed();
 
         $this->resetState();
         $this->actingAs($owner)->get('/dashboard')->assertRedirect(route('login'));
@@ -141,7 +156,7 @@ class SignupEmailVerificationTest extends TestCase
 
     public function test_a_forged_or_expired_link_confirms_nothing(): void
     {
-        $owner = $this->signUp();
+        $owner = $this->signUpUnconfirmed();
 
         $this->get(route('verification.verify', ['id' => $owner->id, 'hash' => sha1($owner->email)]))->assertForbidden();
         $this->get(URL::temporarySignedRoute('verification.verify', now()->addDay(), ['id' => $owner->id, 'hash' => sha1('someone@else.test')]))
@@ -155,7 +170,7 @@ class SignupEmailVerificationTest extends TestCase
 
     public function test_the_link_can_be_sent_again_with_the_password_but_not_endlessly(): void
     {
-        $this->signUp();
+        $this->signUpUnconfirmed();
 
         $this->postJson(route('verification.resend'), ['email' => 'asha@spicegarden.test', 'password' => 'Secret123'])
             ->assertOk()->assertJsonPath('success', true);
@@ -169,7 +184,7 @@ class SignupEmailVerificationTest extends TestCase
 
     public function test_the_link_is_not_sent_to_a_stranger(): void
     {
-        $this->signUp();
+        $this->signUpUnconfirmed();
 
         $this->postJson(route('verification.resend'), ['email' => 'asha@spicegarden.test', 'password' => 'wrong-password'])
             ->assertStatus(422)->assertJsonPath('errors.email.0', 'Enter the email and password you registered with.');
@@ -180,7 +195,7 @@ class SignupEmailVerificationTest extends TestCase
 
     public function test_staff_somebody_created_are_never_asked(): void
     {
-        $owner = $this->signUp();
+        $owner = $this->signUpUnconfirmed();
         $owner->forceFill(['email_verified_at' => now()])->save();
 
         $staff = User::create([

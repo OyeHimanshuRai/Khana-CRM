@@ -8,6 +8,7 @@ use App\Models\Plan;
 use App\Services\Payments\GatewayManager;
 use App\Services\TenantProvisioningService;
 use App\Support\SignupMailer;
+use App\Support\SignupOtp;
 use App\Support\SiteBrand;
 use Illuminate\Http\JsonResponse;
 use Illuminate\Http\RedirectResponse;
@@ -40,9 +41,9 @@ use RuntimeException;
  *   4. A password rule, because this is the only account the owner will
  *      ever create without an administrator choosing the password for them.
  *
- * What it does not do is verify the email address. A trial is not money, and
- * a verification step is the commonest place a sign-up form loses people; the
- * limit above and the trial's own expiry are what bound the abuse.
+ * The email address is confirmed first, with a one-time code (SignupOtpController):
+ * the form's Register button only appears once the code was entered, and this
+ * method refuses an address that was not confirmed in the visitor's session.
  *
  * Works without JavaScript, like the rest of the public site.
  */
@@ -137,6 +138,11 @@ class RegisterController extends Controller
             'plan.exists' => 'That plan is no longer available. Please choose another.',
         ]);
 
+        // The address must have been confirmed with a one-time code, in this visitor's session.
+        if ($request->session()->get(SignupOtp::SESSION_KEY) !== $data['email']) {
+            return $this->failed($request, 'email', 'Please verify your email with the 6-digit code first.');
+        }
+
         $plan = Plan::query()->onSale()->where('slug', $data['plan'])->firstOrFail();
 
         /*
@@ -173,12 +179,13 @@ class RegisterController extends Controller
 
         ActivityLog::record('auth.register', sprintf('Signed up "%s" on the %s plan', $user->tenant?->name, $plan->name), $user->tenant);
 
-        // Nobody is signed in by signing up. The account opens when the address on
-        // it has been confirmed, from the link in the email; until then sign-in says so.
-        // (Nothing here resolved a company or a branch: the visitor is still a guest.)
+        // The code already proved the address is theirs, so the account is active at once.
+        // Nobody is signed in by signing up: they go back to the home page and sign in.
+        $user->forceFill(['email_verified_at' => now()])->saveQuietly();
+        $request->session()->forget(SignupOtp::SESSION_KEY);
 
-        // The verification link, in the welcome email (sent now, so a failure is known),
-        // and "new sign-up" to us (queued). Never throws.
+        // The welcome email (sent now, so a failure is known), and "new sign-up" to us
+        // (queued). Never throws.
         $emailed = SignupMailer::send($user);
 
         // And on the platform's bell, and its phones.
@@ -186,18 +193,16 @@ class RegisterController extends Controller
 
         $trial = (int) $plan->trial_days > 0;
 
-        // What the home page shows, as a notice that stays until it is closed: the
-        // person is only told a message is on its way when one was sent.
+        // What the home page shows, as a notice that stays until it is closed.
         $notice = [
             'email' => $user->email,
             'sent' => $emailed,
             'plan' => $plan->name,
             'trial_days' => $trial ? (int) $plan->trial_days : 0,
+            'verified' => true,
         ];
 
-        $message = $emailed
-            ? "Thank you for registering! We have sent a verification link to {$user->email}. Open it to verify your email and activate your account, then sign in."
-            : "Thank you for registering! We could not send the verification email to {$user->email} just now. Please contact us and we will activate your account.";
+        $message = "Thank you for registering! Your email is verified and your account is ready. Sign in with {$user->email} to get started.";
 
         $request->session()->flash('signup_notice', $notice);
 

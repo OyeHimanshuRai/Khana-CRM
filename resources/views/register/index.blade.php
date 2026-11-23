@@ -219,6 +219,26 @@
                     @error('email')<span class="rg-error" role="alert">{{ $message }}</span>@enderror
                 </p>
 
+                {{-- The email is confirmed with a one-time code before the Register button appears
+                     (register.js; the server refuses an unconfirmed address as well). --}}
+                <div class="lp-field field rg-otp" data-otp
+                     data-send-url="{{ route('register.otp.send') }}" data-verify-url="{{ route('register.otp.verify') }}"
+                     data-verified-email="{{ session(\App\Support\SignupOtp::SESSION_KEY) }}">
+                    <button type="button" class="lp-btn lp-btn-ghost rg-otp-send" data-otp-send>Send OTP to this email</button>
+
+                    <div class="rg-otp-panel" data-otp-panel hidden>
+                        <label for="r-otp" class="rg-sr">6-digit code</label>
+                        <div class="rg-otp-row">
+                            <input id="r-otp" type="text" inputmode="numeric" autocomplete="one-time-code" maxlength="6"
+                                   pattern="[0-9]{6}" placeholder="Enter 6-digit OTP" data-otp-input>
+                            <button type="button" class="lp-btn lp-btn-solid" data-otp-verify>Verify</button>
+                        </div>
+                        <button type="button" class="rg-otp-resend" data-otp-resend disabled>Resend OTP</button>
+                    </div>
+
+                    <p class="rg-otp-msg" role="status" data-otp-msg hidden></p>
+                </div>
+
                 {{-- +91 is shown beside the box; a ten-digit number is stored
                      with it (RegisterController), anything else as typed. --}}
                 <p class="lp-field field">
@@ -265,7 +285,8 @@
                 </div>
             </div>
 
-            <button type="submit" class="lp-btn lp-btn-solid lp-btn-lg rg-submit">
+            <p class="rg-gate" data-register-gate>Verify your email with the OTP above to continue.</p>
+            <button type="submit" class="lp-btn lp-btn-solid lp-btn-lg rg-submit" data-register-submit hidden>
                 <span>Register</span>
             </button>
         </form>

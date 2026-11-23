@@ -1,9 +1,9 @@
 {{--
     The thank-you after signing up, on the home page.
 
-    Nobody is signed in by signing up: the account opens when the address on it
-    has been confirmed from the link in the email. So this says exactly that, stays
-    until it is closed (a toast is gone before anyone has read two lines).
+    Nobody is signed in by signing up: the address was confirmed with a one-time code
+    before the form could be sent, so the account is ready and the visitor signs in.
+    Stays until it is closed (a toast is gone before anyone has read two lines).
 --}}
 @php($notice = session('signup_notice'))
 @if (is_array($notice))
@@ -12,12 +12,9 @@
             <div class="lp-notice-icon" aria-hidden="true">✓</div>
             <div class="lp-notice-body">
                 <strong>Thank you for registering!</strong>
+                <p>Your email <b>{{ $notice['email'] }}</b> is verified and your account is ready. <a href="{{ route('login') }}">Sign in</a> to get started.</p>
                 @if ($notice['sent'])
-                    <p>We have sent a verification link to <b>{{ $notice['email'] }}</b>. Open it to verify your email and activate your account, then <a href="{{ route('login') }}">sign in</a>.</p>
-                    <p class="lp-notice-small">Not in your inbox? Check the spam folder. You cannot sign in until the email is verified.</p>
-                @else
-                    <p>Your account is created, but we could not send the verification email to <b>{{ $notice['email'] }}</b> just now.</p>
-                    <p class="lp-notice-small">Please contact us and we will activate your account. You cannot sign in until the email is verified.</p>
+                    <p class="lp-notice-small">We have also sent you a welcome email.</p>
                 @endif
             </div>
             <button type="button" class="lp-notice-close" aria-label="Close this message" data-signup-notice-close>×</button>

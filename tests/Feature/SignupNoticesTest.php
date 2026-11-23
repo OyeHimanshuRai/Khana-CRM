@@ -90,7 +90,7 @@ class SignupNoticesTest extends TestCase
             ->assertOk()
             ->assertJsonPath('success', true)
             ->assertJsonPath('redirect', route('landing'))
-            ->assertJsonFragment(['message' => 'Thank you for registering! We have sent a verification link to asha@spicegarden.test. Open it to verify your email and activate your account, then sign in.']);
+            ->assertJsonFragment(['message' => 'Thank you for registering! Your email is verified and your account is ready. Sign in with asha@spicegarden.test to get started.']);
 
         // Stored the way it will be typed to sign in.
         $this->assertDatabaseHas('users', ['email' => 'asha@spicegarden.test']);
@@ -143,7 +143,7 @@ class SignupNoticesTest extends TestCase
                 && str_contains($html, 'Spice Garden')
                 && str_contains($html, 'Asha Rao')
                 && str_contains($html, 'registration is confirmed')
-                && preg_match('/>\\s*Verify my email\\s*</', $html) === 1
+                && preg_match('/>\\s*Login\\s*</', $html) === 1
                 && ! str_contains($html, 'To get going')
                 && str_contains($html, route('login'))
                 && ! str_contains($html, 'Secret123');
@@ -158,7 +158,7 @@ class SignupNoticesTest extends TestCase
         $this->postJson('/register', $this->payload())
             ->assertOk()
             ->assertJsonPath('redirect', route('landing'))
-            ->assertJsonFragment(['message' => 'Thank you for registering! We could not send the verification email to asha@spicegarden.test just now. Please contact us and we will activate your account.']);
+            ->assertJsonFragment(['message' => 'Thank you for registering! Your email is verified and your account is ready. Sign in with asha@spicegarden.test to get started.']);
 
         // The account exists, and the failure is on record without any secret.
         $this->assertDatabaseHas('users', ['email' => 'asha@spicegarden.test']);

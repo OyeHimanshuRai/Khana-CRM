@@ -97,6 +97,8 @@ abstract class TestCase extends BaseTestCase
             $uri = $this->restaurantPath((string) $uri);
         }
 
+        $this->confirmSignupEmail($method, (string) $uri, $parameters, $content);
+
         // Like a browser: links on the page that came back read on the side of
         // the page asked for, so route() after a request matches what it redirected to.
         // (The Super Admin acting stays on the Super Admin's side: a look at the
@@ -106,6 +108,26 @@ abstract class TestCase extends BaseTestCase
         }
 
         return parent::call($method, $uri, $parameters, $cookies, $files, $server, $content);
+    }
+
+    /**
+     * Whoever posts the sign-up form has, as far as most tests care, already
+     * confirmed the address with the one-time code. Tests of the code itself
+     * switch this off with `$autoConfirmSignupEmail = false`.
+     */
+    protected bool $autoConfirmSignupEmail = true;
+
+    private function confirmSignupEmail(string $method, string $uri, $parameters, $content): void
+    {
+        if (! $this->autoConfirmSignupEmail || strtoupper($method) !== 'POST' || trim((string) parse_url($uri, PHP_URL_PATH), '/') !== 'register') {
+            return;
+        }
+
+        $email = $parameters['email'] ?? (json_decode((string) $content, true)['email'] ?? null);
+
+        if (is_string($email) && trim($email) !== '') {
+            $this->withSession([\App\Support\SignupOtp::SESSION_KEY => \Illuminate\Support\Str::lower(trim($email))]);
+        }
     }
 
     /** Is the person this test is signed in as a restaurant's, not the Super Admin? */
