@@ -65,9 +65,16 @@ jobs:
             sleep 4
             echo "service: $(systemctl is-active restroone-queue.service)"
 
-            echo "--- test job"
-            php artisan tinker --execute="dispatch(function () { \Illuminate\Support\Facades\Log::info('restroone-queue-ok'); }); echo 'queued';"
-            sleep 10
-            if grep -q 'restroone-queue-ok' storage/logs/laravel-$(date +%F).log 2>/dev/null; then echo "TEST JOB RAN on the new worker"; else echo "TEST JOB DID NOT RUN"; fi
-            echo "redis restroone queue length: $(redis-cli llen queues:restroone)"
+            echo "--- test job (a real queued command: it deletes a cache key when the worker runs it)"
+            cat > /tmp/qt.php <<'PHP'
+            \Illuminate\Support\Facades\Cache::put('restroone-queue-probe', 'waiting', 300);
+            \Illuminate\Support\Facades\Artisan::queue('cache:forget', ['key' => 'restroone-queue-probe']);
+            echo "queued on ".config('queue.default')."/".config('queue.connections.redis.queue')."\n";
+            PHP
+            php artisan tinker --execute="$(cat /tmp/qt.php)"
+            rm -f /tmp/qt.php
+            sleep 12
+            php artisan tinker --execute="echo \Illuminate\Support\Facades\Cache::has('restroone-queue-probe') ? 'TEST JOB DID NOT RUN' : 'TEST JOB RAN on the new worker';"
+            echo "service: $(systemctl is-active restroone-queue.service)"
+            journalctl -u restroone-queue.service --no-pager -n 8 | cut -c1-200
             echo "### DONE"
