@@ -187,6 +187,12 @@ Route::get('p/{slug}', [\App\Http\Controllers\PageController::class, 'show'])
 | needs and far less than a script wants. The honeypot inside the controller is
 | the cheaper first line; this is what stops whatever ignores it.
 */
+// The one-time code that confirms the email on a "Book a demo" request.
+Route::post('demo/otp/send', [\App\Http\Controllers\DemoOtpController::class, 'send'])
+    ->middleware(['ip.allowed', 'throttle:demo-otp-send'])->name('demo.otp.send');
+Route::post('demo/otp/verify', [\App\Http\Controllers\DemoOtpController::class, 'verify'])
+    ->middleware(['ip.allowed', 'throttle:demo-otp-verify'])->name('demo.otp.verify');
+
 Route::post('demo-request', [DemoRequestController::class, 'store'])
     ->middleware('throttle:6,60')
     ->name('demo-request.store');

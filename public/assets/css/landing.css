@@ -1448,3 +1448,41 @@ html { scroll-behavior: smooth; }
 /* The FAQ page groups its questions under a heading each. */
 .lp-faq-group { margin: 32px 0 6px; font-size: 15px; font-weight: 700; letter-spacing: .02em; color: var(--lp-brand); text-transform: uppercase; }
 .lp-faq-group:first-of-type { margin-top: 0; }
+
+/* ------------------------------------------------ "Book a demo" window */
+
+.lp-modal {
+    width: min(560px, 94vw);
+    max-height: 92vh;
+    margin: auto;
+    padding: 0;
+    border: 0;
+    border-top: 4px solid var(--lp-brand);
+    background: var(--lp-surface, #fff);
+    color: var(--lp-text);
+    box-shadow: 0 24px 60px rgba(0, 0, 0, .28);
+    overflow: auto;
+}
+.lp-modal::backdrop { background: rgba(15, 15, 20, .55); backdrop-filter: blur(3px); }
+html.lp-modal-open { overflow: hidden; }
+.lp-modal-head { display: flex; align-items: center; justify-content: space-between; gap: 12px; padding: 16px 20px 6px; }
+.lp-modal-head h2 { margin: 0; font-size: 20px; font-weight: 800; }
+.lp-modal-close { width: 36px; height: 36px; border: 0; background: transparent; font-size: 26px; line-height: 1; color: var(--lp-muted); cursor: pointer; }
+.lp-modal-close:hover { color: var(--lp-text); }
+.lp-modal-body { padding: 8px 20px 20px; }
+
+/* The email code, under the email box. */
+.demo-otp { margin: 0; }
+.demo-otp [hidden] { display: none; }
+.demo-otp-send { width: 100%; }
+.demo-otp-row { display: flex; gap: 10px; align-items: stretch; }
+.demo-otp-row input { flex: 1; min-width: 0; letter-spacing: .35em; text-align: center; font-weight: 600; }
+.demo-otp-row .lp-btn { flex: none; width: auto; }
+.demo-otp-resend { margin: 8px 0 0; padding: 0; border: 0; background: none; font: inherit; font-size: 13px; color: var(--lp-brand); cursor: pointer; text-decoration: underline; }
+.demo-otp-resend:disabled { color: var(--lp-muted); cursor: default; text-decoration: none; }
+.demo-otp-msg { margin: 8px 0 0; font-size: 13px; line-height: 1.4; color: var(--lp-muted); }
+.demo-otp-msg.is-ok { color: #15803d; font-weight: 600; }
+.demo-otp-msg.is-error { color: #c4262e; }
+
+/* "Still have a question?" under the FAQ list. */
+.lp-faq-ask { margin: 36px 0 0; display: flex; flex-wrap: wrap; align-items: center; justify-content: center; gap: 12px; font-size: 16px; text-align: center; }

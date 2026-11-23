@@ -44,6 +44,8 @@
     <link rel="stylesheet" href="{{ asset('assets/css/ui.css') }}?v={{ filemtime(public_path('assets/css/ui.css')) }}">
     <link rel="stylesheet"
           href="{{ asset('assets/css/landing.css') }}?v={{ filemtime(public_path('assets/css/landing.css')) }}">
+    {{-- Toasts and field-error states for the "Book a demo" window. --}}
+    <link rel="stylesheet" href="{{ asset('assets/css/app.css') }}?v={{ filemtime(public_path('assets/css/app.css')) }}">
 </head>
 <body class="lp">
 @include('site._header', [
@@ -119,6 +121,8 @@
                     <p class="lp-meta">Have a question? <a href="{{ route('demo') }}">Book a demo</a> and our team will help.</p>
                 @endforelse
 
+                <p class="lp-faq-ask">Still have a question? <a class="lp-btn lp-btn-solid" href="{{ route('demo') }}" data-demo-open>Ask us - book a demo</a></p>
+
                 {{-- The questions, in a form a search engine can read. --}}
                 @if ($faqs->isNotEmpty())
                     <script type="application/ld+json">{!! json_encode([
@@ -146,6 +150,13 @@
 </main>
 
 @include('site._footer')
+
+{{-- "Book a demo" opens in a window on this page (demo-modal.js); without JavaScript the links go to /demo. --}}
+@include('demo._modal')
+<script src="{{ asset('assets/js/app.js') }}?v={{ filemtime(public_path('assets/js/app.js')) }}"></script>
+<script src="{{ asset('assets/js/demo-form.js') }}?v={{ filemtime(public_path('assets/js/demo-form.js')) }}"></script>
+<script src="{{ asset('assets/js/demo-otp.js') }}?v={{ filemtime(public_path('assets/js/demo-otp.js')) }}"></script>
+<script src="{{ asset('assets/js/demo-modal.js') }}?v={{ filemtime(public_path('assets/js/demo-modal.js')) }}"></script>
 <script src="{{ asset('assets/js/topbar.js') }}?v={{ filemtime(public_path('assets/js/topbar.js')) }}" defer></script>
 </body>
 </html>

@@ -592,88 +592,7 @@
             </div>
 
             <div class="lp-demo-form">
-                {{--
-                    With JavaScript: demo-form.js checks each field as it is
-                    left, and app.js posts without a reload - errors on the
-                    fields, the thank-you as a toast and below. Without it, the
-                    same form as a plain POST and a redirect back, so a lead is
-                    never lost to a script. See DemoRequestController.
-                --}}
-                <p class="lp-demo-thanks" role="status" data-demo-thanks
-                   @unless (session('demo_status')) hidden @endunless>{{ session('demo_status') }}</p>
-
-                @if ($errors->any())
-                    <ul class="lp-demo-errors" role="alert">
-                        @foreach ($errors->all() as $error)
-                            <li>{{ $error }}</li>
-                        @endforeach
-                    </ul>
-                @endif
-
-                <form method="POST" action="{{ route('demo-request.store') }}"
-                      data-ajax data-demo-form data-reset-on-success novalidate>
-                    @csrf
-
-                    {{--
-                        The honeypot. Hidden from people, irresistible to bots,
-                        and free — unlike a CAPTCHA, which would cost this form
-                        real enquiries to stop a problem somebody reads past in
-                        an inbox anyway.
-                    --}}
-                    <div class="lp-hp" aria-hidden="true">
-                        <label for="d-website">Website</label>
-                        <input id="d-website" type="text" name="website" tabindex="-1" autocomplete="off">
-                    </div>
-
-                    <div class="lp-demo-grid">
-                        <p class="lp-field lp-field-full field">
-                            <label for="d-name" class="lp-sr">Your name</label>
-                            <input id="d-name" type="text" name="name" required maxlength="120" placeholder="Your name *"
-                                   value="{{ old('name') }}" autocomplete="name">
-                        </p>
-
-                        <p class="lp-field field">
-                            <label for="d-phone" class="lp-sr">Phone</label>
-                            <input id="d-phone" type="tel" name="phone" maxlength="30" placeholder="Phone"
-                                   value="{{ old('phone') }}" autocomplete="tel">
-                        </p>
-
-                        <p class="lp-field field">
-                            <label for="d-email" class="lp-sr">Email</label>
-                            <input id="d-email" type="email" name="email" maxlength="150" placeholder="Email"
-                                   value="{{ old('email') }}" autocomplete="email">
-                        </p>
-
-                        <p class="lp-field field">
-                            <label for="d-business" class="lp-sr">Restaurant name</label>
-                            <input id="d-business" type="text" name="business_name" maxlength="150" placeholder="Restaurant name"
-                                   value="{{ old('business_name') }}" autocomplete="organization">
-                        </p>
-
-                        <p class="lp-field field">
-                            <label for="d-city" class="lp-sr">City</label>
-                            <input id="d-city" type="text" name="city" maxlength="90" placeholder="City"
-                                   value="{{ old('city') }}" autocomplete="address-level2">
-                        </p>
-
-                        <p class="lp-field lp-field-full field">
-                            <label for="d-outlets" class="lp-sr">How many outlets</label>
-                            <input id="d-outlets" type="number" name="outlets" min="1" max="65535"
-                                   value="{{ old('outlets') }}" placeholder="How many outlets (e.g. 1)">
-                        </p>
-
-                        <p class="lp-field lp-field-full field">
-                            <label for="d-message" class="lp-sr">Anything else</label>
-                            <textarea id="d-message" name="message" rows="2" maxlength="2000" placeholder="Anything else">{{ old('message') }}</textarea>
-                        </p>
-                    </div>
-
-                    {{-- Either will do — insisting on an email loses the owner
-                         who only has a phone, and that is the likelier buyer. --}}
-                    <p class="lp-demo-note">Phone or email, whichever you prefer.</p>
-
-                    <button type="submit" class="lp-btn lp-btn-solid">Book a demo</button>
-                </form>
+                @include('demo._form', ['idp' => 'h'])
             </div>
         </div>
     </section>
@@ -693,6 +612,7 @@
 --}}
 <script src="{{ asset('assets/js/app.js') }}?v={{ filemtime(public_path('assets/js/app.js')) }}"></script>
 <script src="{{ asset('assets/js/demo-form.js') }}?v={{ filemtime(public_path('assets/js/demo-form.js')) }}"></script>
+<script src="{{ asset('assets/js/demo-otp.js') }}?v={{ filemtime(public_path('assets/js/demo-otp.js')) }}"></script>
 @if ($backdrops->count() > 1)
     {{-- Crossfades the hero's background slides; one slide needs no script. --}}
     <script src="{{ asset('assets/js/landing-hero.js') }}?v={{ filemtime(public_path('assets/js/landing-hero.js')) }}"></script>

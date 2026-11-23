@@ -31,58 +31,58 @@ final class SignupOtp
     }
 
     /** Seconds until another code may be sent to this address (0 = now). */
-    public static function waitSeconds(string $email): int
+    public static function waitSeconds(string $email, string $scope = 'signup'): int
     {
-        return RateLimiter::availableIn(self::sendKey($email));
+        return RateLimiter::availableIn(self::sendKey($email, $scope));
     }
 
     /** Makes a fresh code for the address and remembers its hash. Returns the plain code. */
-    public static function issue(string $email): string
+    public static function issue(string $email, string $scope = 'signup'): string
     {
         $email = self::normalise($email);
         $code = str_pad((string) random_int(0, 999999), 6, '0', STR_PAD_LEFT);
 
-        Cache::put(self::cacheKey($email), ['hash' => self::hash($email, $code), 'tries' => 0], now()->addMinutes(self::TTL_MINUTES));
-        RateLimiter::hit(self::sendKey($email), self::RESEND_SECONDS);
+        Cache::put(self::cacheKey($email, $scope), ['hash' => self::hash($email, $code), 'tries' => 0], now()->addMinutes(self::TTL_MINUTES));
+        RateLimiter::hit(self::sendKey($email, $scope), self::RESEND_SECONDS);
 
         return $code;
     }
 
     /** Takes back a code whose email could not be sent, so the person can try at once. */
-    public static function forget(string $email): void
+    public static function forget(string $email, string $scope = 'signup'): void
     {
         $email = self::normalise($email);
 
-        Cache::forget(self::cacheKey($email));
-        RateLimiter::clear(self::sendKey($email));
+        Cache::forget(self::cacheKey($email, $scope));
+        RateLimiter::clear(self::sendKey($email, $scope));
     }
 
     /**
      * @return string 'ok', 'wrong', 'expired' or 'locked'
      */
-    public static function check(string $email, string $code): string
+    public static function check(string $email, string $code, string $scope = 'signup'): string
     {
         $email = self::normalise($email);
-        $entry = Cache::get(self::cacheKey($email));
+        $entry = Cache::get(self::cacheKey($email, $scope));
 
         if (! is_array($entry)) {
             return 'expired';
         }
 
         if (($entry['tries'] ?? 0) >= self::MAX_TRIES) {
-            Cache::forget(self::cacheKey($email));
+            Cache::forget(self::cacheKey($email, $scope));
 
             return 'locked';
         }
 
         if (hash_equals((string) $entry['hash'], self::hash($email, trim($code)))) {
-            Cache::forget(self::cacheKey($email));
+            Cache::forget(self::cacheKey($email, $scope));
 
             return 'ok';
         }
 
         $entry['tries'] = ($entry['tries'] ?? 0) + 1;
-        Cache::put(self::cacheKey($email), $entry, now()->addMinutes(self::TTL_MINUTES));
+        Cache::put(self::cacheKey($email, $scope), $entry, now()->addMinutes(self::TTL_MINUTES));
 
         return $entry['tries'] >= self::MAX_TRIES ? 'locked' : 'wrong';
     }
@@ -92,13 +92,13 @@ final class SignupOtp
         return hash_hmac('sha256', $email.'|'.$code, (string) config('app.key'));
     }
 
-    private static function cacheKey(string $email): string
+    private static function cacheKey(string $email, string $scope = 'signup'): string
     {
-        return 'signup-otp:'.sha1($email);
+        return ($scope === 'signup' ? 'signup-otp:' : 'signup-otp-'.$scope.':').sha1($email);
     }
 
-    private static function sendKey(string $email): string
+    private static function sendKey(string $email, string $scope = 'signup'): string
     {
-        return 'signup-otp-send:'.sha1($email);
+        return ($scope === 'signup' ? 'signup-otp-send:' : 'signup-otp-send-'.$scope.':').sha1($email);
     }
 }

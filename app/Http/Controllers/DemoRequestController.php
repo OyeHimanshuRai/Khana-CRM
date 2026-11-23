@@ -88,6 +88,15 @@ class DemoRequestController extends Controller
             'phone.regex' => 'Enter a valid phone number.',
         ]);
 
+        // An email address that is given must have been confirmed with the one-time code
+        // (a phone number alone needs no code).
+        if (filled($data['email'] ?? null)
+            && $request->session()->get(DemoOtpController::SESSION_KEY) !== Str::lower(trim($data['email']))) {
+            return $request->expectsJson()
+                ? json_error('Please verify your email with the 6-digit code first.', ['email' => ['Please verify your email with the 6-digit code first.']], 422)
+                : back()->withInput()->withErrors(['email' => 'Please verify your email with the 6-digit code first.']);
+        }
+
         $lead = DemoRequest::create([
             ...$data,
             // Lower-cased, so the inbox does not list the same lead twice.
@@ -95,6 +104,8 @@ class DemoRequestController extends Controller
             'status' => DemoRequest::NEW,
             'ip_address' => $request->ip(),
         ]);
+
+        $request->session()->forget(DemoOtpController::SESSION_KEY);
 
         app(\App\Services\EventNotifier::class)->demoRequested($lead);
 

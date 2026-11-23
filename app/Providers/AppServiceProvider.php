@@ -213,6 +213,8 @@ class AppServiceProvider extends ServiceProvider
          | number, and the lists the dropdowns load would use up the code requests.
          */
         RateLimiter::for('geo-lists', fn (Request $request) => Limit::perMinute(120)->by($request->ip()));
+        RateLimiter::for('demo-otp-send', fn (Request $request) => Limit::perMinutes(10, 10)->by($request->ip()));
+        RateLimiter::for('demo-otp-verify', fn (Request $request) => Limit::perMinutes(10, 20)->by($request->ip()));
         RateLimiter::for('signup-otp-send', fn (Request $request) => Limit::perMinutes(10, 10)->by($request->ip()));
         RateLimiter::for('signup-otp-verify', fn (Request $request) => Limit::perMinutes(10, 20)->by($request->ip()));
 

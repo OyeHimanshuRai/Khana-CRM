@@ -119,14 +119,16 @@ abstract class TestCase extends BaseTestCase
 
     private function confirmSignupEmail(string $method, string $uri, $parameters, $content): void
     {
-        if (! $this->autoConfirmSignupEmail || strtoupper($method) !== 'POST' || trim((string) parse_url($uri, PHP_URL_PATH), '/') !== 'register') {
+        $path = trim((string) parse_url($uri, PHP_URL_PATH), '/');
+
+        if (! $this->autoConfirmSignupEmail || strtoupper($method) !== 'POST' || ! in_array($path, ['register', 'demo-request'], true)) {
             return;
         }
 
         $email = $parameters['email'] ?? (json_decode((string) $content, true)['email'] ?? null);
 
         if (is_string($email) && trim($email) !== '') {
-            $this->withSession([\App\Support\SignupOtp::SESSION_KEY => \Illuminate\Support\Str::lower(trim($email))]);
+            $this->withSession([($path === 'register' ? \App\Support\SignupOtp::SESSION_KEY : \App\Http\Controllers\DemoOtpController::SESSION_KEY) => \Illuminate\Support\Str::lower(trim($email))]);
         }
     }
 

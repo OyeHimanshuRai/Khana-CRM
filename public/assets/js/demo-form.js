@@ -146,7 +146,14 @@
             }
         });
 
-        var thanks = document.querySelector('[data-demo-thanks]');
+        // A given email must have been confirmed with the code (demo-otp.js).
+        var typed = value('email');
+        if (typed && !problems.length && form.dataset.emailVerified !== typed) {
+            problems.push('Verify your email with the 6-digit code first.');
+            first = first || form.elements.email;
+        }
+
+        var thanks = form.parentNode.querySelector('[data-demo-thanks]') || document.querySelector('[data-demo-thanks]');
         if (thanks) { thanks.hidden = true; }
 
         if (!problems.length) {
