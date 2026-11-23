@@ -265,7 +265,7 @@
                 <p class="lp-field field">
                     <label for="r-mobile" class="rg-sr">Mobile no</label>
                     <span class="rg-phone">
-                        <span class="rg-prefix" aria-hidden="true">
+                        <span class="rg-prefix" aria-hidden="true" data-phone-prefix>
                             <svg class="rg-flag" data-phone-flag width="20" height="14" viewBox="0 0 20 14" focusable="false">
                                 <rect width="20" height="4.67" fill="#ff9933"/>
                                 <rect y="4.67" width="20" height="4.67" fill="#fff"/>
@@ -274,7 +274,14 @@
                             </svg>
                             <span class="rg-iso" data-phone-iso hidden></span>
                             <span data-phone-code>+91</span>
+                            <svg class="rg-prefix-caret" width="10" height="10" viewBox="0 0 10 10" fill="none" stroke="currentColor" stroke-width="1.6" stroke-linecap="round" stroke-linejoin="round" focusable="false"><path d="M2 3.5 5 6.5 8 3.5"/></svg>
                         </span>
+                        {{-- The code is a list too: picking a country here picks it in the Country list above. --}}
+                        <select class="rg-code-select" data-phone-select aria-label="Country calling code" tabindex="0">
+                            @foreach ($countries as $country)
+                                <option value="{{ $country->id }}" @selected((int) $defaultCountry === $country->id)>{{ $country->country_name }} (+{{ $country->phone_code }})</option>
+                            @endforeach
+                        </select>
                         <input id="r-mobile" type="tel" name="mobile" required maxlength="20" placeholder="Mobile no *"
                                value="{{ old('mobile') }}" autocomplete="tel-national" inputmode="tel"
                                aria-invalid="{{ $errors->has('mobile') ? 'true' : 'false' }}">

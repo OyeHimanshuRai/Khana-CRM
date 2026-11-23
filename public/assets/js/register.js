@@ -400,6 +400,7 @@
     var phoneCode = form.querySelector('[data-phone-code]');
     var phoneIso = form.querySelector('[data-phone-iso]');
     var phoneFlag = form.querySelector('[data-phone-flag]');
+    var phoneSelect = form.querySelector('[data-phone-select]');
 
     function selectedCountry() {
         if (!countrySelect) { return null; }
@@ -493,6 +494,7 @@
         if (!country || !phoneCode) { return; }
 
         phoneCode.textContent = '+' + country.code;
+        if (phoneSelect) { phoneSelect.value = country.id; }
 
         if (phoneFlag && phoneIso) {
             var india = country.iso === 'IN';
@@ -500,6 +502,10 @@
             phoneIso.hidden = india;
             phoneIso.textContent = country.iso;
         }
+
+        // The invisible list covers exactly the visible code, whatever its width.
+        var prefix = form.querySelector('[data-phone-prefix]');
+        if (phoneSelect && prefix) { phoneSelect.style.width = prefix.offsetWidth + 'px'; }
 
         var mobile = inputFor('mobile');
         if (mobile) {
@@ -517,6 +523,14 @@
         stateSelect.addEventListener('change', function () {
             loadCities();
         });
+
+        // Picking a country from the calling-code list picks it in the Country list.
+        if (phoneSelect) {
+            phoneSelect.addEventListener('change', function () {
+                countrySelect.value = phoneSelect.value;
+                countrySelect.dispatchEvent(new Event('change', { bubbles: true }));
+            });
+        }
 
         showPhoneCode();
         loadStates(stateSelect.dataset.old, citySelect.dataset.old);
