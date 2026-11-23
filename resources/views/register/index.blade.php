@@ -183,14 +183,14 @@
                     @error('city_id')<span class="rg-error" role="alert">{{ $message }}</span>@enderror
                 </p>
 
-                <p class="lp-field field">
+                <p class="lp-field field rg-field-pin">
                     <label for="r-pincode" class="rg-sr">PIN code</label>
                     <input id="r-pincode" type="text" name="pincode" maxlength="12" placeholder="PIN code"
                            value="{{ old('pincode') }}" autocomplete="postal-code" inputmode="numeric">
                     @error('pincode')<span class="rg-error" role="alert">{{ $message }}</span>@enderror
                 </p>
 
-                <div class="lp-field field rg-field-wide rg-location">
+                <div class="lp-field field rg-location">
                     <label for="r-location">Current location</label>
                     <div class="rg-location-controls">
                         <input id="r-location" type="text" readonly
@@ -239,26 +239,6 @@
                     @error('email')<span class="rg-error" role="alert">{{ $message }}</span>@enderror
                 </p>
 
-                {{-- The email is confirmed with a one-time code before the Register button appears
-                     (register.js; the server refuses an unconfirmed address as well). --}}
-                <div class="lp-field field rg-otp" data-otp
-                     data-send-url="{{ route('register.otp.send') }}" data-verify-url="{{ route('register.otp.verify') }}"
-                     data-verified-email="{{ session(\App\Support\SignupOtp::SESSION_KEY) }}">
-                    <button type="button" class="lp-btn lp-btn-ghost rg-otp-send" data-otp-send>Send OTP to this email</button>
-
-                    <div class="rg-otp-panel" data-otp-panel hidden>
-                        <label for="r-otp" class="rg-sr">6-digit code</label>
-                        <div class="rg-otp-row">
-                            <input id="r-otp" type="text" inputmode="numeric" autocomplete="one-time-code" maxlength="6"
-                                   pattern="[0-9]{6}" placeholder="Enter 6-digit OTP" data-otp-input>
-                            <button type="button" class="lp-btn lp-btn-solid" data-otp-verify>Verify</button>
-                        </div>
-                        <button type="button" class="rg-otp-resend" data-otp-resend disabled>Resend OTP</button>
-                    </div>
-
-                    <p class="rg-otp-msg" role="status" data-otp-msg hidden></p>
-                </div>
-
                 {{-- The country's calling code is shown beside the box and changes with the Country list;
                      the number is checked against that country's real numbering plan (libphonenumber)
                      in the browser, and again by the server. --}}
@@ -288,6 +268,26 @@
                     </span>
                     @error('mobile')<span class="rg-error" role="alert">{{ $message }}</span>@enderror
                 </p>
+
+                {{-- The email is confirmed with a one-time code before the Register button appears
+                     (register.js; the server refuses an unconfirmed address as well). --}}
+                <div class="lp-field field rg-otp" data-otp
+                     data-send-url="{{ route('register.otp.send') }}" data-verify-url="{{ route('register.otp.verify') }}"
+                     data-verified-email="{{ session(\App\Support\SignupOtp::SESSION_KEY) }}">
+                    <button type="button" class="lp-btn lp-btn-ghost rg-otp-send" data-otp-send>Send OTP to this email</button>
+
+                    <div class="rg-otp-panel" data-otp-panel hidden>
+                        <label for="r-otp" class="rg-sr">6-digit code</label>
+                        <div class="rg-otp-row">
+                            <input id="r-otp" type="text" inputmode="numeric" autocomplete="one-time-code" maxlength="6"
+                                   pattern="[0-9]{6}" placeholder="Enter 6-digit OTP" data-otp-input>
+                            <button type="button" class="lp-btn lp-btn-solid" data-otp-verify>Verify</button>
+                        </div>
+                        <button type="button" class="rg-otp-resend" data-otp-resend disabled>Resend OTP</button>
+                    </div>
+
+                    <p class="rg-otp-msg" role="status" data-otp-msg hidden></p>
+                </div>
 
                 <p class="lp-field field">
                     <label for="r-password" class="rg-sr">Password</label>

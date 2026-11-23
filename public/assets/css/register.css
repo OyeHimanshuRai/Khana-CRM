@@ -43,6 +43,9 @@
 }
 
 .rg-field-wide { grid-column: 1 / -1; }
+/* The PIN code and the location share a row: the PIN takes one column, the location two. */
+.rg-location { grid-column: span 2; }
+.rg-field-pin { align-self: end; }
 
 /* Same type as the captions over Plan and Billing, so the three boxes line up exactly. */
 .rg-label-spacer { display: block; visibility: hidden; margin: 0 0 4px; font-size: 12.5px; font-weight: 600; }
@@ -376,6 +379,7 @@
     .rg-head { margin-bottom: 16px; }
     .rg-grid { grid-template-columns: minmax(0, 1fr); gap: 12px; }
     .rg-field-wide,
+    .rg-location,
     .rg-field-address,
     .rg-field-business,
     .rg-terms-cell { grid-column: auto; }
@@ -392,8 +396,12 @@
 
 /* ------------------------------------------- email one-time code */
 
-.rg-otp { margin: -4px 0 14px; }
+.rg-otp { grid-column: 1 / -1; margin: 0; }
 .rg-otp .rg-otp-send { width: 100%; }
+@media (min-width: 761px) {
+    .rg-otp .rg-otp-send { width: auto; min-width: 240px; }
+    .rg-otp-panel { max-width: 420px; }
+}
 .rg-otp-panel[hidden], .rg-otp-send[hidden], .rg-otp-msg[hidden], .rg-gate[hidden], .rg-submit[hidden] { display: none; }
 .rg-otp-row { display: flex; gap: 10px; align-items: stretch; }
 .rg-otp-row input { flex: 1; min-width: 0; letter-spacing: .35em; text-align: center; font-weight: 600; }
