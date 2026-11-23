@@ -3426,3 +3426,33 @@ input[type="number"],
     .modal-body .form-row > .form-section,
     .modal-body .settings-grid > .form-section { grid-column: 1 / -1; }
 }
+
+/* ---------------------------------------------------------------------------
+   Add / Edit Product on a phone
+   --------------------------------------------------------------------------- */
+@media (max-width: 640px) {
+    /* The handle takes 8px + 4px; the title does not need 22px under it as well. */
+    .modal-head { padding-top: 18px; padding-bottom: 6px; }
+    .modal-dialog.is-compact .modal-body,
+    .modal-dialog .modal-body { padding: 8px 14px; padding-bottom: calc(10px + env(safe-area-inset-bottom, 0px)); }
+
+    .product-form .form-section { margin-top: 12px; }
+    .product-form .form-section-title { margin-bottom: 6px; }
+    .product-form .field { margin-bottom: 8px; }
+
+    /* The picture: a small square beside its picker, not a wide empty box over it. */
+    .setting-image { flex-wrap: nowrap; align-items: center; gap: 10px; }
+    .setting-image-preview { width: 64px; height: 64px; padding: 4px; }
+    .setting-image-preview img { max-height: 54px; }
+    .setting-image-controls,
+    .setting-image .setting-image-controls { flex: 1 1 0; min-width: 0; }
+    .setting-image .setting-image-controls input[type="file"] { width: 100%; }
+
+    /* "More product details": the title and its plus, on one line. */
+    .product-more-toggle { align-items: center; flex-wrap: nowrap; padding: 9px 12px; }
+    .product-more-hint { display: none; }
+    .product-form .product-more { margin-top: 8px; }
+
+    /* Checkbox fields do not need their own tall row. */
+    .settings-grid .field-checkbox { min-height: 32px; }
+}
