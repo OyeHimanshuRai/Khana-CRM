@@ -207,6 +207,15 @@ class AppServiceProvider extends ServiceProvider
      */
     private function registerGuestRateLimits(): void
     {
+        /*
+         | The sign-up form's own limits. Named, so each has a counter of its own: a plain
+         | `throttle:10,10` shares one counter per visitor across every route that uses a
+         | number, and the lists the dropdowns load would use up the code requests.
+         */
+        RateLimiter::for('geo-lists', fn (Request $request) => Limit::perMinute(120)->by($request->ip()));
+        RateLimiter::for('signup-otp-send', fn (Request $request) => Limit::perMinutes(10, 10)->by($request->ip()));
+        RateLimiter::for('signup-otp-verify', fn (Request $request) => Limit::perMinutes(10, 20)->by($request->ip()));
+
         $perSitting = [
             'guest-cart' => 60,
             'guest-order' => 10,

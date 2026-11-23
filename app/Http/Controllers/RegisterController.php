@@ -3,6 +3,10 @@
 namespace App\Http\Controllers;
 
 use App\Models\ActivityLog;
+use App\Models\City;
+use App\Models\Country;
+use App\Models\State;
+use App\Support\MobileNumber;
 use App\Models\Page;
 use App\Models\Plan;
 use App\Services\Payments\GatewayManager;
@@ -70,6 +74,8 @@ class RegisterController extends Controller
             'plans' => $plans,
             'selected' => $plans->firstWhere('slug', $request->query('plan')) ?? $this->featured($plans),
             'period' => in_array($period, Plan::PERIODS, true) ? $period : Plan::MONTHLY,
+            // The Country dropdown, and the one the mobile number's rules start from.
+            'countries' => Country::query()->orderBy('country_name')->get(['id', 'country_name', 'iso_code', 'phone_code', 'min_length', 'max_length']),
             'terms' => Page::query()->active()->where('slug', 'like', '%terms%')->first(['title', 'slug']),
             'privacy' => Page::query()->active()->where('slug', 'like', '%privacy%')->first(['title', 'slug']),
             'footerPages' => Page::query()->footer()->get(['id', 'title', 'slug']),
@@ -106,18 +112,20 @@ class RegisterController extends Controller
         // uniqueness check against "owner@cafe.com".
         $request->merge(['email' => Str::lower(trim((string) $request->input('email')))]);
 
-        // The form shows +91 beside the box, so a bare ten-digit number is an
-        // Indian mobile and is stored with its code; anything else as typed.
-        $mobile = trim((string) $request->input('mobile'));
-
-        if (preg_match('/^[6-9]\d{9}$/', $mobile)) {
-            $request->merge(['mobile' => '+91 '.$mobile]);
-        }
+        // The country the number belongs to. A sign-up that names none (an old form, a script)
+        // is an Indian one, as it always was.
+        $countryId = $request->input('country_id') ?: Country::query()->where('iso_code', 'IN')->value('id');
+        $request->merge(['country_id' => $countryId]);
+        $country = Country::query()->find($countryId);
 
         $data = $request->validate([
             'business_name' => ['required', 'string', 'max:150'],
             'address_line1' => ['nullable', 'string', 'max:190'],
             'address_line2' => ['nullable', 'string', 'max:190'],
+            'country_id' => ['required', Rule::exists('countries', 'id')],
+            // Chosen from the dropdowns: a state of that country, a city of that state.
+            'state_id' => ['nullable', Rule::exists('states', 'id')->where('country_id', $countryId)],
+            'city_id' => ['nullable', Rule::requiredIf(fn () => filled($request->input('state_id')) && City::query()->where('state_id', (int) $request->input('state_id'))->exists()), Rule::exists('cities', 'id')->where('state_id', (int) $request->input('state_id'))],
             'city' => ['nullable', 'string', 'max:90'],
             'state' => ['nullable', 'string', 'max:90'],
             'pincode' => ['nullable', 'string', 'max:12'],
@@ -126,14 +134,21 @@ class RegisterController extends Controller
             'logo' => ['nullable', 'image', 'mimes:jpg,jpeg,png,webp', 'max:2048'],
             'name' => ['required', 'string', 'max:120'],
             'email' => ['required', 'string', 'email:filter', 'max:150', Rule::unique('users', 'email')],
-            'mobile' => ['required', 'string', 'max:20', 'regex:/^[0-9+\-\s()]{7,20}$/'],
+            'mobile' => ['required', 'string', 'max:25', function ($attribute, $value, $fail) use ($country) {
+                if ($country === null || MobileNumber::parse((string) $value, $country) === null) {
+                    $fail('Enter a valid '.($country?->country_name ?? '').' mobile number.');
+                }
+            }],
             'password' => ['required', 'string', Password::min(8)->letters()->numbers()],
             'plan' => ['required', 'string', Rule::exists('plans', 'slug')->where('is_active', true)->whereNull('tenant_id')->whereNull('deleted_at')],
             'period' => ['required', Rule::in(Plan::PERIODS)],
             'terms' => ['accepted'],
         ], [
             'email.unique' => 'An account with this email already exists. Try signing in instead.',
-            'mobile.regex' => 'Enter a valid phone number.',
+            'country_id.exists' => 'Choose a country from the list.',
+            'state_id.exists' => 'Choose a state from the list.',
+            'city_id.exists' => 'Choose a city from the list.',
+            'city_id.required' => 'Choose a city from the list.',
             'terms.accepted' => 'Please accept the terms to continue.',
             'plan.exists' => 'That plan is no longer available. Please choose another.',
         ]);
@@ -141,6 +156,19 @@ class RegisterController extends Controller
         // The address must have been confirmed with a one-time code, in this visitor's session.
         if ($request->session()->get(SignupOtp::SESSION_KEY) !== $data['email']) {
             return $this->failed($request, 'email', 'Please verify your email with the 6-digit code first.');
+        }
+
+        // What is stored: the country and its calling code, and the number in international form.
+        $mobile = MobileNumber::parse($data['mobile'], $country);
+        $data['mobile'] = $mobile['stored'];
+        $data['mobile_country_code'] = $mobile['code'];
+        $data['country'] = $country->country_name;
+
+        if (filled($data['state_id'] ?? null)) {
+            $data['state'] = State::query()->whereKey($data['state_id'])->value('state_name');
+            $data['city'] = filled($data['city_id'] ?? null)
+                ? City::query()->whereKey($data['city_id'])->value('city_name')
+                : null;
         }
 
         $plan = Plan::query()->onSale()->where('slug', $data['plan'])->firstOrFail();

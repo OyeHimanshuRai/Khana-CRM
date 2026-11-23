@@ -77,7 +77,7 @@ class TenantProvisioningService
                 'latitude' => $data['latitude'] ?? null,
                 'longitude' => $data['longitude'] ?? null,
                 'logo_path' => $data['logo_path'] ?? null,
-                'country' => 'India',
+                'country' => $data['country'] ?? 'India',
                 'currency' => 'INR',
                 'timezone' => 'Asia/Kolkata',
                 'is_active' => true,
@@ -98,7 +98,7 @@ class TenantProvisioningService
                 'pincode' => $data['pincode'] ?? null,
                 'latitude' => $data['latitude'] ?? null,
                 'longitude' => $data['longitude'] ?? null,
-                'country' => 'India',
+                'country' => $data['country'] ?? 'India',
                 'currency' => 'INR',
                 'timezone' => 'Asia/Kolkata',
                 'invoice_prefix' => 'INV',
@@ -127,7 +127,7 @@ class TenantProvisioningService
             ]);
 
             // A business that signed itself up proves the address is its own - see User::needsEmailVerification.
-            $user->forceFill(['all_shops_view' => false, 'must_verify_email' => true, 'email_verified_at' => null])->save();
+            $user->forceFill(['all_shops_view' => false, 'must_verify_email' => true, 'email_verified_at' => null, 'mobile_country_code' => $data['mobile_country_code'] ?? null])->save();
             $user->shops()->attach($shop->id, ['is_default' => true]);
             $user->assignRole($role);
 

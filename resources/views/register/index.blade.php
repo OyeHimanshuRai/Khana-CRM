@@ -149,18 +149,38 @@
                     @error('address_line2')<span class="rg-error" role="alert">{{ $message }}</span>@enderror
                 </p>
 
+                {{-- Country > State > City: each list is loaded from the database when the one before it
+                     changes (register.js, /geo/...). Without JavaScript the first two are plain lists. --}}
+                @php($defaultCountry = old('country_id') ?: ($countries->firstWhere('iso_code', 'IN')?->id))
                 <p class="lp-field field">
-                    <label for="r-city" class="rg-sr">City</label>
-                    <input id="r-city" type="text" name="city" maxlength="90" placeholder="City"
-                           value="{{ old('city') }}" autocomplete="address-level2">
-                    @error('city')<span class="rg-error" role="alert">{{ $message }}</span>@enderror
+                    <label for="r-country" class="rg-sr">Country</label>
+                    <select id="r-country" name="country_id" required data-geo-country
+                            data-states-url="{{ url('geo/countries/__ID__/states') }}"
+                            aria-invalid="{{ $errors->has('country_id') ? 'true' : 'false' }}">
+                        @foreach ($countries as $country)
+                            <option value="{{ $country->id }}" data-iso="{{ $country->iso_code }}" data-code="{{ $country->phone_code }}"
+                                    data-min="{{ $country->min_length }}" data-max="{{ $country->max_length }}"
+                                    @selected((int) $defaultCountry === $country->id)>{{ $country->country_name }}</option>
+                        @endforeach
+                    </select>
+                    @error('country_id')<span class="rg-error" role="alert">{{ $message }}</span>@enderror
                 </p>
 
                 <p class="lp-field field">
                     <label for="r-state" class="rg-sr">State</label>
-                    <input id="r-state" type="text" name="state" maxlength="90" placeholder="State"
-                           value="{{ old('state') }}" autocomplete="address-level1">
-                    @error('state')<span class="rg-error" role="alert">{{ $message }}</span>@enderror
+                    <select id="r-state" name="state_id" data-geo-state data-cities-url="{{ url('geo/states/__ID__/cities') }}"
+                            data-old="{{ old('state_id') }}">
+                        <option value="">State</option>
+                    </select>
+                    @error('state_id')<span class="rg-error" role="alert">{{ $message }}</span>@enderror
+                </p>
+
+                <p class="lp-field field">
+                    <label for="r-city" class="rg-sr">City</label>
+                    <select id="r-city" name="city_id" data-geo-city data-old="{{ old('city_id') }}" disabled>
+                        <option value="">City</option>
+                    </select>
+                    @error('city_id')<span class="rg-error" role="alert">{{ $message }}</span>@enderror
                 </p>
 
                 <p class="lp-field field">
@@ -239,19 +259,21 @@
                     <p class="rg-otp-msg" role="status" data-otp-msg hidden></p>
                 </div>
 
-                {{-- +91 is shown beside the box; a ten-digit number is stored
-                     with it (RegisterController), anything else as typed. --}}
+                {{-- The country's calling code is shown beside the box and changes with the Country list;
+                     the number is checked against that country's real numbering plan (libphonenumber)
+                     in the browser, and again by the server. --}}
                 <p class="lp-field field">
                     <label for="r-mobile" class="rg-sr">Mobile no</label>
                     <span class="rg-phone">
                         <span class="rg-prefix" aria-hidden="true">
-                            <svg class="rg-flag" width="20" height="14" viewBox="0 0 20 14" focusable="false">
+                            <svg class="rg-flag" data-phone-flag width="20" height="14" viewBox="0 0 20 14" focusable="false">
                                 <rect width="20" height="4.67" fill="#ff9933"/>
                                 <rect y="4.67" width="20" height="4.67" fill="#fff"/>
                                 <rect y="9.33" width="20" height="4.67" fill="#138808"/>
                                 <circle cx="10" cy="7" r="1.8" fill="none" stroke="#000080" stroke-width=".6"/>
                             </svg>
-                            +91
+                            <span class="rg-iso" data-phone-iso hidden></span>
+                            <span data-phone-code>+91</span>
                         </span>
                         <input id="r-mobile" type="tel" name="mobile" required maxlength="20" placeholder="Mobile no *"
                                value="{{ old('mobile') }}" autocomplete="tel-national" inputmode="tel"
@@ -298,6 +320,7 @@
 @include('site._footer')
 
 <script src="{{ asset('assets/js/app.js') }}?v={{ filemtime(public_path('assets/js/app.js')) }}"></script>
+<script src="{{ asset('assets/vendor/libphonenumber-js.max.js') }}?v={{ filemtime(public_path('assets/vendor/libphonenumber-js.max.js')) }}"></script>
 <script src="{{ asset('assets/js/register.js') }}?v={{ filemtime(public_path('assets/js/register.js')) }}"></script>
 <script src="{{ asset('assets/js/info.js') }}?v={{ filemtime(public_path('assets/js/info.js')) }}"></script>
 <script src="{{ asset('assets/js/topbar.js') }}?v={{ filemtime(public_path('assets/js/topbar.js')) }}" defer></script>

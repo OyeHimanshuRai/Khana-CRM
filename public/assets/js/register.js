@@ -45,7 +45,35 @@
         },
         mobile: function (v) {
             if (!v) { return 'Enter your mobile number.'; }
-            return MOBILE.test(v) ? '' : 'Enter a valid phone number.';
+            if (!MOBILE.test(v)) { return 'Enter a valid phone number.'; }
+
+            // The country's real numbering plan (libphonenumber-js), for the country chosen above.
+            var country = selectedCountry();
+            if (window.libphonenumber && country) {
+                var phone = null;
+                try { phone = window.libphonenumber.parsePhoneNumberFromString(v, country.iso); } catch (e) { phone = null; }
+
+                if (phone === undefined || phone === null) {
+                    // A territory with no numbering plan on file: only the length can be checked.
+                    var digits = v.replace(/\D+/g, '');
+                    if (digits.length < country.min || digits.length > country.max) {
+                        return 'Enter a valid ' + country.name + ' mobile number.';
+                    }
+                } else {
+                    // Valid for this country, and a mobile (not a landline or a toll-free number).
+                    var type = phone.getType();
+                    var valid = phone.isValid()
+                        && String(phone.countryCallingCode) === String(country.code)
+                        && (!phone.country || phone.country === country.iso)
+                        && (type === 'MOBILE' || type === 'FIXED_LINE_OR_MOBILE');
+                    if (!valid) { return 'Enter a valid ' + country.name + ' mobile number.'; }
+                }
+            }
+
+            return '';
+        },
+        country_id: function (v) {
+            return v ? '' : 'Choose a country.';
         },
         email: function (v) {
             if (!v) { return 'Enter your email address.'; }
@@ -358,6 +386,141 @@
             }
         });
     });
+
+    /* --------------------------------------- country > state > city, phone code */
+
+    /*
+     | The lists come from the database through /geo/...: picking a country loads
+     | its states, picking a state loads its cities, and each change empties what
+     | depends on it. The calling code beside the mobile box follows the country.
+     */
+    var countrySelect = form.querySelector('[data-geo-country]');
+    var stateSelect = form.querySelector('[data-geo-state]');
+    var citySelect = form.querySelector('[data-geo-city]');
+    var phoneCode = form.querySelector('[data-phone-code]');
+    var phoneIso = form.querySelector('[data-phone-iso]');
+    var phoneFlag = form.querySelector('[data-phone-flag]');
+
+    function selectedCountry() {
+        if (!countrySelect) { return null; }
+
+        var option = countrySelect.options[countrySelect.selectedIndex];
+        if (!option || !option.value) { return null; }
+
+        return {
+            id: option.value,
+            name: option.textContent.trim(),
+            iso: option.getAttribute('data-iso'),
+            code: option.getAttribute('data-code'),
+            min: parseInt(option.getAttribute('data-min'), 10),
+            max: parseInt(option.getAttribute('data-max'), 10)
+        };
+    }
+
+    function reset(select, placeholder, disabled) {
+        select.innerHTML = '';
+        var first = document.createElement('option');
+        first.value = '';
+        first.textContent = placeholder;
+        select.appendChild(first);
+        select.disabled = !!disabled;
+        select.classList.remove('is-invalid');
+    }
+
+    function fill(select, rows, label, wanted) {
+        rows.forEach(function (row) {
+            var option = document.createElement('option');
+            option.value = row.id;
+            option.textContent = row[label];
+            if (wanted && String(row.id) === String(wanted)) { option.selected = true; }
+            select.appendChild(option);
+        });
+    }
+
+    function load(url) {
+        return fetch(url, { credentials: 'same-origin', headers: { 'Accept': 'application/json', 'X-Requested-With': 'XMLHttpRequest' } })
+            .then(function (r) {
+                return r.json().catch(function () { return {}; }).then(function (data) {
+                    if (!r.ok || !data.success) { throw new Error(data.message || 'Could not load the list.'); }
+                    return data.data;
+                });
+            });
+    }
+
+    function fail(error) {
+        if (window.Toast) { window.Toast.error(error && error.message ? error.message : 'Could not load the list. Please try again.'); }
+    }
+
+    function loadCities(wanted) {
+        reset(citySelect, 'City', true);
+
+        if (!stateSelect.value) { return Promise.resolve(); }
+
+        citySelect.options[0].textContent = 'Loading cities...';
+
+        return load(stateSelect.dataset.citiesUrl.replace('__ID__', encodeURIComponent(stateSelect.value))).then(function (rows) {
+            reset(citySelect, rows.length ? 'City' : 'No cities listed', !rows.length);
+            fill(citySelect, rows, 'city_name', wanted);
+        }).catch(function (error) {
+            reset(citySelect, 'City', true);
+            fail(error);
+        });
+    }
+
+    function loadStates(wantedState, wantedCity) {
+        reset(stateSelect, 'State', true);
+        reset(citySelect, 'City', true);
+
+        var country = selectedCountry();
+        if (!country) { return Promise.resolve(); }
+
+        stateSelect.options[0].textContent = 'Loading states...';
+
+        return load(countrySelect.dataset.statesUrl.replace('__ID__', encodeURIComponent(country.id))).then(function (rows) {
+            reset(stateSelect, rows.length ? 'State' : 'No states listed', !rows.length);
+            fill(stateSelect, rows, 'state_name', wantedState);
+
+            return wantedState ? loadCities(wantedCity) : null;
+        }).catch(function (error) {
+            reset(stateSelect, 'State', true);
+            fail(error);
+        });
+    }
+
+    // The calling code (and, for India, its flag) beside the mobile box.
+    function showPhoneCode() {
+        var country = selectedCountry();
+        if (!country || !phoneCode) { return; }
+
+        phoneCode.textContent = '+' + country.code;
+
+        if (phoneFlag && phoneIso) {
+            var india = country.iso === 'IN';
+            phoneFlag.style.display = india ? '' : 'none';
+            phoneIso.hidden = india;
+            phoneIso.textContent = country.iso;
+        }
+
+        var mobile = inputFor('mobile');
+        if (mobile) {
+            mobile.setAttribute('maxlength', String(Math.max(20, country.max + 8)));
+            if (mobile.dataset.touched === '1') { check('mobile'); }
+        }
+    }
+
+    if (countrySelect && stateSelect && citySelect) {
+        countrySelect.addEventListener('change', function () {
+            showPhoneCode();
+            loadStates();
+        });
+
+        stateSelect.addEventListener('change', function () {
+            loadCities();
+        });
+
+        showPhoneCode();
+        loadStates(stateSelect.dataset.old, citySelect.dataset.old);
+    }
 
     /* ------------------------------------------------ email one-time code */
 

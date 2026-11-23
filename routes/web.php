@@ -124,6 +124,15 @@ Route::get('impersonate/accept/{token}', [\App\Http\Controllers\Admin\Impersonat
     ->middleware('throttle:20,1')
     ->name('impersonate.accept');
 
+// The lists behind the sign-up form's Country > State > City dropdowns.
+Route::prefix('geo')->name('geo.')->middleware(['ip.allowed', 'throttle:geo-lists'])->group(function () {
+    Route::get('countries', [\App\Http\Controllers\GeoController::class, 'countries'])->name('countries');
+    Route::get('countries/{country}/states', [\App\Http\Controllers\GeoController::class, 'states'])
+        ->whereNumber('country')->name('states');
+    Route::get('states/{state}/cities', [\App\Http\Controllers\GeoController::class, 'cities'])
+        ->whereNumber('state')->name('cities');
+});
+
 Route::middleware(['guest', 'ip.allowed'])->group(function () {
     Route::get('register', [\App\Http\Controllers\RegisterController::class, 'create'])->name('register');
     Route::post('register', [\App\Http\Controllers\RegisterController::class, 'store'])
@@ -132,10 +141,10 @@ Route::middleware(['guest', 'ip.allowed'])->group(function () {
 
     // The one-time code that confirms the email address before the form can be submitted.
     Route::post('register/otp/send', [\App\Http\Controllers\SignupOtpController::class, 'send'])
-        ->middleware('throttle:10,10')
+        ->middleware('throttle:signup-otp-send')
         ->name('register.otp.send');
     Route::post('register/otp/verify', [\App\Http\Controllers\SignupOtpController::class, 'verify'])
-        ->middleware('throttle:20,10')
+        ->middleware('throttle:signup-otp-verify')
         ->name('register.otp.verify');
 });
 
