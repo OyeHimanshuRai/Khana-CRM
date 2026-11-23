@@ -211,4 +211,73 @@ class SitePagesTest extends TestCase
 
         $this->assertSame('Privacy Policy', $page->fresh()->title);
     }
+
+    /* -------------------------------------------------- search + the policies */
+
+    public function test_the_owner_sets_a_meta_title_description_and_keywords(): void
+    {
+        $page = $this->page();
+
+        $this->actingAs($this->superAdmin())
+            ->putJson('/superadmin/pages/'.$page->id, [
+                'title' => 'Privacy Policy', 'body' => 'Text', 'is_active' => 1,
+                'meta_title' => 'Privacy | RestroOne', 'meta_description' => 'How we keep your data.',
+                'meta_keywords' => 'privacy, restaurant software',
+            ])->assertOk();
+
+        $this->assertSame('Privacy | RestroOne', $page->fresh()->meta_title);
+        $this->assertSame('privacy, restaurant software', $page->fresh()->meta_keywords);
+
+        $this->get('/p/privacy-policy')->assertOk()
+            ->assertSee('<title>Privacy | RestroOne</title>', false)
+            ->assertSee('<meta name="description" content="How we keep your data.">', false)
+            ->assertSee('<meta name="keywords" content="privacy, restaurant software">', false);
+    }
+
+    public function test_a_page_without_a_meta_title_uses_its_title_and_the_site_name(): void
+    {
+        $this->page();
+
+        $this->get('/p/privacy-policy')->assertOk()->assertSee('<title>Privacy Policy · ', false)
+            ->assertDontSee('name="keywords"', false);
+    }
+
+    public function test_the_admin_form_has_the_search_fields(): void
+    {
+        $page = $this->page();
+
+        $this->actingAs($this->superAdmin())->get('/superadmin/pages/'.$page->id.'/edit')->assertOk()
+            ->assertSee('name="meta_title"', false)
+            ->assertSee('name="meta_description"', false)
+            ->assertSee('name="meta_keywords"', false);
+    }
+
+    public function test_the_three_policies_are_written_once_and_never_overwritten(): void
+    {
+        $this->assertSame(3, \App\Support\DefaultPages::publish());
+
+        $terms = Page::query()->where('slug', 'terms-and-conditions')->firstOrFail();
+        $this->assertStringContainsString('Termination', $terms->body);
+        $this->assertNotEmpty($terms->meta_title);
+        $this->assertNotEmpty($terms->meta_keywords);
+        $this->assertTrue($terms->show_in_footer);
+        $this->assertNotNull(Page::query()->where('slug', 'privacy-policy')->first());
+        $this->assertNotNull(Page::query()->where('slug', 'refund-and-cancellation-policy')->first());
+
+        // The owner edits it; running it again changes nothing.
+        $terms->update(['body' => 'Edited by the owner']);
+        $this->assertSame(0, \App\Support\DefaultPages::publish());
+        $this->assertSame('Edited by the owner', $terms->fresh()->body);
+    }
+
+    public function test_the_terms_page_is_linked_from_the_sign_up_form_and_the_footer(): void
+    {
+        \App\Support\DefaultPages::publish();
+
+        $this->get('/p/terms-and-conditions')->assertOk()->assertSee('Termination');
+        $this->get('/register')->assertOk()
+            ->assertSee('href="http://localhost/p/terms-and-conditions"', false)
+            ->assertSee('href="http://localhost/p/privacy-policy"', false);
+        $this->get('/')->assertOk()->assertSee('Terms and Conditions');
+    }
 }

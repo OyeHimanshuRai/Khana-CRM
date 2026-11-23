@@ -1,5 +1,8 @@
 <title>{{ $title }}</title>
 <meta name="description" content="{{ $description }}">
+@if (! empty($keywords))
+    <meta name="keywords" content="{{ $keywords }}">
+@endif
 <link rel="canonical" href="{{ url()->current() }}">
 @if (! empty($robots))
     <meta name="robots" content="{{ $robots }}">

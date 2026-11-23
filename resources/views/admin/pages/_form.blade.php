@@ -35,10 +35,27 @@
             </div>
         </div>
 
+        <div class="form-section field-full" style="margin-top:4px">
+            <div class="form-section-title">Search engines (SEO)</div>
+        </div>
+
         <div class="field field-full">
-            <label for="page-meta">Search description <span class="text-muted">(optional)</span></label>
+            <label for="page-meta-title">Meta title <span class="text-muted">(about 60 characters)</span></label>
+            <input id="page-meta-title" type="text" name="meta_title" class="form-control" maxlength="160"
+                   value="{{ $page->meta_title }}" placeholder="Blank = the title and the site name" aria-invalid="false">
+            <div class="form-hint">The blue headline in a Google result and the browser tab.</div>
+        </div>
+
+        <div class="field field-full">
+            <label for="page-meta">Meta description <span class="text-muted">(about 155 characters)</span></label>
             <input id="page-meta" type="text" name="meta_description" class="form-control" maxlength="300"
-                   value="{{ $page->meta_description }}" aria-invalid="false">
+                   value="{{ $page->meta_description }}" placeholder="Blank = made from the start of the page" aria-invalid="false">
+        </div>
+
+        <div class="field field-full">
+            <label for="page-keywords">Keywords <span class="text-muted">(comma separated)</span></label>
+            <input id="page-keywords" type="text" name="meta_keywords" class="form-control" maxlength="300"
+                   value="{{ $page->meta_keywords }}" placeholder="restaurant software, POS, billing" aria-invalid="false">
         </div>
 
         <div class="field">

@@ -6,8 +6,9 @@
     <meta name="theme-color" content="#ffffff">
 
     @include('site._seo', [
-        'title' => $page->title.' · '.$site['name'],
+        'title' => $metaTitle,
         'description' => $metaDescription,
+        'keywords' => $metaKeywords,
         'site' => $site,
     ])
 

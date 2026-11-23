@@ -17,7 +17,7 @@ use Illuminate\Support\Str;
 class Page extends Model
 {
     protected $fillable = [
-        'title', 'slug', 'body', 'meta_description',
+        'title', 'slug', 'body', 'meta_title', 'meta_description', 'meta_keywords',
         'is_active', 'show_in_footer', 'sort_order',
     ];
 

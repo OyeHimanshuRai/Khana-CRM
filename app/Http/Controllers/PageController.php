@@ -28,6 +28,8 @@ class PageController extends Controller
         return view('pages.show', [
             'page' => $page,
             'site' => $site,
+            'metaTitle' => $page->meta_title ?: $page->title.' · '.$site['name'],
+            'metaKeywords' => $page->meta_keywords,
             'metaDescription' => $page->meta_description ?: Str::limit(
                 $plainContent ?: 'Read '.$page->title.' information from '.$site['name'].'.',
                 160,
