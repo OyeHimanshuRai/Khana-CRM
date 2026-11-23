@@ -24,57 +24,9 @@ jobs:
           script: |
             set -e
             cd ${{ secrets.VPS_PROJECT_PATH }}
-            APPDIR="$(pwd -P)"
-            RUNAS="$(stat -c %U storage)"
-            PHPBIN="$(command -v php)"
-            echo "run as: $RUNAS"
-
-            echo "--- RestroOne .env before"
-            grep -E '^(QUEUE_CONNECTION|REDIS_QUEUE|REDIS_PREFIX|CACHE_STORE|SESSION_DRIVER)=' .env || true
-            echo "--- the other app (read only)"
-            grep -E '^(QUEUE_CONNECTION|REDIS_QUEUE|REDIS_PREFIX)=' /var/www/khana/current/.env || true
-
-            cp .env ".env.bak-queue-$(date +%s)"
-            if grep -q '^REDIS_QUEUE=' .env; then
-              sed -i 's/^REDIS_QUEUE=.*/REDIS_QUEUE=restroone/' .env
-            else
-              printf '\nREDIS_QUEUE=restroone\n' >> .env
-            fi
-            php artisan config:clear
-            php artisan config:cache
-            echo "--- RestroOne .env after"
-            grep -E '^(QUEUE_CONNECTION|REDIS_QUEUE)=' .env
-
-            cat > /etc/systemd/system/restroone-queue.service <<UNIT
-            [Unit]
-            Description=RestroOne queue worker
-            After=network.target redis-server.service
-
-            [Service]
-            User=$RUNAS
-            WorkingDirectory=$APPDIR
-            ExecStart=$PHPBIN $APPDIR/artisan queue:work redis --queue=restroone --sleep=3 --tries=3 --max-time=3600
-            Restart=always
-            RestartSec=5
-
-            [Install]
-            WantedBy=multi-user.target
-            UNIT
-            systemctl daemon-reload
-            systemctl enable --now restroone-queue.service
-            sleep 4
-            echo "service: $(systemctl is-active restroone-queue.service)"
-
-            echo "--- test job (a real queued command: it deletes a cache key when the worker runs it)"
-            cat > /tmp/qt.php <<'PHP'
-            \Illuminate\Support\Facades\Cache::put('restroone-queue-probe', 'waiting', 300);
-            \Illuminate\Support\Facades\Artisan::queue('cache:forget', ['key' => 'restroone-queue-probe']);
-            echo "queued on ".config('queue.default')."/".config('queue.connections.redis.queue')."\n";
-            PHP
-            php artisan tinker --execute="$(cat /tmp/qt.php)"
-            rm -f /tmp/qt.php
-            sleep 12
-            php artisan tinker --execute="echo \Illuminate\Support\Facades\Cache::has('restroone-queue-probe') ? 'TEST JOB DID NOT RUN' : 'TEST JOB RAN on the new worker';"
-            echo "service: $(systemctl is-active restroone-queue.service)"
-            journalctl -u restroone-queue.service --no-pager -n 8 | cut -c1-200
+            echo "service: $(systemctl is-active restroone-queue.service)  enabled: $(systemctl is-enabled restroone-queue.service)"
+            echo "failed jobs before: $(php artisan tinker --execute='echo DB::table("failed_jobs")->count();' | tail -1)"
+            # Only the three failed test closures from setting this up were there (the count was 0 before).
+            php artisan queue:flush
+            echo "failed jobs after: $(php artisan tinker --execute='echo DB::table("failed_jobs")->count();' | tail -1)"
             echo "### DONE"
