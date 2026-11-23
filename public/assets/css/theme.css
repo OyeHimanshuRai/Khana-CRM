@@ -3341,3 +3341,88 @@ input[type="number"],
 
 /* A stat label wraps to a second line rather than losing its last word to an ellipsis. */
 .stat-label, .kpi-label { white-space: normal; overflow-wrap: anywhere; }
+
+/* ---------------------------------------------------------------------------
+   Compact forms and dialogs on a phone or a tablet
+   ---------------------------------------------------------------------------
+
+   A form of twenty fields at 90px each is thirty screens of thumb. Here a field
+   costs about 62px (label, a 40px box, a short gap) and short fields sit two to a
+   row, so the same form is roughly a third of the scrolling. 16px type stays, so
+   iOS does not zoom the page when a box takes focus.
+--------------------------------------------------------------------------- */
+
+@media (max-width: 1023.98px) {
+    .modal-body .field,
+    .app-content form .field { margin-bottom: 12px; }
+
+    .modal-body label,
+    .modal-body .form-label,
+    .app-content form label { margin-bottom: 3px; font-size: 12.5px; }
+
+    .form-section { margin-top: 14px; }
+    .form-section-title { padding-bottom: 6px; margin-bottom: 8px; }
+    .modal-actions { margin-top: 8px; padding: 10px 0 2px; }
+}
+
+@media (max-width: 767.98px) {
+    /* One notch under the 44px touch height: 40px is still an easy target. */
+    .modal-body .form-control,
+    .modal-body input[type="text"],
+    .modal-body input[type="email"],
+    .modal-body input[type="password"],
+    .modal-body input[type="number"],
+    .modal-body input[type="search"],
+    .modal-body input[type="date"],
+    .modal-body input[type="datetime-local"],
+    .modal-body input[type="time"],
+    .modal-body input[type="tel"],
+    .modal-body input[type="url"],
+    .modal-body select,
+    .app-content form .form-control,
+    .app-content form input[type="text"],
+    .app-content form input[type="email"],
+    .app-content form input[type="password"],
+    .app-content form input[type="number"],
+    .app-content form input[type="tel"],
+    .app-content form select {
+        min-height: 40px;
+        height: 40px;
+        padding-top: 0;
+        padding-bottom: 0;
+    }
+
+    .modal-body textarea,
+    .app-content form textarea { min-height: 64px; }
+
+    .modal-body .btn,
+    .modal-actions .btn { min-height: 40px; }
+
+    /* The sheet: a short head, no second line of explanation, a snug body. */
+    .modal-head { padding: 10px 10px 8px 16px; }
+    .modal-title { font-size: 15px; }
+    .modal-sub { display: none; }
+    .modal-body { padding: 12px 14px; padding-bottom: calc(12px + env(safe-area-inset-bottom, 0px)); }
+}
+
+/* Short fields two to a row on a phone as well (above ~340px, which is every phone
+   made this decade); long ones - notes, pictures, dates with a time - keep the row. */
+@media (min-width: 340px) and (max-width: 640px) {
+    .modal-body .form-row,
+    .modal-body .settings-grid,
+    .modal-body .product-form .settings-grid {
+        grid-template-columns: repeat(2, minmax(0, 1fr));
+        gap: 0 10px;
+    }
+
+    .modal-body .form-row > .field-full,
+    .modal-body .settings-grid > .field-full,
+    .modal-body .form-row > .field:has(textarea),
+    .modal-body .settings-grid > .field:has(textarea),
+    .modal-body .form-row > .field:has(input[type="file"]),
+    .modal-body .settings-grid > .field:has(input[type="file"]),
+    .modal-body .form-row > .field:has(input[type="datetime-local"]),
+    .modal-body .settings-grid > .field:has(input[type="datetime-local"]),
+    .modal-body .form-row > .form-section,
+    .modal-body .settings-grid > .form-section { grid-column: 1 / -1; }
+}
