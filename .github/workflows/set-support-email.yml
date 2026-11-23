@@ -1,0 +1,24 @@
+name: Set the company / support email (manual)
+
+# One-off, run by hand. Never runs on push. Sets Settings > General > Company Email,
+# which is the contact address in the website footer and in the account emails.
+
+on:
+  workflow_dispatch:
+
+jobs:
+  run:
+    name: Company email
+    runs-on: ubuntu-latest
+    steps:
+      - name: Run on server
+        uses: appleboy/ssh-action@v1.0.3
+        with:
+          host: ${{ secrets.VPS_HOST }}
+          username: ${{ secrets.VPS_USER }}
+          key: ${{ secrets.VPS_SSH_KEY }}
+          port: ${{ secrets.VPS_PORT }}
+          script: |
+            cd ${{ secrets.VPS_PROJECT_PATH }}
+            php artisan tinker --execute="echo 'before: '.(\App\Models\Setting::get('company_email') ?: '(empty)').PHP_EOL; \App\Models\Setting::put(['company_email' => 'support.restroone@gmail.com']); \Illuminate\Support\Facades\Cache::flush(); echo 'after: '.\App\Models\Setting::get('company_email').PHP_EOL;"
+            echo "### DONE"
