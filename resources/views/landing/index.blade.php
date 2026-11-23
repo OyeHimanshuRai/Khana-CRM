@@ -591,8 +591,13 @@
                 @endif
             </div>
 
-            <div class="lp-demo-form">
-                @include('demo._form', ['idp' => 'h'])
+            {{-- A button, not a form on the page: "Book a demo" opens the form in a window (demo-modal.js);
+                 without JavaScript the same button goes to the /demo page. --}}
+            <div class="lp-demo-form lp-demo-cta">
+                <h3>Book a free demo</h3>
+                <p>Tell us about your restaurant and we will set up a trial with your menu in it.</p>
+                <a class="lp-btn lp-btn-solid lp-btn-lg" href="{{ route('demo') }}" data-demo-open>Book a demo</a>
+                <p class="lp-demo-note">We confirm your email with a 6-digit code. Your phone number is optional.</p>
             </div>
         </div>
     </section>
@@ -601,6 +606,8 @@
 
 {{-- ------------------------------------------------------------ footer -- --}}
 @include('site._footer')
+
+@include('demo._modal')
 
 {{--
     Two scripts, both for the demo form, and the page reads perfectly without
@@ -613,6 +620,7 @@
 <script src="{{ asset('assets/js/app.js') }}?v={{ filemtime(public_path('assets/js/app.js')) }}"></script>
 <script src="{{ asset('assets/js/demo-form.js') }}?v={{ filemtime(public_path('assets/js/demo-form.js')) }}"></script>
 <script src="{{ asset('assets/js/demo-otp.js') }}?v={{ filemtime(public_path('assets/js/demo-otp.js')) }}"></script>
+<script src="{{ asset('assets/js/demo-modal.js') }}?v={{ filemtime(public_path('assets/js/demo-modal.js')) }}"></script>
 @if ($backdrops->count() > 1)
     {{-- Crossfades the hero's background slides; one slide needs no script. --}}
     <script src="{{ asset('assets/js/landing-hero.js') }}?v={{ filemtime(public_path('assets/js/landing-hero.js')) }}"></script>

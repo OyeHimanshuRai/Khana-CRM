@@ -39,7 +39,7 @@
 
                         <p class="lp-field field">
                             <label for="{{ $idp }}-email" class="lp-sr">Email</label>
-                            <input id="{{ $idp }}-email" type="email" name="email" maxlength="150" placeholder="Email"
+                            <input id="{{ $idp }}-email" type="email" name="email" required maxlength="150" placeholder="Email *"
                                    value="{{ old('email') }}" autocomplete="email">
                         </p>
 
@@ -86,7 +86,7 @@
 
                     {{-- Either will do — insisting on an email loses the owner
                          who only has a phone, and that is the likelier buyer. --}}
-                    <p class="lp-demo-note">Phone or email, whichever you prefer. An email is confirmed with a 6-digit code we send to it.</p>
+                    <p class="lp-demo-note">We confirm your email with a 6-digit code we send to it. Your phone number is optional.</p>
 
                     <button type="submit" class="lp-btn lp-btn-solid">Book a demo</button>
                 </form>

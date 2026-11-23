@@ -8,8 +8,7 @@
 | it is left, and the whole form on submit - with the same rules and words as
 | DemoRequestController, which still re-checks everything.
 |
-| The one rule worth spelling out: a phone number OR an email, not both. The
-| form says so, and the error lands on both boxes until one is filled.
+| The email is required and confirmed with a code (demo-otp.js); the phone number is optional.
 |
 | On success the form is emptied (data-reset-on-success) and the thank-you
 | shows under it as well as in the toast, for whoever looked away.
@@ -39,12 +38,11 @@
             return v.length > 120 ? 'Keep the name under 120 characters.' : '';
         },
         phone: function (v) {
-            if (!v && !value('email')) { return 'Give us a phone number or an email address.'; }
             return v && !PHONE.test(v) ? 'Enter a valid phone number.' : '';
         },
         email: function (v) {
-            if (!v && !value('phone')) { return 'Give us an email address or a phone number.'; }
-            return v && !EMAIL.test(v) ? 'Enter a valid email address, like name@example.com.' : '';
+            if (!v) { return 'Enter your email address.'; }
+            return EMAIL.test(v) ? '' : 'Enter a valid email address, like name@example.com.';
         },
         business_name: function (v) {
             return v.length > 150 ? 'Keep the restaurant name under 150 characters.' : '';
@@ -98,14 +96,8 @@
         return message;
     }
 
-    // Phone and email answer for each other: fixing one clears the other.
     function checkPair(name) {
         check(name);
-
-        var other = name === 'phone' ? 'email' : (name === 'email' ? 'phone' : null);
-        if (other && form.elements[other].dataset.touched === '1') {
-            check(other);
-        }
     }
 
     form.addEventListener('focusout', function (event) {
@@ -148,7 +140,7 @@
 
         // A given email must have been confirmed with the code (demo-otp.js).
         var typed = value('email');
-        if (typed && !problems.length && form.dataset.emailVerified !== typed) {
+        if (!problems.length && form.dataset.emailVerified !== typed) {
             problems.push('Verify your email with the 6-digit code first.');
             first = first || form.elements.email;
         }

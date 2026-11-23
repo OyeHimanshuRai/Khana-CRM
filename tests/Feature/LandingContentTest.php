@@ -223,10 +223,11 @@ class LandingContentTest extends TestCase
 
     /* --------------------------------------------------------- demo form */
 
-    public function test_a_phone_number_alone_is_enough(): void
+    public function test_a_request_with_an_email_is_saved_and_the_phone_is_optional(): void
     {
         $this->post(route('demo-request.store'), [
             'name' => 'Rahul Mehta',
+            'email' => 'rahul@example.test',
             'phone' => '9876543210',
             'business_name' => 'Spice Route',
             'city' => 'Jaipur',
@@ -235,6 +236,7 @@ class LandingContentTest extends TestCase
 
         $this->assertDatabaseHas('demo_requests', [
             'name' => 'Rahul Mehta',
+            'email' => 'rahul@example.test',
             'phone' => '9876543210',
             'status' => DemoRequest::NEW,
         ]);
@@ -250,11 +252,13 @@ class LandingContentTest extends TestCase
         $this->assertDatabaseHas('demo_requests', ['email' => 'aditi@example.test']);
     }
 
-    /** No way to reply is the one thing an enquiry cannot be. */
-    public function test_neither_a_phone_nor_an_email_is_refused(): void
+    /** The email is the proof of who is asking: a phone number alone is not taken. */
+    public function test_a_phone_number_without_an_email_is_refused(): void
     {
-        $this->post(route('demo-request.store'), ['name' => 'Anonymous'])
-            ->assertSessionHasErrors(['email', 'phone']);
+        $this->post(route('demo-request.store'), ['name' => 'Rahul', 'phone' => '9876543210'])
+            ->assertSessionHasErrors(['email']);
+
+        $this->post(route('demo-request.store'), ['name' => 'Anonymous'])->assertSessionHasErrors(['email']);
 
         $this->assertDatabaseCount('demo_requests', 0);
     }
@@ -279,7 +283,7 @@ class LandingContentTest extends TestCase
     /** The enquirer's IP is recorded, for abuse rather than for marketing. */
     public function test_the_ip_is_recorded(): void
     {
-        $this->post(route('demo-request.store'), ['name' => 'Rahul', 'phone' => '9876543210']);
+        $this->post(route('demo-request.store'), ['name' => 'Rahul', 'email' => 'rahul@example.test']);
 
         $this->assertNotNull(DemoRequest::query()->firstOrFail()->ip_address);
     }

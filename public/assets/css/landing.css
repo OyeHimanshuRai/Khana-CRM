@@ -1486,3 +1486,10 @@ html.lp-modal-open { overflow: hidden; }
 
 /* "Still have a question?" under the FAQ list. */
 .lp-faq-ask { margin: 36px 0 0; display: flex; flex-wrap: wrap; align-items: center; justify-content: center; gap: 12px; font-size: 16px; text-align: center; }
+
+/* The home page's "Book a demo": a card with a button, the form opens in a window. */
+.lp-demo-cta { text-align: center; padding: 28px 24px; }
+.lp-demo-cta h3 { margin: 0 0 8px; font-size: 22px; font-weight: 800; }
+.lp-demo-cta p { margin: 0 0 18px; color: var(--lp-muted); }
+.lp-demo-cta .lp-btn { width: auto; min-width: 220px; }
+.lp-demo-cta .lp-demo-note { margin: 14px 0 0; }

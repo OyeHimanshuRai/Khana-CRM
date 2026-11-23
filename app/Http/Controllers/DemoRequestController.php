@@ -71,27 +71,23 @@ class DemoRequestController extends Controller
             'name' => ['required', 'string', 'max:120'],
 
             /*
-             | Either, not both, and at least one. A form that insists on an
-             | email address loses the restaurant owner who only has a phone,
-             | and that is the person most likely to buy.
+             | The email is required, and is confirmed with a one-time code (below).
+             | The phone number is optional: it is for the call back, not for the proof.
              */
-            'email' => ['nullable', 'required_without:phone', 'email', 'max:150'],
-            'phone' => ['nullable', 'required_without:email', 'string', 'max:30', 'regex:/^[0-9+\-\s()]{7,30}$/'],
+            'email' => ['required', 'email', 'max:150'],
+            'phone' => ['nullable', 'string', 'max:30', 'regex:/^[0-9+\-\s()]{7,30}$/'],
 
             'city' => ['nullable', 'string', 'max:90'],
             'business_name' => ['nullable', 'string', 'max:150'],
             'outlets' => ['nullable', 'integer', 'between:1,65535'],
             'message' => ['nullable', 'string', 'max:2000'],
         ], [
-            'email.required_without' => 'Give us an email address or a phone number.',
-            'phone.required_without' => 'Give us a phone number or an email address.',
+            'email.required' => 'Enter your email address.',
             'phone.regex' => 'Enter a valid phone number.',
         ]);
 
-        // An email address that is given must have been confirmed with the one-time code
-        // (a phone number alone needs no code).
-        if (filled($data['email'] ?? null)
-            && $request->session()->get(DemoOtpController::SESSION_KEY) !== Str::lower(trim($data['email']))) {
+        // The email must have been confirmed with the one-time code.
+        if ($request->session()->get(DemoOtpController::SESSION_KEY) !== Str::lower(trim($data['email']))) {
             return $request->expectsJson()
                 ? json_error('Please verify your email with the 6-digit code first.', ['email' => ['Please verify your email with the 6-digit code first.']], 422)
                 : back()->withInput()->withErrors(['email' => 'Please verify your email with the 6-digit code first.']);

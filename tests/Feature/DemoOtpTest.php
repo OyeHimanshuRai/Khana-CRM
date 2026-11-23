@@ -89,12 +89,12 @@ class DemoOtpTest extends TestCase
         $this->assertDatabaseCount('demo_requests', 0);
     }
 
-    public function test_a_phone_number_alone_needs_no_code(): void
+    public function test_a_phone_number_alone_is_not_enough(): void
     {
-        $this->postJson(route('demo-request.store'), ['name' => 'Rahul', 'phone' => '9876543210'])->assertOk();
+        $this->postJson(route('demo-request.store'), ['name' => 'Rahul', 'phone' => '9876543210'])
+            ->assertStatus(422)->assertJsonValidationErrors('email');
 
-        $this->assertDatabaseHas('demo_requests', ['name' => 'Rahul']);
-        $this->assertSame(1, DemoRequest::query()->count());
+        $this->assertDatabaseCount('demo_requests', 0);
     }
 
     public function test_the_code_is_not_the_one_a_sign_up_uses(): void

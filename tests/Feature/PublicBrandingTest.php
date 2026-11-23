@@ -237,21 +237,20 @@ class PublicBrandingTest extends TestCase
         $this->assertFalse($alert->isVisibleTo($owner->fresh()), 'leads are the platform\'s, not a restaurant\'s');
     }
 
-    public function test_the_demo_form_needs_a_phone_or_an_email_and_a_real_phone(): void
+    public function test_the_demo_form_needs_an_email_and_a_real_phone_if_one_is_given(): void
     {
         $this->postJson(route('demo-request.store'), $this->demo(['phone' => '', 'email' => '']))
             ->assertStatus(422)
-            ->assertJsonValidationErrors(['phone', 'email']);
+            ->assertJsonValidationErrors(['email' => 'Enter your email address.']);
 
-        $this->postJson(route('demo-request.store'), $this->demo(['phone' => 'call me', 'email' => '']))
+        $this->postJson(route('demo-request.store'), $this->demo(['phone' => 'call me']))
             ->assertStatus(422)
             ->assertJsonValidationErrors(['phone' => 'Enter a valid phone number.']);
 
-        // Either one alone is enough.
-        $this->postJson(route('demo-request.store'), $this->demo(['email' => '']))->assertOk();
+        // The phone is optional; the email is not.
         $this->postJson(route('demo-request.store'), $this->demo(['phone' => '']))->assertOk();
 
-        $this->assertSame(2, DemoRequest::query()->count());
+        $this->assertSame(1, DemoRequest::query()->count());
     }
 
     public function test_a_bot_is_thanked_and_nothing_is_stored(): void
