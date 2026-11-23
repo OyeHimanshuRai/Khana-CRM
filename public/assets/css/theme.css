@@ -3449,3 +3449,7 @@ input[type="number"],
     /* Checkbox fields do not need their own tall row. */
     .settings-grid .field-checkbox { min-height: 32px; }
 }
+
+/* A dialog with no subtitle (Add Product): the title does not need a second line of room under it. */
+.modal-dialog.is-compact .modal-head { padding-bottom: 6px; }
+.modal-dialog.is-compact .modal-body { padding-top: 8px; }

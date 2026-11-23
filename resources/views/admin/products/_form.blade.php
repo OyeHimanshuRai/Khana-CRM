@@ -200,8 +200,8 @@
             <span class="product-more-hint">Pricing, stock, sizes, gallery and metadata</span>
         </summary>
         <div class="product-more-content">
-    <div class="form-section">
-        <div class="form-section-title">Identity</div>
+    <details class="form-section form-fold">
+        <summary class="form-section-title">Identity</summary>
 
         <div class="settings-grid">
             {{--
@@ -256,10 +256,10 @@
                 <div class="form-hint">Used in the online store's address.</div>
             </div>
         </div>
-    </div>
+    </details>
 
-    <div class="form-section">
-        <div class="form-section-title">Pricing &amp; tax</div>
+    <details class="form-section form-fold">
+        <summary class="form-section-title">Pricing &amp; tax</summary>
 
         <div class="settings-grid">
             <div class="field">
@@ -311,10 +311,10 @@
                 </div>
             </div>
         </div>
-    </div>
+    </details>
 
-    <div class="form-section">
-        <div class="form-section-title">Stock control</div>
+    <details class="form-section form-fold">
+        <summary class="form-section-title">Stock control</summary>
 
         <div class="settings-grid">
             <div class="field">
@@ -375,11 +375,11 @@
                 </div>
             </div>
         </div>
-    </div>
+    </details>
 
     @if ($overrideShop)
-        <div class="form-section">
-            <div class="form-section-title">Price at {{ $overrideShop->name }}</div>
+        <details class="form-section form-fold">
+            <summary class="form-section-title">Price at {{ $overrideShop->name }}</summary>
 
             <p class="text-xs text-muted" style="margin:-4px 0 10px">
                 Leave a field blank to use the catalogue value above. Filling one in overrides it for
@@ -440,7 +440,7 @@
                     <div class="form-hint">Untick to withdraw it from this branch without touching the others.</div>
                 </div>
             </div>
-        </div>
+        </details>
     @endif
 
     {{--
@@ -450,8 +450,8 @@
         Same repeating-row wiring as the add-on answers: js/modifier-options.js
         drives both, because they are the same control.
     --}}
-    <div class="form-section" data-modifier-options>
-        <div class="form-section-title">Sizes</div>
+    <details class="form-section form-fold" data-modifier-options>
+        <summary class="form-section-title">Sizes</summary>
 
         <div class="form-hint" style="margin-bottom:8px">
             Leave this empty for a dish that comes one way. Where there are sizes, an order must
@@ -567,7 +567,7 @@
                 </td>
             </tr>
         </template>
-    </div>
+    </details>
 
     {{--
         What this dish asks the guest. Read-only here on purpose: a question
@@ -575,8 +575,8 @@
         change the other twenty without saying so. The Add-ons screen owns it.
     --}}
     @if ($product->exists && $product->modifiers->isNotEmpty())
-        <div class="form-section">
-            <div class="form-section-title">Add-ons asked</div>
+        <details class="form-section form-fold">
+            <summary class="form-section-title">Add-ons asked</summary>
 
             <div style="display:flex;flex-wrap:wrap;gap:6px">
                 @foreach ($product->modifiers as $modifier)
@@ -590,11 +590,11 @@
                     a question is shared by every dish that asks it.
                 </div>
             @endallows
-        </div>
+        </details>
     @endif
 
-    <div class="form-section">
-        <div class="form-section-title">Menu detail</div>
+    <details class="form-section form-fold">
+        <summary class="form-section-title">Menu detail</summary>
 
         <div class="settings-grid">
             <div class="field">
@@ -633,10 +633,10 @@
                 <div class="form-hint">Comma separated. Printed next to the dish on the menu.</div>
             </div>
         </div>
-    </div>
+    </details>
 
-    <div class="form-section">
-        <div class="form-section-title">Availability</div>
+    <details class="form-section form-fold">
+        <summary class="form-section-title">Availability</summary>
 
         <div class="settings-grid">
             <div class="field field-full">
@@ -696,10 +696,10 @@
                 <div class="form-hint">None ticked means every day.</div>
             </div>
         </div>
-    </div>
+    </details>
 
-    <div class="form-section">
-        <div class="form-section-title">Description &amp; media</div>
+    <details class="form-section form-fold">
+        <summary class="form-section-title">Description &amp; media</summary>
 
         <div class="settings-grid">
             <div class="field field-full">
@@ -751,10 +751,10 @@
                 </div>
             </div>
         </div>
-    </div>
+    </details>
 
-    <div class="form-section">
-        <div class="form-section-title">Search engine listing</div>
+    <details class="form-section form-fold">
+        <summary class="form-section-title">Search engine listing</summary>
 
         <div class="settings-grid">
             <div class="field field-full">
@@ -775,7 +775,7 @@
                        value="{{ $product->meta_keywords }}" autocomplete="off" aria-invalid="false">
             </div>
         </div>
-    </div>
+    </details>
         </div>
     </details>
 
