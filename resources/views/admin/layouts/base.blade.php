@@ -1,3 +1,7 @@
+@php
+    // The public password pages ask for a light page whatever the device prefers.
+    $forceLight = trim($__env->yieldContent('force_light')) !== '';
+@endphp
 <!DOCTYPE html>
 <html lang="{{ str_replace('_', '-', app()->getLocale()) }}">
 <head>
@@ -6,7 +10,7 @@
     <meta name="csrf-token" content="{{ csrf_token() }}">
     <meta name="color-scheme" content="light dark">
     <meta name="theme-color" content="#f5f5f7" media="(prefers-color-scheme: light)">
-    <meta name="theme-color" content="#0b0b0d" media="(prefers-color-scheme: dark)">
+    <meta name="theme-color" content="{{ $forceLight ? '#f5f5f7' : '#0b0b0d' }}" media="(prefers-color-scheme: dark)">
     {{--
         Speculation rules: the page behind a sidebar link is fetched while the
         pointer is still on its way to the click (hover for a moment, or the press
@@ -69,6 +73,12 @@
            Kept inline and tiny on purpose - it must run before the stylesheets
            below are applied. Mirrors the keys used by layout.js. */
         (function () {
+            @if ($forceLight)
+            /* The public password pages are always light, whatever the device or the last theme chosen. */
+            document.documentElement.setAttribute('data-theme', 'light');
+            document.documentElement.setAttribute('data-force-theme', 'light');
+            return;
+            @endif
             try {
                 var t = localStorage.getItem('erp.theme');
                 if (t === 'dark' || t === 'light') {

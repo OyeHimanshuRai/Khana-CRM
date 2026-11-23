@@ -45,6 +45,9 @@
     }
 
     function applyTheme(theme) {
+        // A page that asked for one look (the public password pages) keeps it.
+        if (root.hasAttribute('data-force-theme')) { return; }
+
         if (theme === 'system') {
             root.removeAttribute('data-theme');
         } else {

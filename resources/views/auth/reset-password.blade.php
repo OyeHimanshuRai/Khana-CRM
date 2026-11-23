@@ -2,6 +2,8 @@
 
 @section('title', 'Choose a new password')
 
+@section('force_light', '1')
+
 @section('content')
     <x-auth-head title="Choose a new password" lede="You will be signed out on every other device." />
 

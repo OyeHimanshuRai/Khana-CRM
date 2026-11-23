@@ -2,6 +2,8 @@
 
 @section('title', 'Forgot your password')
 
+@section('force_light', '1')
+
 @section('content')
     <x-auth-head title="Forgot your password?" lede="We will email you a link to choose a new one." />
 
