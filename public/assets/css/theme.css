@@ -2508,8 +2508,11 @@ body.modal-open { overflow: hidden; }
     background: transparent;
     box-shadow: none;
     color: var(--muted);
-    border-radius: calc(var(--radius) - 2px);
+    border-radius: 0;
 }
+
+/* The list / grid switch has square corners, like the rest of the page's boxes. */
+.view-toggle { border-radius: 0; }
 
 @media (hover: hover) and (pointer: fine) {
     .view-toggle .btn-icon:hover { background: transparent; color: var(--heading); }
