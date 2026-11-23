@@ -713,7 +713,6 @@ input[type="checkbox"]:disabled, input[type="radio"]:disabled { opacity: .5; cur
 .card {
     background: var(--panel);
     border: 1px solid var(--border);
-    border-radius: var(--radius-lg);
 }
 
 .card > :first-child { border-top-left-radius: inherit; border-top-right-radius: inherit; }
