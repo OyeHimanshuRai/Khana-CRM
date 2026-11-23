@@ -173,6 +173,32 @@
         paintSeg();
     }
 
+    /*
+     | The name of the place at a pair of coordinates (OpenStreetMap's Nominatim), e.g.
+     | "Koregaon Park, Pune, Maharashtra". Asked of the visitor's own browser only after they
+     | press the location button; when it cannot be had the numbers are shown instead.
+     */
+    function placeName(latitude, longitude) {
+        var url = 'https://nominatim.openstreetmap.org/reverse?format=jsonv2&zoom=16&addressdetails=1&accept-language=en'
+            + '&lat=' + encodeURIComponent(latitude) + '&lon=' + encodeURIComponent(longitude);
+
+        return fetch(url, { headers: { 'Accept': 'application/json' } })
+            .then(function (r) { return r.ok ? r.json() : null; })
+            .then(function (data) {
+                if (!data || !data.address) { return data && data.display_name ? data.display_name : ''; }
+
+                var a = data.address;
+                var parts = [
+                    a.suburb || a.neighbourhood || a.quarter || a.road || a.hamlet,
+                    a.city || a.town || a.village || a.municipality || a.county,
+                    a.state
+                ].filter(function (part, i, all) { return part && all.indexOf(part) === i; });
+
+                return parts.length ? parts.join(', ') : (data.display_name || '');
+            })
+            .catch(function () { return ''; });
+    }
+
     if (locationButton && locationLatitude && locationLongitude && locationDisplay && locationStatus) {
         locationButton.addEventListener('click', function () {
             if (!navigator.geolocation) {
@@ -189,9 +215,14 @@
 
                 locationLatitude.value = latitude;
                 locationLongitude.value = longitude;
-                locationDisplay.value = latitude + ', ' + longitude;
+                // Shown as a place name, not as numbers; the coordinates are still kept (hidden fields above).
+                locationDisplay.value = 'Finding the place name…';
                 locationStatus.textContent = 'Location saved. Your GPS coordinates will be stored with the business.'; locationStatus.hidden = false;
                 locationButton.disabled = false;
+
+                placeName(latitude, longitude).then(function (name) {
+                    locationDisplay.value = name || (latitude + ', ' + longitude);
+                });
             }, function (error) {
                 var message = error.code === error.PERMISSION_DENIED
                     ? 'Location permission was denied. Allow it in your browser or enter the address above.'
