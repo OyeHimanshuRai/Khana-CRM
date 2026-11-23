@@ -123,7 +123,7 @@
                     </select>
                 </p>
 
-                <p class="lp-field field rg-field-business">
+                <p class="lp-field field rg-field-business rg-ico rg-ico-building">
                     {{-- Takes the height of the captions over Plan and Billing, so the three boxes start on one line. --}}
                     <span class="rg-label-spacer" aria-hidden="true">&nbsp;</span>
                     <label for="r-business" class="rg-sr">Business name</label>
@@ -133,7 +133,7 @@
                     @error('business_name')<span class="rg-error" role="alert">{{ $message }}</span>@enderror
                 </p>
 
-                <p class="lp-field field rg-field-address">
+                <p class="lp-field field rg-field-address rg-ico rg-ico-pin">
                     <label for="r-address1" class="rg-sr">Business address</label>
                     <input id="r-address1" type="text" name="address_line1" maxlength="190"
                            value="{{ old('address_line1') }}" autocomplete="address-line1"
@@ -141,7 +141,7 @@
                     @error('address_line1')<span class="rg-error" role="alert">{{ $message }}</span>@enderror
                 </p>
 
-                <p class="lp-field field">
+                <p class="lp-field field rg-ico rg-ico-pin">
                     <label for="r-address2" class="rg-sr">Address line 2</label>
                     <input id="r-address2" type="text" name="address_line2" maxlength="190"
                            value="{{ old('address_line2') }}" autocomplete="address-line2"
@@ -152,7 +152,7 @@
                 {{-- Country > State > City: each list is loaded from the database when the one before it
                      changes (register.js, /geo/...). Without JavaScript the first two are plain lists. --}}
                 @php($defaultCountry = old('country_id') ?: ($countries->firstWhere('iso_code', 'IN')?->id))
-                <p class="lp-field field">
+                <p class="lp-field field rg-ico rg-ico-globe">
                     <label for="r-country" class="rg-sr">Country</label>
                     <select id="r-country" name="country_id" required data-geo-country
                             data-states-url="{{ url('geo/countries/__ID__/states') }}"
@@ -166,7 +166,7 @@
                     @error('country_id')<span class="rg-error" role="alert">{{ $message }}</span>@enderror
                 </p>
 
-                <p class="lp-field field">
+                <p class="lp-field field rg-ico rg-ico-pin">
                     <label for="r-state" class="rg-sr">State</label>
                     <select id="r-state" name="state_id" data-geo-state data-cities-url="{{ url('geo/states/__ID__/cities') }}"
                             data-old="{{ old('state_id') }}">
@@ -175,7 +175,7 @@
                     @error('state_id')<span class="rg-error" role="alert">{{ $message }}</span>@enderror
                 </p>
 
-                <p class="lp-field field">
+                <p class="lp-field field rg-ico rg-ico-pin">
                     <label for="r-city" class="rg-sr">City</label>
                     <select id="r-city" name="city_id" data-geo-city data-old="{{ old('city_id') }}" disabled>
                         <option value="">City</option>
@@ -183,7 +183,7 @@
                     @error('city_id')<span class="rg-error" role="alert">{{ $message }}</span>@enderror
                 </p>
 
-                <p class="lp-field field rg-field-pin">
+                <p class="lp-field field rg-field-pin rg-ico rg-ico-hash">
                     <label for="r-pincode" class="rg-sr">PIN code</label>
                     <input id="r-pincode" type="text" name="pincode" maxlength="12" placeholder="PIN code"
                            value="{{ old('pincode') }}" autocomplete="postal-code" inputmode="numeric">
@@ -223,7 +223,7 @@
                     @error('logo')<span class="rg-error" role="alert">{{ $message }}</span>@enderror
                 </p>
 
-                <p class="lp-field field">
+                <p class="lp-field field rg-ico rg-ico-user">
                     <label for="r-name" class="rg-sr">Your name</label>
                     <input id="r-name" type="text" name="name" required maxlength="120" placeholder="Your name *"
                            value="{{ old('name') }}" autocomplete="name"
@@ -231,7 +231,7 @@
                     @error('name')<span class="rg-error" role="alert">{{ $message }}</span>@enderror
                 </p>
 
-                <p class="lp-field field">
+                <p class="lp-field field rg-ico rg-ico-mail">
                     <label for="r-email" class="rg-sr">Email</label>
                     <input id="r-email" type="email" name="email" required maxlength="150" placeholder="Email address *"
                            value="{{ old('email') }}" autocomplete="email" inputmode="email"
@@ -289,7 +289,7 @@
                     <p class="rg-otp-msg" role="status" data-otp-msg hidden></p>
                 </div>
 
-                <p class="lp-field field">
+                <p class="lp-field field rg-ico rg-ico-lock">
                     <label for="r-password" class="rg-sr">Password</label>
                     <span class="rg-password">
                         <input id="r-password" type="password" name="password" required minlength="8"
