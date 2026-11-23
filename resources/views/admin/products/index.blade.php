@@ -172,7 +172,6 @@
             padding: 16px;
             background: var(--panel);
             border: 1px solid var(--border);
-            border-radius: var(--radius-lg);
         }
 
         .product-card-top { display: flex; align-items: flex-start; gap: 12px; min-width: 0; }
