@@ -2243,22 +2243,15 @@ body.sidebar-collapsed .sidebar .brand-mark.has-logo {
 .modal-dialog {
     position: relative;
     width: 100%;
-    max-width: 640px;
     margin: auto;
     /* As tall as the content, up to the viewport; past that the body
-       scrolls and the header and footer stay put. 100vh first for browsers
-       without dynamic viewport units. */
+       scrolls and the header and footer stay put. */
     display: flex;
     flex-direction: column;
-    max-height: calc(100vh - 32px);
     max-height: calc(100dvh - 32px);
     background: var(--panel);
-    border-radius: var(--radius-xl);
     box-shadow: var(--shadow-lg);
-    opacity: 0;
-    transform: scale(.96) translateY(6px);
     transform-origin: center;
-    transition: opacity 140ms var(--ease-out), transform 140ms var(--ease-out);
 }
 
 .modal.is-open .modal-dialog {
