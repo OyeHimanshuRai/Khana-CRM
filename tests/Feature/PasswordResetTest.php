@@ -82,7 +82,7 @@ class PasswordResetTest extends TestCase
             ->assertOk()
             ->assertJsonPath('message', 'If that address has an account, a link to reset the password is on its way.');
 
-        Mail::assertQueued(PasswordResetMail::class, fn ($mail) => $mail->hasTo($user->email)
+        Mail::assertSent(PasswordResetMail::class, fn ($mail) => $mail->hasTo($user->email)
             && str_contains($mail->render(), '/reset-password/'));
     }
 

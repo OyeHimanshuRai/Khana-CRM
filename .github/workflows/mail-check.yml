@@ -25,6 +25,10 @@ jobs:
             systemctl is-active khana-queue.service 2>&1 | head -2
             echo "--- forgot-password requests seen by the web server (time, status)"
             grep -h "POST /forgot-password" /var/log/nginx/*access*.log 2>/dev/null | tail -8 | awk '{print $4, $9}'
+            echo "--- queue worker command"
+            systemctl cat khana-queue.service 2>/dev/null | grep -E "ExecStart|Environment" | cut -c1-200
+            echo "--- redis"
+            (redis-cli ping; redis-cli llen queues:default; redis-cli zcard queues:default:delayed; redis-cli zcard queues:default:reserved) 2>&1 | head -5
             echo "--- queue worker log (last lines)"
             journalctl -u khana-queue.service --no-pager -n 25 2>/dev/null | cut -c1-220 | sed -E 's/[A-Za-z0-9._%+-]+@[A-Za-z0-9.-]+/<email>/g'
             echo "--- errors today"

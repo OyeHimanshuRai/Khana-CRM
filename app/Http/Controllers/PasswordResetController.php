@@ -52,8 +52,16 @@ class PasswordResetController extends Controller
         if ($user !== null && $user->is_active && $user->is_admin) {
             // The broker's own throttle answers RESET_THROTTLED; that is not something to tell a stranger either.
             Password::broker(self::BROKER)->sendResetLink(['email' => $email], function (User $user, string $token) {
-                Mail::to($user->email, $user->name)->send(new PasswordResetMail($user, $token));
-                ActivityLog::record('auth.password_reset_requested', 'Asked for a password reset link', $user);
+                // Sent now, not queued: the person is waiting for this mail, and a queued one left
+                // with the background worker was not arriving. A failure is recorded, never shown
+                // (the answer is the same for every address).
+                try {
+                    Mail::to($user->email, $user->name)->sendNow(new PasswordResetMail($user, $token));
+                    ActivityLog::record('auth.password_reset_requested', 'Asked for a password reset link', $user);
+                } catch (\Throwable $e) {
+                    report($e);
+                    ActivityLog::record('auth.password_reset_failed', 'The password reset email could not be sent', $user);
+                }
             });
         }
 
