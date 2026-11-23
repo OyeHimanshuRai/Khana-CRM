@@ -9,6 +9,8 @@
     $isNew = ! $product->exists;
     $image = $isNew ? null : $product->imageUrl();
     $gallery = $isNew ? collect() : $product->images;
+    // A new dish starts on the unit a menu item almost always has, so the owner need not pick one.
+    $defaultUnit = $isNew ? ($units->first(fn ($u) => in_array(strtolower((string) $u->code), ['pcs', 'pc', 'nos', 'plate', 'portion'], true)) ?? $units->first()) : null;
 @endphp
 
 <form method="POST"
@@ -34,18 +36,6 @@
             </div>
 
             <div class="field">
-                <label for="prod-barcode">Barcode</label>
-                <input id="prod-barcode" type="text" name="barcode" class="form-control"
-                       value="{{ $product->barcode }}" autocomplete="off" aria-invalid="false"
-                       @if ($isNew) data-product-barcode-scan placeholder="Scan or enter barcode" @endif>
-                @if ($isNew)
-                    <div class="form-hint" data-product-scan-status aria-live="polite">
-                        Scan with your barcode reader. Saved products auto-fill; a new barcode only provides its code.
-                    </div>
-                @endif
-            </div>
-
-            <div class="field">
                 <label for="prod-category">Category</label>
                 <select id="prod-category" name="category_id" class="form-control" aria-invalid="false">
                     <option value="">No category</option>
@@ -58,39 +48,6 @@
             </div>
 
             <div class="field">
-                <label for="prod-unit">Unit</label>
-                <select id="prod-unit" name="unit_id" class="form-control" required aria-invalid="false">
-                    <option value="">Choose a unit…</option>
-                    @foreach ($units as $unit)
-                        <option value="{{ $unit->id }}" @selected($product->unit_id === $unit->id)>
-                            {{ $unit->name }} ({{ $unit->code }}){{ $unit->allow_decimal ? ' · fractional' : '' }}
-                        </option>
-                    @endforeach
-                </select>
-            </div>
-
-            <div class="field">
-                <label for="prod-min">Minimum stock</label>
-                <input id="prod-min" type="number" name="min_stock" class="form-control"
-                       value="{{ $product->exists ? (float) $product->min_stock : 0 }}"
-                       min="0" step="0.001" aria-invalid="false">
-            </div>
-
-            <div class="field">
-                <label for="prod-purchase">Purchase price (₹)</label>
-                <input id="prod-purchase" type="number" name="purchase_price" class="form-control"
-                       value="{{ $product->exists ? (float) $product->purchase_price : 0 }}"
-                       min="0" step="0.01" aria-invalid="false">
-            </div>
-
-            <div class="field">
-                <label for="prod-mrp">MRP (₹)</label>
-                <input id="prod-mrp" type="number" name="mrp" class="form-control"
-                       value="{{ $product->exists ? (float) $product->mrp : 0 }}"
-                       min="0" step="0.01" aria-invalid="false">
-            </div>
-
-            <div class="field">
                 <label for="prod-selling">Selling price (₹)</label>
                 <input id="prod-selling" type="number" name="selling_price" class="form-control" required
                        value="{{ $product->exists ? (float) $product->selling_price : '' }}"
@@ -98,10 +55,15 @@
             </div>
 
             <div class="field">
-                <label for="prod-discount">Discount (%)</label>
-                <input id="prod-discount" type="number" name="discount_percent" class="form-control"
-                       value="{{ $product->exists ? (float) $product->discount_percent : 0 }}"
-                       min="0" max="100" step="0.01" aria-invalid="false">
+                <label for="prod-unit">Unit</label>
+                <select id="prod-unit" name="unit_id" class="form-control" required aria-invalid="false">
+                    <option value="">Choose a unit…</option>
+                    @foreach ($units as $unit)
+                        <option value="{{ $unit->id }}" @selected($product->unit_id === $unit->id || ($isNew && ! $product->unit_id && $defaultUnit?->id === $unit->id))>
+                            {{ $unit->name }} ({{ $unit->code }}){{ $unit->allow_decimal ? ' · fractional' : '' }}
+                        </option>
+                    @endforeach
+                </select>
             </div>
 
             <div class="field">
@@ -115,13 +77,7 @@
                     @endforeach
                 </select>
             </div>
-        </div>
-    </div>
 
-    <div class="form-section">
-        <div class="form-section-title">Online store &amp; status</div>
-
-        <div class="settings-grid">
             <div class="field">
                 <div class="form-label">Status</div>
                 <label class="check">
@@ -133,30 +89,23 @@
                 <div class="form-hint">An inactive product cannot be billed or listed.</div>
             </div>
 
-            <div class="field">
-                <div class="form-label">Online store</div>
-                <label class="check">
-                    <input type="hidden" name="is_published" value="0">
-                    <input type="checkbox" name="is_published" value="1" @checked($product->is_published)>
-                    List in the online store
-                </label>
-                <div class="form-hint">Ignored while the product is inactive.</div>
-            </div>
+            
 
-            <div class="field">
-                <div class="form-label">Featured</div>
-                <label class="check">
-                    <input type="hidden" name="is_featured" value="0">
-                    <input type="checkbox" name="is_featured" value="1" @checked($product->is_featured)>
-                    Show on the storefront homepage
-                </label>
-            </div>
+            
 
-            <div class="field">
-                <label for="prod-order">Display order</label>
-                <input id="prod-order" type="number" name="sort_order" class="form-control"
-                       value="{{ $product->sort_order ?? 0 }}" min="0" max="65535" aria-invalid="false">
-            </div>
+            
+
+            
+
+            
+
+            
+
+            
+
+            
+
+            
         </div>
     </div>
 
@@ -201,6 +150,75 @@
         </summary>
         <div class="product-more-content">
     <details class="form-section form-fold">
+        <summary class="form-section-title">Barcode, cost price &amp; stock alert</summary>
+        <div class="settings-grid">
+<div class="field">
+                <label for="prod-barcode">Barcode</label>
+                <input id="prod-barcode" type="text" name="barcode" class="form-control"
+                       value="{{ $product->barcode }}" autocomplete="off" aria-invalid="false"
+                       @if ($isNew) data-product-barcode-scan placeholder="Scan or enter barcode" @endif>
+                @if ($isNew)
+                    <div class="form-hint" data-product-scan-status aria-live="polite">
+                        Scan with your barcode reader. Saved products auto-fill; a new barcode only provides its code.
+                    </div>
+                @endif
+            </div>
+<div class="field">
+                <label for="prod-purchase">Purchase price (₹)</label>
+                <input id="prod-purchase" type="number" name="purchase_price" class="form-control"
+                       value="{{ $product->exists ? (float) $product->purchase_price : 0 }}"
+                       min="0" step="0.01" aria-invalid="false">
+            </div>
+<div class="field">
+                <label for="prod-mrp">MRP (₹)</label>
+                <input id="prod-mrp" type="number" name="mrp" class="form-control"
+                       value="{{ $product->exists ? (float) $product->mrp : 0 }}"
+                       min="0" step="0.01" aria-invalid="false">
+            </div>
+<div class="field">
+                <label for="prod-discount">Discount (%)</label>
+                <input id="prod-discount" type="number" name="discount_percent" class="form-control"
+                       value="{{ $product->exists ? (float) $product->discount_percent : 0 }}"
+                       min="0" max="100" step="0.01" aria-invalid="false">
+            </div>
+<div class="field">
+                <label for="prod-min">Minimum stock</label>
+                <input id="prod-min" type="number" name="min_stock" class="form-control"
+                       value="{{ $product->exists ? (float) $product->min_stock : 0 }}"
+                       min="0" step="0.001" aria-invalid="false">
+            </div>
+        </div>
+    </details>
+
+    <details class="form-section form-fold">
+        <summary class="form-section-title">Online store</summary>
+        <div class="settings-grid">
+<div class="field">
+                <div class="form-label">Online store</div>
+                <label class="check">
+                    <input type="hidden" name="is_published" value="0">
+                    <input type="checkbox" name="is_published" value="1" @checked($product->is_published)>
+                    List in the online store
+                </label>
+                <div class="form-hint">Ignored while the product is inactive.</div>
+            </div>
+<div class="field">
+                <div class="form-label">Featured</div>
+                <label class="check">
+                    <input type="hidden" name="is_featured" value="0">
+                    <input type="checkbox" name="is_featured" value="1" @checked($product->is_featured)>
+                    Show on the storefront homepage
+                </label>
+            </div>
+<div class="field">
+                <label for="prod-order">Display order</label>
+                <input id="prod-order" type="number" name="sort_order" class="form-control"
+                       value="{{ $product->sort_order ?? 0 }}" min="0" max="65535" aria-invalid="false">
+            </div>
+        </div>
+    </details>
+
+        <details class="form-section form-fold">
         <summary class="form-section-title">Identity</summary>
 
         <div class="settings-grid">

@@ -112,26 +112,27 @@ class ProductControllerTest extends TestCase
             ->assertSee('for="prod-barcode">Barcode', false)
             ->assertSee('data-product-barcode-scan', false)
             ->assertSee('data-product-barcode-lookup="'.route('admin.products.lookup').'"', false)
+            // The few things a dish needs come first; the rest waits under "More product details".
             ->assertSeeInOrder([
-                'for="prod-unit">Unit',
-                'for="prod-min">Minimum stock',
-                'name="min_stock"',
-                'for="prod-purchase">Purchase price (₹)',
-            ])
-            ->assertSee('data-ajax data-close-modal data-refresh-list data-client-validate novalidate', false)
-            ->assertDontSee('name="sku"', false)
-            ->assertSeeInOrder([
-                'name="purchase_price"',
-                'name="mrp"',
+                'name="name"',
+                'name="category_id"',
                 'name="selling_price"',
-                'name="discount_percent"',
+                'name="unit_id"',
                 'name="food_type"',
                 'name="is_active"',
+                'name="image"',
+                'More product details',
+                'name="barcode"',
+                'name="purchase_price"',
+                'name="mrp"',
+                'name="discount_percent"',
+                'name="min_stock"',
                 'name="is_published"',
                 'name="is_featured"',
                 'name="sort_order"',
-                'name="image"',
             ])
+            ->assertSee('data-ajax data-close-modal data-refresh-list data-client-validate novalidate', false)
+            ->assertDontSee('name="sku"', false)
             ->assertSee('<details class="product-more">', false);
     }
 
