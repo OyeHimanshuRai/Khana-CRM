@@ -717,6 +717,16 @@ class ProductController extends Controller
 
             if ($sample !== null) {
                 fputcsv($handle, $menu->row($sample, $shopId));
+            } else {
+                // A new restaurant has no dish to copy: show one, so the file is never just a header.
+                $example = array_fill_keys(MenuImportService::COLUMNS, '');
+                $example['Name'] = 'Paneer Tikka';
+                $example['Category'] = 'Starters';
+                $example['Unit'] = 'PCS';
+                $example['Food Type'] = 'veg';
+                $example['Selling Price'] = '220';
+                $example['Active'] = 'Yes';
+                fputcsv($handle, array_values($example));
             }
 
             fclose($handle);

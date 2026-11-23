@@ -306,7 +306,7 @@ class ProductControllerTest extends TestCase
         $this->actingAs($staff)->postJson(route('admin.products.import'), ['file' => $empty])
             ->assertStatus(422)
             ->assertJsonPath('success', false)
-            ->assertJsonPath('message', 'That file has no rows in it.');
+            ->assertJsonPath('message', fn ($m) => str_contains($m, 'no dishes in it'));
 
         $odd = \Illuminate\Http\UploadedFile::fake()->createWithContent('menu.csv', "Name,Unit,Selling Price\nPaneer,Bucketful,100\n");
         $response = $this->actingAs($staff)->postJson(route('admin.products.import'), ['file' => $odd])->assertStatus(422);

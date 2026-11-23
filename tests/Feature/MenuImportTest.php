@@ -433,4 +433,37 @@ class MenuImportTest extends TestCase
             ->get('/superadmin/products/import')
             ->assertForbidden();
     }
+
+    /** Excel in some regions saves "CSV" with semicolons: it must read the same. */
+    public function test_a_semicolon_file_reads_like_a_comma_file(): void
+    {
+        $path = tempnam(sys_get_temp_dir(), 'menu');
+        file_put_contents($path, "Name;Category;Unit;Selling Price\nSemicolon Dish;Starters;PCS;150\n");
+
+        $result = app(MenuImportService::class)->import($path);
+
+        $this->assertSame(1, $result['created']);
+        $this->assertSame(150.0, (float) Product::query()->where('name', 'Semicolon Dish')->firstOrFail()->selling_price);
+    }
+
+    public function test_a_file_with_only_the_header_says_there_are_no_dishes(): void
+    {
+        $path = $this->csv(['Name', 'Unit', 'Selling Price'], []);
+
+        $this->expectException(RuntimeException::class);
+        $this->expectExceptionMessage('no dishes in it');
+
+        app(MenuImportService::class)->import($path);
+    }
+
+    public function test_the_template_of_an_empty_menu_still_has_an_example_row(): void
+    {
+        $staff = $this->staff(['inventory.products.view', 'inventory.products.import']);
+        Product::query()->forceDelete();
+
+        $csv = $this->actingAs($staff)->get(route('admin.products.template'))->assertOk()->streamedContent();
+
+        $this->assertStringContainsString('Paneer Tikka', $csv);
+        $this->assertStringContainsString('Name,Category', ltrim($csv, "\xEF\xBB\xBF"));
+    }
 }

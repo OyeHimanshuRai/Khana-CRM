@@ -83,7 +83,7 @@ class MenuImportService
         $rows = $this->read($path);
 
         if ($rows->isEmpty()) {
-            throw new RuntimeException('That file has no rows in it.');
+            throw new RuntimeException('That file has no dishes in it - only the column names, or nothing at all. Add one dish per row under the first row, then upload it again.');
         }
 
         if ($rows->count() > self::MAX_ROWS) {
@@ -169,7 +169,13 @@ class MenuImportService
         $rows = collect();
         $header = null;
 
-        while (($line = fgetcsv($handle)) !== false) {
+        // Excel in some regions saves "CSV" with semicolons (or a tab); read whichever the first line uses.
+        $first = (string) fgets($handle);
+        rewind($handle);
+        $delimiter = collect([',' => substr_count($first, ','), ';' => substr_count($first, ';'), "\t" => substr_count($first, "\t")])
+            ->sortDesc()->keys()->first();
+
+        while (($line = fgetcsv($handle, 0, (string) $delimiter)) !== false) {
             if ($header === null) {
                 // Excel writes a byte-order mark, and a header that starts
                 // with one matches nothing at all.
