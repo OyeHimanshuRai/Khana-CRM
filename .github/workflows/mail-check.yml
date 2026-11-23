@@ -23,6 +23,8 @@ jobs:
             git log --oneline -1
             echo "--- queue worker"
             systemctl is-active khana-queue.service 2>&1 | head -2
+            echo "--- forgot-password requests seen by the web server (time, status)"
+            grep -h "POST /forgot-password" /var/log/nginx/*access*.log 2>/dev/null | tail -8 | awk '{print $4, $9}'
             echo "--- errors today"
             grep -h "ERROR" storage/logs/laravel-$(date +%F).log 2>/dev/null | tail -5 | cut -c1-300 | sed -E 's/[A-Za-z0-9._%+-]+@[A-Za-z0-9.-]+/<email>/g'
             cat > /tmp/mc.php <<'PHP'
@@ -39,6 +41,7 @@ jobs:
               }
             } catch (\Throwable $e) { echo "no email_logs: ".$e->getMessage()."\n"; }
             echo "reset tokens waiting: ".DB::table('password_reset_tokens')->count()."\n";
+            foreach (DB::table('activity_logs')->where('event', 'like', 'auth.password%')->orderByDesc('id')->limit(5)->get(['event','created_at']) as $a) { echo " activity ".$a->created_at." ".$a->event."\n"; }
             PHP
             php artisan tinker --execute="$(cat /tmp/mc.php)"
             rm -f /tmp/mc.php
