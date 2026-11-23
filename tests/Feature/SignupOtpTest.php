@@ -205,4 +205,20 @@ class SignupOtpTest extends TestCase
 
         $this->assertStringNotContainsString($code, json_encode(Cache::get('signup-otp:'.sha1('asha@spicegarden.test'))));
     }
+
+    public function test_the_logo_travels_inside_the_email(): void
+    {
+        \Illuminate\Support\Facades\Storage::fake('public');
+        \Illuminate\Support\Facades\Storage::disk('public')->put('settings/logo.png', base64_decode('iVBORw0KGgoAAAANSUhEUgAAAAEAAAABCAYAAAAfFcSJAAAADUlEQVR42mNkYPhfDwAChwGA60e6kgAAAABJRU5ErkJggg=='));
+        \App\Models\Setting::put(['site_logo' => 'settings/logo.png']);
+
+        $mailer = (new \Illuminate\Mail\MailManager($this->app))->mailer('array');
+        $mailer->to('asha@spicegarden.test')->sendNow(new SignupOtpMail('123456'));
+
+        $raw = $mailer->getSymfonyTransport()->messages()->first()->getOriginalMessage()->toString();
+
+        $this->assertStringContainsString('Content-ID', $raw, 'the logo is attached to the email');
+        $this->assertStringContainsString('cid:', $raw);
+        $this->assertStringContainsString('123456', $raw);
+    }
 }

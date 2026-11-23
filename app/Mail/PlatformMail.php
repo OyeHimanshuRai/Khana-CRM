@@ -25,6 +25,23 @@ abstract class PlatformMail extends Mailable implements ShouldQueue
         return (string) Setting::get('company_name', config('app.name'));
     }
 
+    /** The email logo (or the site logo) as a path on disk; null when none was uploaded. */
+    protected function logoPath(): ?string
+    {
+        $stored = Setting::map();
+        $disk = \Illuminate\Support\Facades\Storage::disk('public');
+
+        foreach (['email_logo', 'site_logo'] as $key) {
+            $path = $stored[$key] ?? null;
+
+            if (filled($path) && $disk->exists($path)) {
+                return $disk->path($path);
+            }
+        }
+
+        return null;
+    }
+
     /**
      * What every one of these emails' layout needs.
      *
@@ -35,6 +52,10 @@ abstract class PlatformMail extends Mailable implements ShouldQueue
         return [
             'company' => $this->company(),
             'logoUrl' => CompanySettings::fileUrl('email_logo') ?? CompanySettings::fileUrl('site_logo'),
+            // The same logo as a file on this server, so it can travel inside the email itself:
+            // a picture that has to be fetched from the website is hidden by most inboxes until
+            // the reader allows it (and never loads if the address is wrong).
+            'logoPath' => $this->logoPath(),
             'supportEmail' => Setting::get('company_email'),
             // These go to restaurants; the platform owner's own door is not theirs.
             'loginUrl' => route('login'),
