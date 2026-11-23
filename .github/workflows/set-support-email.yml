@@ -20,5 +20,5 @@ jobs:
           port: ${{ secrets.VPS_PORT }}
           script: |
             cd ${{ secrets.VPS_PROJECT_PATH }}
-            php artisan tinker --execute="echo 'before: '.(\App\Models\Setting::get('company_email') ?: '(empty)').PHP_EOL; \App\Models\Setting::put(['company_email' => 'support.restroone@gmail.com']); \Illuminate\Support\Facades\Cache::flush(); echo 'after: '.\App\Models\Setting::get('company_email').PHP_EOL;"
+            php artisan tinker --execute="echo 'before: '.(\App\Models\Setting::get('company_email') ?: '(empty)').PHP_EOL; \App\Models\Setting::put(['company_email' => 'support.restroone@gmail.com']); echo 'after: '.\App\Models\Setting::get('company_email').PHP_EOL;"
             echo "### DONE"
