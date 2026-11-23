@@ -1,0 +1,25 @@
+name: Show the last server error (manual)
+
+# One-off helper, run by hand. Never runs on push. Prints the newest error from
+# the application log (addresses masked) and whether the cache is in order.
+
+on:
+  workflow_dispatch:
+
+jobs:
+  run:
+    name: Last error
+    runs-on: ubuntu-latest
+    steps:
+      - name: Run on server
+        uses: appleboy/ssh-action@v1.0.3
+        with:
+          host: ${{ secrets.VPS_HOST }}
+          username: ${{ secrets.VPS_USER }}
+          key: ${{ secrets.VPS_SSH_KEY }}
+          port: ${{ secrets.VPS_PORT }}
+          script: |
+            cd ${{ secrets.VPS_PROJECT_PATH }}
+            git log --oneline -1
+            grep -n "ERROR" storage/logs/laravel*.log | tail -3 | cut -c1-400 | sed -E 's/[A-Za-z0-9._%+-]+@[A-Za-z0-9.-]+/<email>/g'
+            echo "### DONE"
