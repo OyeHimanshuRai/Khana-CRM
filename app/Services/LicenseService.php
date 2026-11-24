@@ -156,13 +156,14 @@ class LicenseService
     }
 
     /**
-     * A customer has just registered: their license is created on the spot and
-     * is waiting for the Super Admin, who sees it against the company.
+     * A customer has just registered: a license is created for their company on
+     * the spot, not yet activated.
      *
-     * The key is generated and stored hashed like any other, and is not shown
-     * to anybody: this license is approved, not typed in. If the platform
-     * would rather the customer enter a key, "Reset" it and issue one from the
-     * company's License panel.
+     * Until the customer has typed a key and the Super Admin has approved it,
+     * the company cannot use anything. The key is generated and stored hashed
+     * like any other and is not shown to anybody yet: the Super Admin opens the
+     * company's License panel and issues it ("Generate key"), which shows it
+     * once so it can be sent to the customer.
      */
     public function issueAtRegistration(Tenant $tenant, Plan $plan, User $owner, ?Request $request = null): ?License
     {
@@ -177,28 +178,7 @@ class LicenseService
             'notes' => 'Created at registration',
         ], $owner);
 
-        DB::transaction(function () use ($license, $tenant, $owner, $request) {
-            $license->forceFill([
-                'holder_tenant_id' => $tenant->id,
-                'activated_by_user_id' => $owner->id,
-                'status' => License::PENDING,
-                'requested_at' => now(),
-            ])->save();
-
-            LicenseActivation::create([
-                'license_id' => $license->id,
-                'tenant_id' => $tenant->id,
-                'user_id' => $owner->id,
-                'status' => LicenseActivation::PENDING,
-                'ip_address' => $request?->ip(),
-                'user_agent' => $request ? Str::limit((string) $request->userAgent(), 250, '') : null,
-                'requested_at' => now(),
-                'created_by' => $owner->id,
-                'updated_by' => $owner->id,
-            ]);
-
-            $this->log($license, 'registered', sprintf('%s registered; license created and waiting for approval', $tenant->name), [], $owner, $tenant, $request);
-        });
+        $this->log($license, 'registered', sprintf('%s registered; license created, waiting for a key to be issued', $tenant->name), [], $owner, $tenant, $request);
 
         DB::afterCommit(fn () => app(EventNotifier::class)->licenseRequested($license->fresh(['tenant', 'plan'])));
 

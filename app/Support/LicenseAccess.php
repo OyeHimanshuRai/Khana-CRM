@@ -55,7 +55,7 @@ final class LicenseAccess
                 return [self::REVOKED, __('Your license was withdrawn by the platform. Enter a new license key to continue.'), null];
             }
 
-            return [self::REQUIRED, __('Enter the license key you received to start using :company.', ['company' => $tenant->name]), null];
+            return [self::REQUIRED, __('Enter the license key you received to start using :company. Nothing can be added until it is activated. No key yet? Contact support.', ['company' => $tenant->name]), null];
         }
 
         return match (true) {
@@ -65,7 +65,7 @@ final class LicenseAccess
             $license->isExpired() => [self::EXPIRED, __('Your license expired on :date. Please contact support to renew it.', ['date' => $license->expires_at?->format('j M Y')]), $license],
             $license->status === License::ACTIVE && ! $tenant->subscription()->exists() => [self::NO_PLAN, __('No plan is assigned to your account yet. Please contact support.'), $license],
             $license->status === License::ACTIVE => [self::OK, null, $license],
-            default => [self::REQUIRED, __('Enter the license key you received to start using :company.', ['company' => $tenant->name]), $license],
+            default => [self::REQUIRED, __('Enter the license key you received to start using :company. Nothing can be added until it is activated. No key yet? Contact support.', ['company' => $tenant->name]), $license],
         };
     }
 

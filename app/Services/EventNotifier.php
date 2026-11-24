@@ -188,7 +188,7 @@ class EventNotifier
         });
     }
 
-    /** A customer entered a license key: the platform has an approval to make. */
+    /** A license needs the platform: a new customer waiting for a key, or one that has entered it and waits for approval. */
     public function licenseRequested(\App\Models\License $license): void
     {
         $this->safely('license_request', function () use ($license) {
@@ -198,13 +198,17 @@ class EventNotifier
                 return;
             }
 
+            $waiting = $license->status === \App\Models\License::ISSUED;
+
             $this->alerts->raise(
                 $shop,
                 Alert::LICENSE_REQUEST,
-                'License approval: '.($license->tenant?->name ?? $shop->name),
-                'license_request:'.$license->id.':'.optional($license->requested_at)->timestamp,
-                sprintf('%s · %s', $license->key_hint, $license->plan?->name ?? 'no plan'),
-                route('admin.tenants.index', ['license' => 'pending'], false),
+                ($waiting ? 'License needed: ' : 'License approval: ').($license->tenant?->name ?? $shop->name),
+                'license_request:'.$license->id.':'.$license->status.':'.optional($license->requested_at)->timestamp,
+                $waiting
+                    ? sprintf('Issue a key for %s', $license->plan?->name ?? 'their plan')
+                    : sprintf('%s · %s', $license->key_hint, $license->plan?->name ?? 'no plan'),
+                route('admin.tenants.index', ['license' => $waiting ? 'issued' : 'pending'], false),
                 $license,
                 can: 'settings.licenses.edit',
             );

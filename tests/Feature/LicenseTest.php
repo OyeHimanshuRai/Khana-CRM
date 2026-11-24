@@ -123,7 +123,7 @@ class LicenseTest extends TestCase
     }
 
     /**
-     * Put a customer back to "enter your key", and give them one to type.
+     * The Super Admin issues the company's key (shown once), for the customer to type.
      *
      * @return array{0: License, 1: string}
      */
@@ -131,7 +131,6 @@ class LicenseTest extends TestCase
     {
         $this->asSuperAdmin();
         $license = $this->registrationLicense($email);
-        $this->postJson(route('admin.licenses.act', [$license, 'reset']))->assertOk();
 
         $response = $this->postJson(route('admin.licenses.act', [$license, 'rotate']))->assertOk();
 
@@ -147,12 +146,12 @@ class LicenseTest extends TestCase
 
         $this->assertFalse((bool) $tenant->license_exempt);
 
-        // The license is created at registration, assigned to the company, waiting for the Super Admin.
+        // The license is created at registration for the company: not activated, nobody holds it yet.
         $license = $this->registrationLicense();
-        $this->assertSame(License::PENDING, $license->status);
-        $this->assertSame($tenant->id, $license->holder_tenant_id);
+        $this->assertSame(License::ISSUED, $license->status);
+        $this->assertSame($tenant->id, $license->tenant_id);
+        $this->assertNull($license->holder_tenant_id);
         $this->assertSame('restaurant', $license->plan->code);
-        $this->assertSame(1, $license->activations()->count());
 
         $this->signIn();
 
@@ -161,24 +160,21 @@ class LicenseTest extends TestCase
         $this->getJson('/dashboard')->assertStatus(403)->assertJsonPath('code', 'license_required');
     }
 
-    public function test_the_first_login_lands_on_the_license_page_waiting_for_approval(): void
+    public function test_the_first_login_lands_on_the_page_that_asks_for_the_key(): void
     {
         $this->register();
-        $this->signIn();
-
-        $this->get('/license')->assertOk()->assertSee('Waiting for approval');
-    }
-
-    public function test_after_a_reset_the_license_page_asks_for_the_key(): void
-    {
-        $this->register();
-        $this->keyFor();
         $this->signIn();
 
         $this->get('/license')
             ->assertOk()
             ->assertSee('Activate your license')
-            ->assertSee('license_key', false);
+            ->assertSee('license_key', false)
+            ->assertSee('Nothing can be added');
+
+        // And nothing else opens until it is entered and approved.
+        $this->get('/dashboard')->assertRedirect('/license');
+        $this->get('/products')->assertRedirect('/license');
+        $this->postJson('/products', ['name' => 'Naan'])->assertStatus(403)->assertJsonPath('code', 'license_required');
     }
 
     public function test_an_invalid_key_is_refused_and_nothing_changes(): void
@@ -190,7 +186,7 @@ class LicenseTest extends TestCase
             ->assertStatus(422)
             ->assertJsonPath('success', false);
 
-        $this->assertSame(License::PENDING, $this->registrationLicense()->status);
+        $this->assertSame(License::ISSUED, $this->registrationLicense()->status);
         $this->get('/dashboard')->assertRedirect('/license');
     }
 
@@ -288,15 +284,9 @@ class LicenseTest extends TestCase
     public function test_one_customer_cannot_hold_two_licences(): void
     {
         $this->register();
-        [, $other] = $this->issue();
-
-        // They already hold the one created at registration.
-        $this->signIn();
-        $this->postJson('/license/activate', ['license_key' => $other])->assertStatus(422);
-
-        // And after a reset they can hold exactly one more.
         [, $first] = $this->keyFor();
         [, $second] = $this->issue();
+
         $this->signIn();
         $this->postJson('/license/activate', ['license_key' => $first])->assertOk();
         $this->postJson('/license/activate', ['license_key' => $second])->assertStatus(422);
@@ -363,11 +353,15 @@ class LicenseTest extends TestCase
 
     /* ---------------------------------------------------- super admin controls */
 
-    /** Register-time license approved by the Super Admin, optionally with a shorter validity. */
+    /** The whole journey to an approved license: key issued, typed by the customer, approved. */
     private function approved(string $email = 'asha@spicegarden.test', int $days = 365): License
     {
+        [$license, $key] = $this->keyFor($email);
+
+        $this->signIn($email);
+        $this->postJson('/license/activate', ['license_key' => $key])->assertOk();
+
         $this->asSuperAdmin();
-        $license = $this->registrationLicense($email);
 
         if ($days !== 365) {
             app(LicenseService::class)->setExpiry($license, now()->addDays($days), $this->superAdmin());
@@ -488,22 +482,35 @@ class LicenseTest extends TestCase
     public function test_a_new_key_can_only_be_issued_before_activation(): void
     {
         $this->register();
-        $license = $this->registrationLicense();
+        [$license, $key] = $this->keyFor();
+        $first = $license->fresh()->key_hash;
+
+        // Issued again before anybody has typed it: the old key stops working.
+        $this->asSuperAdmin();
+        $this->postJson(route('admin.licenses.act', [$license, 'rotate']))->assertOk();
+        $this->assertNotSame($first, $license->fresh()->key_hash);
+
+        $this->signIn();
+        $this->postJson('/license/activate', ['license_key' => $key])->assertStatus(422);
+    }
+
+    public function test_a_key_cannot_be_reissued_once_the_customer_has_entered_it(): void
+    {
+        $this->register();
+        [$license, $key] = $this->keyFor();
+        $this->signIn();
+        $this->postJson('/license/activate', ['license_key' => $key])->assertOk();
 
         $this->asSuperAdmin();
-        // Pending: nothing to type yet.
         $this->postJson(route('admin.licenses.act', [$license, 'rotate']))->assertStatus(422);
-
-        $this->postJson(route('admin.licenses.act', [$license, 'reset']))->assertOk();
-        $old = $license->fresh()->key_hash;
-        $this->postJson(route('admin.licenses.act', [$license, 'rotate']))->assertOk();
-        $this->assertNotSame($old, $license->fresh()->key_hash);
     }
 
     public function test_rejecting_an_activation_lets_the_key_be_entered_again(): void
     {
         $this->register();
-        $license = $this->registrationLicense();
+        [$license, $key] = $this->keyFor();
+        $this->signIn();
+        $this->postJson('/license/activate', ['license_key' => $key])->assertOk();
 
         $this->asSuperAdmin();
         $this->postJson(route('admin.licenses.act', [$license, 'reject']), ['reason' => 'wrong shop'])->assertOk();
@@ -513,6 +520,7 @@ class LicenseTest extends TestCase
 
         $this->signIn();
         $this->get('/license')->assertSee('Activate your license');
+        $this->postJson('/license/activate', ['license_key' => $key])->assertOk();
     }
 
     public function test_renewing_and_extending_move_the_licence_and_the_subscription_together(): void
@@ -681,26 +689,28 @@ class LicenseTest extends TestCase
 
         $this->asSuperAdmin();
 
-        $this->get(route('admin.tenants.index'))
-            ->assertOk()
-            ->assertSee('Spice Garden')
-            ->assertSee('Pending Approval')
-            ->assertSee('Approve');
-
-        // Filtered by license state.
         $listed = fn (string $state) => $this->get(route('admin.tenants.index', ['license' => $state]))->assertOk()->viewData('tenants')->pluck('name')->all();
 
-        $this->assertContains('Spice Garden', $listed('pending'));
-        $this->assertNotContains('Spice Garden', $listed('active'));
+        $this->get(route('admin.tenants.index'))->assertOk()->assertSee('Spice Garden')->assertSee('Not activated');
+        $this->assertContains('Spice Garden', $listed('issued'));
+        $this->assertNotContains('Spice Garden', $listed('pending'));
         $this->assertNotContains('Spice Garden', $listed('none'));
 
-        // The company's license panel is a modal inside Companies, and never shows a key.
+        // The company's license panel is a modal inside Companies; it offers the key, never shows one.
         $this->get(route('admin.tenants.license', $license->tenant_id))
             ->assertOk()
             ->assertSee($license->key_hint)
-            ->assertSee('Approve');
+            ->assertSee('Generate key');
 
-        // Approved from there, it is Active in the list.
+        // Issued and typed by the customer: now it is waiting for approval, from the same list.
+        [, $key] = $this->keyFor();
+        $this->signIn();
+        $this->postJson('/license/activate', ['license_key' => $key])->assertOk();
+        $this->asSuperAdmin();
+
+        $this->get(route('admin.tenants.index'))->assertOk()->assertSee('Pending Approval')->assertSee('Approve');
+        $this->assertContains('Spice Garden', $listed('pending'));
+
         $this->postJson(route('admin.licenses.act', [$license, 'approve']))->assertOk();
         $this->assertContains('Spice Garden', $listed('active'));
     }
