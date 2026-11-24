@@ -180,7 +180,10 @@ class LicenseService
 
         $this->log($license, 'registered', sprintf('%s registered; license created, waiting for a key to be issued', $tenant->name), [], $owner, $tenant, $request);
 
-        DB::afterCommit(fn () => app(EventNotifier::class)->licenseRequested($license->fresh(['tenant', 'plan'])));
+        DB::afterCommit(function () use ($license, $tenant, $owner) {
+            app(EventNotifier::class)->licenseRequested($license->fresh(['tenant', 'plan']));
+            \App\Support\LicenseMailer::notifyPlatform(\App\Mail\LicenseRequestMail::REGISTERED, $tenant, $license->fresh(), $owner);
+        });
 
         return $license->fresh();
     }
@@ -197,7 +200,10 @@ class LicenseService
 
         $this->log($license, 'key_requested', sprintf('%s asked for a license key', $tenant->name), [], $user, $tenant, $request);
 
-        DB::afterCommit(fn () => app(EventNotifier::class)->licenseKeyRequested($tenant, $license));
+        DB::afterCommit(function () use ($tenant, $license, $user) {
+            app(EventNotifier::class)->licenseKeyRequested($tenant, $license);
+            \App\Support\LicenseMailer::notifyPlatform(\App\Mail\LicenseRequestMail::REQUESTED, $tenant, $license, $user);
+        });
     }
 
     /**
@@ -319,7 +325,10 @@ class LicenseService
                     $license->key_hint,
                 ), [], $user, $tenant, $request);
 
-                DB::afterCommit(fn () => app(EventNotifier::class)->licenseRequested($license->fresh(['tenant', 'plan'])));
+                DB::afterCommit(function () use ($license, $tenant, $user) {
+                    app(EventNotifier::class)->licenseRequested($license->fresh(['tenant', 'plan']));
+                    \App\Support\LicenseMailer::notifyPlatform(\App\Mail\LicenseRequestMail::ENTERED, $tenant, $license->fresh(), $user);
+                });
 
                 return $license;
             });

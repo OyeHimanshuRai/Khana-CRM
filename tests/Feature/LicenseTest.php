@@ -719,6 +719,48 @@ class LicenseTest extends TestCase
         $this->assertTrue($alert->isVisibleTo($this->superAdmin()));
     }
 
+    public function test_the_platform_is_emailed_when_a_license_needs_it(): void
+    {
+        \Illuminate\Support\Facades\Mail::fake();
+        \App\Models\Setting::put(['company_email' => 'support@example.test']);
+
+        $kinds = fn () => \Illuminate\Support\Facades\Mail::sent(\App\Mail\LicenseRequestMail::class)->map->kind->values()->all();
+
+        // A customer registers: the Super Admin and the support address are told a key is needed.
+        $this->register();
+        $this->assertSame(['registered'], $kinds());
+
+        \Illuminate\Support\Facades\Mail::assertSent(\App\Mail\LicenseRequestMail::class, function ($mail) {
+            return $mail->hasTo('admin@erp.test') && $mail->hasTo('support@example.test')
+                && str_contains($mail->envelope()->subject, 'Spice Garden')
+                && $mail->hasReplyTo('asha@spicegarden.test');
+        });
+
+        // They ask for their key.
+        $this->signIn();
+        $this->postJson('/license/request-key')->assertOk();
+        $this->assertSame(['registered', 'requested'], $kinds());
+
+        // They type the key the admin gave them: it now waits for approval.
+        [, $key] = $this->keyFor();
+        $this->signIn();
+        $this->postJson('/license/activate', ['license_key' => $key])->assertOk();
+        $this->assertSame(['registered', 'requested', 'entered'], $kinds());
+
+        // The email says what to do and where.
+        $html = (new \App\Mail\LicenseRequestMail('entered', $this->tenantOf('asha@spicegarden.test'), $this->registrationLicense()))->render();
+        $this->assertStringContainsString('Spice Garden', $html);
+        $this->assertStringContainsString('Review and approve', $html);
+    }
+
+    public function test_a_mail_failure_never_breaks_the_license_flow(): void
+    {
+        \Illuminate\Support\Facades\Mail::shouldReceive('to')->andThrow(new \RuntimeException('smtp down'));
+
+        $this->register();
+        $this->assertSame(License::ISSUED, $this->registrationLicense()->status);
+    }
+
     public function test_enforcement_can_be_switched_off(): void
     {
         $this->register();
