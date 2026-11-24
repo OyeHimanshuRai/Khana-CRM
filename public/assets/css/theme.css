@@ -3505,32 +3505,3 @@ input[type="number"],
 .tenant-contact { display: flex; flex-direction: column; gap: 1px; margin-top: 3px; overflow-wrap: anywhere; }
 .tenant-contact a { color: inherit; text-decoration: none; }
 @media (hover: hover) and (pointer: fine) { .tenant-contact a:hover { color: var(--brand-text); text-decoration: underline; } }
-
-/* ------------------------------------------- license modal: grouped actions */
-
-.lic-panel { display: grid; gap: 12px; margin-top: 16px; }
-.lic-group { border: 1px solid var(--border); border-radius: var(--radius-sm); padding: 12px 14px; display: grid; gap: 10px; }
-.lic-group-title { font-size: 11.5px; font-weight: 700; letter-spacing: .06em; text-transform: uppercase; color: var(--muted); }
-.lic-group form { margin: 0; }
-.lic-row { display: grid; grid-template-columns: 92px minmax(0, 1fr) 40px auto; align-items: center; gap: 8px; }
-.lic-row label { font-size: 13.5px; color: var(--text); margin: 0; }
-.lic-row .input { width: 100%; min-width: 0; height: 38px; }
-.lic-row .btn { height: 38px; white-space: nowrap; justify-content: center; }
-.lic-unit { font-size: 13px; color: var(--muted); }
-.lic-wide { width: 100%; justify-content: center; }
-.lic-pair { display: grid; grid-template-columns: 1fr 1fr; gap: 8px; }
-.lic-hint { margin: 6px 0 0; font-size: 12.5px; color: var(--muted); }
-.lic-buttons { display: flex; flex-wrap: wrap; gap: 8px; }
-.lic-danger { border-color: var(--danger-soft, var(--border)); }
-@media (max-width: 560px) {
-    .lic-row { grid-template-columns: minmax(0, 1fr) auto; grid-template-areas: 'label label' 'input btn'; }
-    .lic-row label { grid-area: label; }
-    .lic-row .lic-unit { display: none; }
-    .lic-row .input { grid-area: input; }
-    .lic-row .btn { grid-area: btn; }
-    .lic-buttons .btn { flex: 1 1 auto; }
-}
-.lic-facts { display: grid !important; grid-template-columns: repeat(3, minmax(0, 1fr)); gap: 14px 18px; }
-.lic-facts > div { min-width: 0; }
-.lic-facts dd { overflow-wrap: anywhere; }
-@media (max-width: 560px) { .lic-facts { grid-template-columns: repeat(2, minmax(0, 1fr)); } }

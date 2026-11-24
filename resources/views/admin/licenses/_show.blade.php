@@ -28,7 +28,7 @@
     </div>
 @endif
 
-<dl class="sec-facts lic-facts">
+<dl class="sec-facts">
     <div><dt>Customer</dt><dd>{{ $license->tenant?->name ?? '—' }}</dd></div>
     <div><dt>Plan</dt><dd>{{ $license->plan?->name ?? '—' }}</dd></div>
     <div><dt>Validity</dt><dd>{{ $license->validity_days }} days</dd></div>
@@ -50,128 +50,104 @@
 </dl>
 
 @if ($canEdit)
-    @php
-        $isLive = in_array($status, [License::ACTIVE, License::INACTIVE, License::ISSUED], true);
-        $canPlan = $status !== License::REVOKED;
-        $canReset = in_array($status, [License::ACTIVE, License::PENDING, License::INACTIVE, License::BLOCKED], true);
-    @endphp
+    <div style="margin-top:14px">
+        <div class="form-section-title">Actions</div>
 
-    <div class="lic-panel">
+        <div class="license-actions">
+            @if ($status === License::ISSUED)
+                <form method="POST" action="{{ $act('rotate') }}" data-ajax data-refresh-list data-license-generate data-toast-success="false">@csrf
+                    <button class="btn btn-sm btn-primary" type="submit">Generate key for {{ $tenant->name }}</button></form>
+            @endif
 
-        {{-- What needs doing now: the one primary action for this state. --}}
-        @if ($status === License::ISSUED || $status === License::PENDING || $status === License::INACTIVE)
-            <section class="lic-group">
-                <div class="lic-group-title">Next step</div>
+            @if ($status === License::PENDING)
+                <form method="POST" action="{{ $act('approve') }}" data-ajax data-close-modal data-refresh-list>@csrf
+                    <button class="btn btn-primary btn-sm" type="submit">Approve</button></form>
+                <form method="POST" action="{{ $act('reject') }}" data-ajax data-close-modal data-refresh-list
+                      onsubmit="return confirm('Reject this activation? The key can be entered again.')">@csrf
+                    <button class="btn btn-sm" type="submit">Reject</button></form>
+            @endif
 
-                @if ($status === License::ISSUED)
-                    <form method="POST" action="{{ $act('rotate') }}" data-ajax data-refresh-list data-license-generate data-toast-success="false">@csrf
-                        <button class="btn btn-primary lic-wide" type="submit">Generate key for {{ $tenant->name }}</button>
-                        <p class="lic-hint">Shown once. Send it to the customer - they type it and everything starts.</p>
-                    </form>
-                @elseif ($status === License::PENDING)
-                    <div class="lic-pair">
-                        <form method="POST" action="{{ $act('approve') }}" data-ajax data-close-modal data-refresh-list>@csrf
-                            <button class="btn btn-primary lic-wide" type="submit">Approve</button></form>
-                        <form method="POST" action="{{ $act('reject') }}" data-ajax data-close-modal data-refresh-list
-                              onsubmit="return confirm('Reject this activation? The key can be entered again.')">@csrf
-                            <button class="btn lic-wide" type="submit">Reject</button></form>
-                    </div>
+            @if ($status === License::ACTIVE)
+                <form method="POST" action="{{ $act('deactivate') }}" data-ajax data-close-modal data-refresh-list
+                      onsubmit="return confirm('Deactivate this license? The customer is locked out until you switch it back on.')">@csrf
+                    <button class="btn btn-sm" type="submit">Deactivate</button></form>
+            @endif
+            @if ($status === License::INACTIVE)
+                <form method="POST" action="{{ $act('reactivate') }}" data-ajax data-close-modal data-refresh-list>@csrf
+                    <button class="btn btn-sm btn-primary" type="submit">Activate again</button></form>
+            @endif
+
+            @if ($status === License::BLOCKED)
+                <form method="POST" action="{{ $act('unblock') }}" data-ajax data-close-modal data-refresh-list>@csrf
+                    <button class="btn btn-sm btn-primary" type="submit">Unblock license</button></form>
+            @elseif ($status !== License::REVOKED)
+                <form method="POST" action="{{ $act('block') }}" data-ajax data-close-modal data-refresh-list
+                      onsubmit="return confirm('Block this license?')">@csrf
+                    <button class="btn btn-sm" type="submit">Block license</button></form>
+            @endif
+
+            @if (in_array($status, [License::ACTIVE, License::PENDING, License::INACTIVE, License::BLOCKED], true))
+                <form method="POST" action="{{ $act('reset') }}" data-ajax data-close-modal data-refresh-list
+                      onsubmit="return confirm('Reset the activation? The customer will have to enter the key again.')">@csrf
+                    <button class="btn btn-sm" type="submit">Reset activation</button></form>
+            @endif
+
+            @if ($status !== License::REVOKED)
+                <form method="POST" action="{{ $act('revoke') }}" data-ajax data-close-modal data-refresh-list
+                      onsubmit="return confirm('Revoke this license for good? The key can never be used again.')">@csrf
+                    <button class="btn btn-sm is-danger" type="submit">Revoke</button></form>
+            @endif
+
+            @if ($license->tenant)
+                @if ($license->tenant->isSuspended())
+                    <form method="POST" action="{{ $act('unblock-customer') }}" data-ajax data-close-modal data-refresh-list>@csrf
+                        <button class="btn btn-sm btn-primary" type="submit">Unblock customer</button></form>
                 @else
-                    <form method="POST" action="{{ $act('reactivate') }}" data-ajax data-close-modal data-refresh-list>@csrf
-                        <button class="btn btn-primary lic-wide" type="submit">Activate again</button></form>
+                    <form method="POST" action="{{ $act('block-customer') }}" data-ajax data-close-modal data-refresh-list
+                          onsubmit="var r = prompt('Why is {{ $license->tenant->name }} being blocked?'); if (!r) { return false; } this.querySelector('[name=reason]').value = r; return true;">@csrf
+                        <input type="hidden" name="reason" value="">
+                        <button class="btn btn-sm is-danger" type="submit">Block customer</button></form>
                 @endif
-            </section>
-        @endif
+            @endif
+        </div>
 
-        @if ($isLive)
-            <section class="lic-group">
-                <div class="lic-group-title">Validity</div>
-
-                <form method="POST" action="{{ $act('renew') }}" data-ajax data-close-modal data-refresh-list class="lic-row">@csrf
-                    <label for="ren-{{ $license->id }}">Renew for</label>
-                    <input id="ren-{{ $license->id }}" type="number" name="days" class="input" min="1" max="3650" value="{{ $license->validity_days }}" required>
-                    <span class="lic-unit">days</span>
-                    <button class="btn" type="submit">Renew</button>
+        @if (in_array($status, [License::ACTIVE, License::INACTIVE, License::ISSUED], true))
+            <div class="license-forms">
+                <form method="POST" action="{{ $act('renew') }}" data-ajax data-close-modal data-refresh-list class="license-inline">@csrf
+                    <label class="sr-only" for="ren-{{ $license->id }}">Renew for days</label>
+                    <input id="ren-{{ $license->id }}" type="number" name="days" class="input" min="1" max="3650" value="{{ $license->validity_days }}" style="width:6rem" required>
+                    <button class="btn btn-sm" type="submit">Renew (days)</button>
                 </form>
 
-                <form method="POST" action="{{ $act('extend') }}" data-ajax data-close-modal data-refresh-list class="lic-row">@csrf
-                    <label for="ext-{{ $license->id }}">Extend by</label>
-                    <input id="ext-{{ $license->id }}" type="number" name="days" class="input" min="1" max="3650" value="30" required>
-                    <span class="lic-unit">days</span>
-                    <button class="btn" type="submit">Extend</button>
+                <form method="POST" action="{{ $act('extend') }}" data-ajax data-close-modal data-refresh-list class="license-inline">@csrf
+                    <label class="sr-only" for="ext-{{ $license->id }}">Extend by days</label>
+                    <input id="ext-{{ $license->id }}" type="number" name="days" class="input" min="1" max="3650" value="30" style="width:6rem" required>
+                    <button class="btn btn-sm" type="submit">Extend (days)</button>
                 </form>
 
-                <form method="POST" action="{{ $act('expiry') }}" data-ajax data-close-modal data-refresh-list class="lic-row">@csrf
-                    <label for="exp-{{ $license->id }}">Expires on</label>
+                <form method="POST" action="{{ $act('expiry') }}" data-ajax data-close-modal data-refresh-list class="license-inline">@csrf
+                    <label class="sr-only" for="exp-{{ $license->id }}">Expiry date</label>
                     <input id="exp-{{ $license->id }}" type="date" name="expires_at" class="input" min="{{ now()->addDay()->toDateString() }}"
                            value="{{ $license->expires_at?->toDateString() }}" required>
-                    <span class="lic-unit"></span>
-                    <button class="btn" type="submit">Set date</button>
+                    <button class="btn btn-sm" type="submit">Set expiry</button>
                 </form>
-            </section>
+            </div>
         @endif
 
-        @if ($canPlan)
-            <section class="lic-group">
-                <div class="lic-group-title">Plan</div>
-
-                <form method="POST" action="{{ $act('plan') }}" data-ajax data-close-modal data-refresh-list class="lic-row">@csrf
-                    <label for="pl-{{ $license->id }}">Move to</label>
+        @if ($status !== License::REVOKED)
+            <div class="license-forms">
+                <form method="POST" action="{{ $act('plan') }}" data-ajax data-close-modal data-refresh-list class="license-inline">@csrf
+                    <label class="sr-only" for="pl-{{ $license->id }}">Plan</label>
                     <select id="pl-{{ $license->id }}" name="plan_id" class="input" required>
                         @foreach ($plans as $plan)
                             <option value="{{ $plan->id }}" @selected($license->plan_id === $plan->id)>{{ $plan->name }}</option>
                         @endforeach
                     </select>
-                    <span class="lic-unit"></span>
-                    <button class="btn" type="submit">Upgrade / downgrade</button>
+                    <button class="btn btn-sm" type="submit">Upgrade / downgrade</button>
                 </form>
-            </section>
-        @endif
 
-        <section class="lic-group lic-danger">
-            <div class="lic-group-title">Access</div>
-
-            <div class="lic-buttons">
-                @if ($status === License::ACTIVE)
-                    <form method="POST" action="{{ $act('deactivate') }}" data-ajax data-close-modal data-refresh-list
-                          onsubmit="return confirm('Deactivate this license? The customer is locked out until you switch it back on.')">@csrf
-                        <button class="btn" type="submit">Deactivate</button></form>
-                @endif
-
-                @if ($status === License::BLOCKED)
-                    <form method="POST" action="{{ $act('unblock') }}" data-ajax data-close-modal data-refresh-list>@csrf
-                        <button class="btn btn-primary" type="submit">Unblock license</button></form>
-                @elseif ($status !== License::REVOKED)
-                    <form method="POST" action="{{ $act('block') }}" data-ajax data-close-modal data-refresh-list
-                          onsubmit="return confirm('Block this license?')">@csrf
-                        <button class="btn" type="submit">Block license</button></form>
-                @endif
-
-                @if ($canReset)
-                    <form method="POST" action="{{ $act('reset') }}" data-ajax data-close-modal data-refresh-list
-                          onsubmit="return confirm('Reset the activation? The customer will have to enter the key again.')">@csrf
-                        <button class="btn" type="submit">Reset activation</button></form>
-                @endif
-
-                @if ($license->tenant)
-                    @if ($license->tenant->isSuspended())
-                        <form method="POST" action="{{ $act('unblock-customer') }}" data-ajax data-close-modal data-refresh-list>@csrf
-                            <button class="btn btn-primary" type="submit">Unblock customer</button></form>
-                    @else
-                        <form method="POST" action="{{ $act('block-customer') }}" data-ajax data-close-modal data-refresh-list
-                              onsubmit="var r = prompt('Why is {{ addslashes($license->tenant->name) }} being blocked?'); if (!r) { return false; } this.querySelector('[name=reason]').value = r; return true;">@csrf
-                            <input type="hidden" name="reason" value="">
-                            <button class="btn is-danger" type="submit">Block customer</button></form>
-                    @endif
-                @endif
-
-                @if ($status !== License::REVOKED)
-                    <form method="POST" action="{{ $act('revoke') }}" data-ajax data-close-modal data-refresh-list
-                          onsubmit="return confirm('Revoke this license for good? The key can never be used again.')">@csrf
-                        <button class="btn is-danger" type="submit">Revoke license</button></form>
-                @endif
             </div>
-        </section>
+        @endif
     </div>
 @endif
 
