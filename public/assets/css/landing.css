@@ -541,7 +541,6 @@ body.lp {
 .lp-feature {
     background: var(--lp-surface);
     border: 1px solid var(--lp-line);
-    border-radius: var(--lp-radius);
     padding: 22px 22px 24px;
 }
 
