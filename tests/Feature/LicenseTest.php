@@ -654,6 +654,40 @@ class LicenseTest extends TestCase
         $this->get('/dashboard')->assertOk();
     }
 
+    public function test_the_migration_makes_existing_customers_need_a_license_too(): void
+    {
+        $this->register();
+        $tenant = $this->tenantOf('asha@spicegarden.test');
+
+        // As on the live site today: an old customer, exempt, no license, a paid term still running.
+        License::query()->where('tenant_id', $tenant->id)->delete();
+        $tenant->forceFill(['license_exempt' => true])->save();
+        $end = now()->addDays(40)->startOfSecond();
+        $tenant->subscription()->first()->forceFill(['ends_at' => $end])->save();
+
+        $inHouse = Tenant::query()->where('code', 'MAIN')->firstOrFail();
+        $this->assertTrue((bool) $inHouse->license_exempt);
+
+        $migration = require base_path('database/migrations/2026_11_26_100000_require_license_for_existing_customers.php');
+        $migration->up();
+        $migration->up(); // safe to run twice
+
+        $tenant->refresh();
+        $this->assertFalse((bool) $tenant->license_exempt);
+        $this->assertTrue((bool) $inHouse->fresh()->license_exempt, 'the platform itself is not a customer');
+
+        $license = License::query()->where('tenant_id', $tenant->id)->get();
+        $this->assertCount(1, $license);
+        $this->assertSame(License::ISSUED, $license->first()->status);
+        $this->assertSame($tenant->subscription()->first()->plan_id, $license->first()->plan_id);
+        $this->assertTrue($license->first()->expires_at->isSameDay($end), 'their paid term is carried over');
+
+        // And they are asked for a key like anybody else, until the Super Admin issues one.
+        $this->signIn();
+        $this->get('/dashboard')->assertRedirect('/license');
+        $this->get('/license')->assertOk()->assertSee('Activate your license');
+    }
+
     public function test_enforcement_can_be_switched_off(): void
     {
         $this->register();
