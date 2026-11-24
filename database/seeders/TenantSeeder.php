@@ -33,7 +33,7 @@ class TenantSeeder extends Seeder
     {
         $name = Setting::get('company_name', config('app.name'));
 
-        return Tenant::query()->create([
+        $tenant = Tenant::query()->create([
             'name' => $name,
             'code' => 'MAIN',
             'slug' => Tenant::uniqueSlug($name),
@@ -51,6 +51,11 @@ class TenantSeeder extends Seeder
             'is_active' => true,
             'sort_order' => 0,
         ]);
+
+        // The in-house company is the platform's own: no licence key to register.
+        $tenant->forceFill(['license_exempt' => true])->save();
+
+        return $tenant;
     }
 
     /**

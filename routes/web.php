@@ -61,6 +61,8 @@ use App\Http\Controllers\Admin\StockAdjustmentController;
 use App\Http\Controllers\Admin\StockController;
 use App\Http\Controllers\Admin\StockRestockController;
 use App\Http\Controllers\Admin\StockTransferController;
+use App\Http\Controllers\Admin\LicenseActivationController;
+use App\Http\Controllers\Admin\LicenseController;
 use App\Http\Controllers\Admin\SubscriptionController;
 use App\Http\Controllers\Admin\SupplierController;
 use App\Http\Controllers\Admin\DemoRequestController as AdminDemoRequestController;
@@ -1118,6 +1120,37 @@ Route::prefix('superadmin')->name('admin.')->group(function () {
             ->name('plans.destroy');
 
         /*
+        | Licences.
+        |
+        | The customer's own page (`license`, singular) is registered first so
+        | it is never read as a licence id. Reading the platform's list is
+        | `settings.licenses.view`; every write is `settings.licenses.edit`,
+        | and the customer's single write - presenting a key - needs the same
+        | right as paying for the plan, which only a company owner holds.
+        */
+        Route::middleware('permission:settings.subscriptions.view')->group(function () {
+            Route::get('license', [LicenseActivationController::class, 'show'])->name('license.show');
+            Route::get('license/status', [LicenseActivationController::class, 'status'])->name('license.status');
+        });
+        Route::post('license/activate', [LicenseActivationController::class, 'activate'])
+            ->middleware(['permission:settings.subscriptions.pay', 'throttle:20,1'])
+            ->name('license.activate');
+
+        Route::middleware('permission:settings.licenses.view')->group(function () {
+            Route::get('licenses', [LicenseController::class, 'index'])->name('licenses.index');
+            Route::get('licenses/history', [LicenseController::class, 'history'])->name('licenses.history');
+            Route::get('licenses/create', [LicenseController::class, 'create'])->name('licenses.create');
+            Route::get('licenses/{license}', [LicenseController::class, 'show'])->whereNumber('license')->name('licenses.show');
+        });
+        Route::middleware('permission:settings.licenses.edit')->group(function () {
+            Route::post('licenses', [LicenseController::class, 'store'])->name('licenses.store');
+            Route::post('licenses/{license}/{action}', [LicenseController::class, 'act'])
+                ->whereNumber('license')
+                ->where('action', '[a-z-]+')
+                ->name('licenses.act');
+        });
+
+        /*
         | Subscriptions and billing (§4, §21).
         |
         | One permission opens the screens; the controller decides whose
@@ -1183,6 +1216,14 @@ Route::prefix('superadmin')->name('admin.')->group(function () {
             Route::put('subscriptions/{tenant}/cancel', [SubscriptionController::class, 'cancel'])
                 ->whereNumber('tenant')
                 ->name('subscriptions.cancel');
+            Route::put('subscriptions/{tenant}/extend', [SubscriptionController::class, 'extend'])
+                ->whereNumber('tenant')->name('subscriptions.extend');
+            Route::put('subscriptions/{tenant}/validity', [SubscriptionController::class, 'validity'])
+                ->whereNumber('tenant')->name('subscriptions.validity');
+            Route::put('subscriptions/{tenant}/suspend', [SubscriptionController::class, 'suspend'])
+                ->whereNumber('tenant')->name('subscriptions.suspend');
+            Route::put('subscriptions/{tenant}/reactivate', [SubscriptionController::class, 'reactivate'])
+                ->whereNumber('tenant')->name('subscriptions.reactivate');
             Route::put('subscriptions/{tenant}/resume', [SubscriptionController::class, 'resume'])
                 ->whereNumber('tenant')
                 ->name('subscriptions.resume');

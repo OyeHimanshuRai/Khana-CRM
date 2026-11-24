@@ -188,6 +188,29 @@ class EventNotifier
         });
     }
 
+    /** A customer entered a license key: the platform has an approval to make. */
+    public function licenseRequested(\App\Models\License $license): void
+    {
+        $this->safely('license_request', function () use ($license) {
+            $shop = Shop::query()->withoutGlobalScopes()->where('tenant_id', $license->tenant_id)->orderBy('id')->first();
+
+            if ($shop === null) {
+                return;
+            }
+
+            $this->alerts->raise(
+                $shop,
+                Alert::LICENSE_REQUEST,
+                'License approval: '.($license->tenant?->name ?? $shop->name),
+                'license_request:'.$license->id.':'.optional($license->requested_at)->timestamp,
+                sprintf('%s · %s', $license->key_hint, $license->plan?->name ?? 'no plan'),
+                route('admin.licenses.index', ['status' => 'pending'], false),
+                $license,
+                can: 'settings.licenses.edit',
+            );
+        });
+    }
+
     /** Money in for a plan: a receipt to the owners, an alert to us. */
     public function subscriptionPaid(SubscriptionPayment $payment): void
     {

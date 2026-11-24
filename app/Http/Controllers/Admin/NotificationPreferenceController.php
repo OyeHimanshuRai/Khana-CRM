@@ -80,6 +80,7 @@ class NotificationPreferenceController extends Controller
             \App\Models\Alert::SIGNUP => 'settings.tenants.create',
             \App\Models\Alert::SUBSCRIPTION_PAID => 'settings.subscriptions.edit',
             \App\Models\Alert::RENEWAL_REQUEST => 'settings.subscriptions.edit',
+            \App\Models\Alert::LICENSE_REQUEST => 'settings.licenses.edit',
             \App\Models\Alert::DEMO_REQUEST => 'content.demo_requests.view',
         ];
 

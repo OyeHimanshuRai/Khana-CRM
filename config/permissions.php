@@ -711,6 +711,20 @@ return [
                     'actions' => ['view', 'edit', 'export', 'pay'],
                 ],
 
+                /*
+                | License keys (one-time registration of a customer).
+                |
+                |   view    see the license list, its history and the approvals queue.
+                |   edit    generate, assign, approve, reject, switch off, block,
+                |           revoke, reset, renew, extend, change plan. Platform
+                |           work; Super Admin only - it lives under `settings`,
+                |           which Tenant Owner is never granted wholesale.
+                */
+                'licenses' => [
+                    'label' => 'Licenses',
+                    'actions' => ['view', 'edit'],
+                ],
+
                 'pages' => [
                     'label' => 'Site Pages',
                     // The platform's own privacy, terms and refund pages.

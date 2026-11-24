@@ -3473,3 +3473,20 @@ input[type="number"],
     .modal-body .form-section { margin-top: 14px; }
     .modal-body .settings-grid, .modal-body .form-row { gap: 0 14px; }
 }
+
+/* ------------------------------------------------------------ licences */
+
+.license-key-box { display: flex; align-items: center; justify-content: space-between; gap: 10px; padding: 12px 14px; border: 1px dashed var(--border); border-radius: var(--radius-sm); background: var(--surface-2, transparent); }
+.license-key-box code { font-size: 15px; font-weight: 700; letter-spacing: .04em; overflow-wrap: anywhere; }
+.license-actions { display: flex; flex-wrap: wrap; gap: 8px; margin-bottom: 10px; }
+.license-actions form { margin: 0; }
+.license-forms { display: flex; flex-wrap: wrap; gap: 8px; margin-top: 8px; }
+.license-inline { display: inline-flex; gap: 6px; align-items: center; flex-wrap: wrap; margin: 0; }
+.license-history { margin: 0; padding-left: 18px; max-height: 220px; overflow: auto; }
+.license-input { text-transform: uppercase; letter-spacing: .05em; font-weight: 600; }
+.license-facts { padding: 14px 16px; }
+@media (max-width: 640px) {
+    .license-key-box { flex-direction: column; align-items: stretch; }
+    .license-actions .btn, .license-inline .btn { flex: 1 1 auto; }
+}
+.license-card { margin-bottom: 16px; }

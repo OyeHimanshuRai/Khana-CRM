@@ -10,6 +10,12 @@
 @endpush
 
 @section('content')
+    {{-- The customer's plan, license and expiry (and the renewal warning). Not for the platform's own admin. --}}
+    @php $licenseTenant = auth()->user()?->isSuperAdmin() ? null : \App\Support\CurrentTenant::get(); @endphp
+    @if ($licenseTenant)
+        @include('admin.license._card', ['summary' => \App\Support\LicenseAccess::summary($licenseTenant)])
+    @endif
+
     @php
         /*
          | Every block below is null when the reader is not entitled to it,

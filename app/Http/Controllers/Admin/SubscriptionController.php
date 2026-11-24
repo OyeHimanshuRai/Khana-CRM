@@ -428,6 +428,77 @@ class SubscriptionController extends Controller
         );
     }
 
+    /** Add days to the end of the current term (renewal by hand, no payment). */
+    public function extend(Request $request, Tenant $tenant): JsonResponse
+    {
+        $this->authoriseEdit();
+
+        $data = $request->validate(['days' => ['required', 'integer', 'min:1', 'max:3650']]);
+        $subscription = $tenant->subscription()->first();
+
+        if ($subscription === null) {
+            return ApiResponse::error("\"{$tenant->name}\" is not on a plan, so there is no term to extend.");
+        }
+
+        $base = $subscription->ends_at !== null && $subscription->ends_at->isFuture() ? $subscription->ends_at->copy() : now();
+        $subscription = $this->subscriptions->setEnd($subscription, $base->addDays((int) $data['days'])->endOfDay(), 'Extended by '.$data['days'].' days');
+        app(\App\Services\LicenseService::class)->syncExpiryFromSubscription($tenant->id);
+
+        ActivityLog::record('subscription.extended', "Extended the subscription for \"{$tenant->name}\" by {$data['days']} days", $subscription);
+
+        return ApiResponse::success(sprintf('Extended. %s now runs until %s.', $tenant->name, $subscription->ends_at->format('j M Y')));
+    }
+
+    /** Move the end of the term to an exact date - longer or shorter. */
+    public function validity(Request $request, Tenant $tenant): JsonResponse
+    {
+        $this->authoriseEdit();
+
+        $data = $request->validate(['ends_at' => ['required', 'date', 'after:today']]);
+        $subscription = $tenant->subscription()->first();
+
+        if ($subscription === null) {
+            return ApiResponse::error("\"{$tenant->name}\" is not on a plan.");
+        }
+
+        $subscription = $this->subscriptions->setEnd($subscription, \Illuminate\Support\Carbon::parse($data['ends_at'])->endOfDay(), 'Validity changed');
+
+        // A license ends with the subscription it granted: move it to the same day.
+        $license = \App\Models\License::query()->where('holder_tenant_id', $tenant->id)->where('status', \App\Models\License::ACTIVE)->first();
+        if ($license !== null) {
+            app(\App\Services\LicenseService::class)->setExpiry($license, $subscription->ends_at);
+        }
+
+        ActivityLog::record('subscription.validity_changed', "Changed the validity for \"{$tenant->name}\" to ".$subscription->ends_at->format('j M Y'), $subscription);
+
+        return ApiResponse::success(sprintf('%s now runs until %s.', $tenant->name, $subscription->ends_at->format('j M Y')));
+    }
+
+    /** Stop a business working, by hand. Everything it recorded is kept. */
+    public function suspend(Request $request, Tenant $tenant): JsonResponse
+    {
+        $this->authoriseEdit();
+
+        $data = $request->validate(['reason' => ['required', 'string', 'max:200']]);
+
+        app(\App\Services\LicenseService::class)->blockCustomer($tenant, $data['reason']);
+
+        ActivityLog::record('subscription.suspended', "Suspended \"{$tenant->name}\": {$data['reason']}", $tenant);
+
+        return ApiResponse::success("\"{$tenant->name}\" is suspended and cannot sign in.");
+    }
+
+    public function reactivate(Tenant $tenant): JsonResponse
+    {
+        $this->authoriseEdit();
+
+        app(\App\Services\LicenseService::class)->unblockCustomer($tenant);
+
+        ActivityLog::record('subscription.reactivated', "Reactivated \"{$tenant->name}\"", $tenant);
+
+        return ApiResponse::success("\"{$tenant->name}\" is trading again.");
+    }
+
     public function cancel(Request $request, Tenant $tenant): JsonResponse
     {
         $this->authoriseEdit();

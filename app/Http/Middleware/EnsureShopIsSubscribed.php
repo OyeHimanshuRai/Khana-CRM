@@ -30,6 +30,7 @@ class EnsureShopIsSubscribed
         'admin.profile.*',
         'admin.notifications.*',
         'admin.subscription.*',
+        'admin.license.*',
     ];
 
     /**

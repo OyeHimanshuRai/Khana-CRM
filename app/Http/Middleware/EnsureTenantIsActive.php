@@ -20,6 +20,9 @@ class EnsureTenantIsActive
      * password there first - without it the two rules bounced the owner
      * between each other forever.
      */
+    /** What a company without a working license may still reach: the license page, the profile, sign-out. */
+    private const LICENSE_ONLY = ['admin.license.*', 'admin.profile.*', 'admin.logout'];
+
     private const BILLING_ONLY = ['admin.subscription.*', 'admin.profile.*', 'admin.logout'];
 
     /**
@@ -54,8 +57,28 @@ class EnsureTenantIsActive
         return match ($state) {
             AccountAccess::OPEN => $next($request),
             AccountAccess::BILLING_ONLY => $this->billingOnly($request, $next, $message),
+            AccountAccess::LICENSE => $this->licenseOnly($request, $next, $message),
             default => $this->refuse($request, $message),
         };
+    }
+
+    /**
+     * Let the license page through and send everything else to it.
+     *
+     * @param  \Closure(\Illuminate\Http\Request): (\Symfony\Component\HttpFoundation\Response)  $next
+     */
+    private function licenseOnly(Request $request, Closure $next, ?string $message): Response
+    {
+        if ($request->routeIs(...self::LICENSE_ONLY)) {
+            return $next($request);
+        }
+
+        if ($request->expectsJson() || ! $request->hasSession()) {
+            return response()->json(['success' => false, 'message' => $message, 'code' => 'license_required', 'errors' => (object) []], 403);
+        }
+
+        // The license page says where things stand itself; a red flash on top would just repeat it.
+        return redirect()->route('admin.license.show');
     }
 
     /**

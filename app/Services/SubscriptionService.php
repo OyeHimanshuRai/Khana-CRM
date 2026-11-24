@@ -116,6 +116,84 @@ class SubscriptionService
     }
 
     /**
+     * Put a tenant on a plan for a fixed term set by the platform.
+     *
+     * This is what a license does when the Super Admin approves it: a new row
+     * (so the history shows the change) whose `ends_at` is the license's
+     * expiry. No trial and no payment - the license is the entitlement.
+     */
+    public function grantTerm(Tenant $tenant, Plan $plan, CarbonInterface $endsAt, ?string $note = null): Subscription
+    {
+        return DB::transaction(function () use ($tenant, $plan, $endsAt, $note) {
+            $current = $tenant->subscriptions()->latest('id')->lockForUpdate()->first();
+
+            $subscription = $tenant->subscriptions()->create([
+                'plan_id' => $plan->id,
+                'billing_period' => Plan::MONTHLY,
+                'price' => $plan->priceFor(Plan::MONTHLY),
+                'currency' => $plan->currency,
+                'starts_at' => Carbon::now(),
+                'trial_ends_at' => null,
+                'ends_at' => $endsAt,
+                'grace_days' => $current->grace_days ?? 3,
+                'note' => $note,
+                'created_by' => Auth::id(),
+            ]);
+
+            PlanAccess::forget();
+            $this->reflectOnTenant($subscription);
+
+            return $subscription->load('plan');
+        });
+    }
+
+    /**
+     * Move the end of the current term to an exact moment.
+     *
+     * Used for "change validity" and for keeping a license and its
+     * subscription on the same date. Un-cancels, because moving the end of a
+     * term somebody is using is the opposite of cancelling it.
+     */
+    public function setEnd(Subscription $subscription, CarbonInterface $endsAt, ?string $note = null): Subscription
+    {
+        return DB::transaction(function () use ($subscription, $endsAt, $note) {
+            $locked = Subscription::query()->lockForUpdate()->findOrFail($subscription->id);
+
+            $locked->forceFill([
+                'ends_at' => $endsAt,
+                'cancelled_at' => null,
+                'note' => $note ?: $locked->note,
+            ])->save();
+
+            PlanAccess::forget();
+            $this->reflectOnTenant($locked);
+
+            return $locked;
+        });
+    }
+
+    /**
+     * Suspend a business by hand (a person's decision, not the billing sweep).
+     *
+     * The reason deliberately does not start with "Subscription ": paying an
+     * invoice must not lift a suspension somebody chose.
+     */
+    public function suspend(Tenant $tenant, string $reason): void
+    {
+        if (! $tenant->isSuspended()) {
+            $tenant->suspend('Suspended by the platform: '.$reason);
+        }
+    }
+
+    /** Lift a hand-made suspension. */
+    public function reactivate(Tenant $tenant): void
+    {
+        if ($tenant->isSuspended()) {
+            $tenant->restore_();
+        }
+    }
+
+    /**
      * Record money received, and move the term forward by what it bought.
      *
      * The payment and the extension are one act. A receipt that did not
@@ -200,6 +278,12 @@ class SubscriptionService
             // is really on the books, not inside a transaction that might
             // still roll back.
             DB::afterCommit(fn () => app(EventNotifier::class)->subscriptionPaid($payment));
+
+            // A license and its subscription end on the same day: money that
+            // buys more time buys it on both.
+            if ($extends) {
+                DB::afterCommit(fn () => app(\App\Services\LicenseService::class)->syncExpiryFromSubscription($subscription->tenant_id));
+            }
 
             return $payment;
         });

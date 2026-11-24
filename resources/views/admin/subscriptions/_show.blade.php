@@ -190,6 +190,45 @@
             </form>
         @endif
 
+        @if ($subscription)
+            <form method="POST" action="{{ route('admin.subscriptions.extend', $tenant) }}"
+                  data-ajax data-close-modal data-refresh-list style="display:inline-flex;gap:.4rem;align-items:center">
+                @csrf
+                @method('PUT')
+                <label class="sr-only" for="term-days-{{ $tenant->id }}">Days to add to the term</label>
+                <input type="number" id="term-days-{{ $tenant->id }}" name="days" class="input" value="30" min="1" max="3650" required style="width:5rem">
+                <button type="submit" class="btn">Extend term (days)</button>
+            </form>
+
+            <form method="POST" action="{{ route('admin.subscriptions.validity', $tenant) }}"
+                  data-ajax data-close-modal data-refresh-list style="display:inline-flex;gap:.4rem;align-items:center">
+                @csrf
+                @method('PUT')
+                <label class="sr-only" for="term-date-{{ $tenant->id }}">New end date</label>
+                <input type="date" id="term-date-{{ $tenant->id }}" name="ends_at" class="input" min="{{ now()->addDay()->toDateString() }}"
+                       value="{{ $subscription->ends_at?->toDateString() }}" required>
+                <button type="submit" class="btn">Change validity</button>
+            </form>
+        @endif
+
+        @if ($tenant->isSuspended() && ! $tenant->isSuspendedForBilling())
+            <form method="POST" action="{{ route('admin.subscriptions.reactivate', $tenant) }}"
+                  data-ajax data-close-modal data-refresh-list style="display:inline">
+                @csrf
+                @method('PUT')
+                <button type="submit" class="btn btn-primary">Reactivate</button>
+            </form>
+        @elseif (! $tenant->isSuspended())
+            <form method="POST" action="{{ route('admin.subscriptions.suspend', $tenant) }}"
+                  data-ajax data-close-modal data-refresh-list style="display:inline"
+                  onsubmit="var r = prompt('Why is {{ addslashes($tenant->name) }} being suspended?'); if (!r) { return false; } this.querySelector('[name=reason]').value = r; return true;">
+                @csrf
+                @method('PUT')
+                <input type="hidden" name="reason" value="">
+                <button type="submit" class="btn is-danger">Suspend</button>
+            </form>
+        @endif
+
         @if ($subscription && $subscription->cancelled_at === null)
             <form method="POST" action="{{ route('admin.subscriptions.extend-trial', $tenant) }}"
                   data-ajax data-close-modal data-refresh-list style="display:inline-flex;gap:.4rem;align-items:center">

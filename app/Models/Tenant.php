@@ -38,10 +38,13 @@ class Tenant extends Model
         'is_active', 'sort_order',
     ];
 
+    // `license_exempt` is written by the platform alone, never by a form.
+
     protected function casts(): array
     {
         return [
             'is_active' => 'boolean',
+            'license_exempt' => 'boolean',
             'suspended_at' => 'datetime',
             'sort_order' => 'integer',
         ];
@@ -85,6 +88,27 @@ class Tenant extends Model
     public function subscription(): HasOne
     {
         return $this->hasOne(Subscription::class)->latestOfMany();
+    }
+
+    /** Every license this business has held or been given, newest first. */
+    public function licenses(): HasMany
+    {
+        return $this->hasMany(License::class)->orderByDesc('id');
+    }
+
+    /**
+     * The license the business holds right now (pending, active, suspended or
+     * blocked) - at most one, enforced by `licenses.holder_tenant_id`.
+     */
+    public function heldLicense(): \Illuminate\Database\Eloquent\Relations\HasOne
+    {
+        return $this->hasOne(License::class, 'holder_tenant_id');
+    }
+
+    /** Must this business register a license before it can work? */
+    public function needsLicense(): bool
+    {
+        return (bool) config('license.enforce') && ! $this->license_exempt;
     }
 
     /** @return HasMany<SubscriptionPayment, $this> */

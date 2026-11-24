@@ -65,6 +65,9 @@ class Alert extends Model
     /** Platform-only: a lapsed business asked to renew, where nothing is paid online. */
     public const RENEWAL_REQUEST = 'renewal_request';
 
+    /** Platform-only: a customer entered a license key and is waiting for approval. */
+    public const LICENSE_REQUEST = 'license_request';
+
     /**
      * What the platform's own people (the Super Admins) are told: the business itself - who signed up,
      * who paid, who wrote to support, who asked to renew. Never what happens inside a customer's restaurant
@@ -72,7 +75,7 @@ class Alert extends Model
      *
      * @var array<int, string>
      */
-    public const PLATFORM_TYPES = [self::SIGNUP, self::SUBSCRIPTION_PAID, self::DEMO_REQUEST, self::RENEWAL_REQUEST];
+    public const PLATFORM_TYPES = [self::SIGNUP, self::SUBSCRIPTION_PAID, self::DEMO_REQUEST, self::RENEWAL_REQUEST, self::LICENSE_REQUEST];
 
     /** @var array<string, array{label: string, icon: string}> */
     public const TYPES = [
@@ -88,6 +91,7 @@ class Alert extends Model
         self::SUBSCRIPTION_PAID => ['label' => 'Plan payment', 'icon' => 'wallet'],
         self::DEMO_REQUEST => ['label' => 'Support request', 'icon' => 'phone'],
         self::RENEWAL_REQUEST => ['label' => 'Renewal request', 'icon' => 'wallet'],
+        self::LICENSE_REQUEST => ['label' => 'License approval', 'icon' => 'shield'],
     ];
 
     /* Written by AlertService alone. */
@@ -222,6 +226,10 @@ class Alert extends Model
             self::RENEWAL_REQUEST => [
                 'en' => 'A business asked to renew',
                 'hi' => 'प्लान रिन्यू करने की रिक्वेस्ट आई है',
+            ],
+            self::LICENSE_REQUEST => [
+                'en' => 'A license is waiting for approval',
+                'hi' => 'एक लाइसेंस अप्रूवल का इंतज़ार कर रहा है',
             ],
             self::PAYMENT_RECEIVED => [
                 'en' => 'Payment received',

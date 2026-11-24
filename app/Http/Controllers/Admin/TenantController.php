@@ -181,7 +181,9 @@ class TenantController extends Controller
         }
 
         DB::transaction(function () use ($tenant, $billing, $request) {
-            $tenant->save();
+            // A company the platform creates by hand is already authorised by the platform:
+            // no license key to register. Self-service sign-ups are not exempt.
+            $tenant->forceFill(['license_exempt' => true])->save();
 
             if (filled($billing['plan_id'] ?? null)) {
                 app(SubscriptionService::class)->subscribe(

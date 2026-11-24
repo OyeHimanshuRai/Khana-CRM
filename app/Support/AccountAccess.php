@@ -36,6 +36,12 @@ final class AccountAccess
     public const REFUSED = 'refused';
 
     /**
+     * The company has no working license: the owner is kept in on the license
+     * page (to register a key or see where approval stands) and nothing else.
+     */
+    public const LICENSE = 'license';
+
+    /**
      * @return array{0: string, 1: ?string} the state, and what to tell the person
      */
     public static function decide(User $user): array
@@ -64,6 +70,19 @@ final class AccountAccess
 
             // A person suspended it - a dispute, an investigation. Paying is not a way back in.
             return [self::REFUSED, __('access to :company is currently suspended. Please contact support.', ['company' => $tenant->name])];
+        }
+
+        /*
+         | The license. A customer cannot reach anything until the platform has
+         | approved a license key for them; see LicenseAccess. Judged before the
+         | subscription because it is the first thing a new customer lacks.
+         */
+        [$license, $licenseMessage] = LicenseAccess::check($tenant);
+
+        if ($license !== LicenseAccess::OK) {
+            return $user->can('settings.subscriptions.pay')
+                ? [self::LICENSE, $licenseMessage]
+                : [self::REFUSED, __(':company has not got a working license yet. Please ask your account owner.', ['company' => $tenant->name])];
         }
 
         /*
