@@ -204,7 +204,7 @@ class EventNotifier
                 'License approval: '.($license->tenant?->name ?? $shop->name),
                 'license_request:'.$license->id.':'.optional($license->requested_at)->timestamp,
                 sprintf('%s · %s', $license->key_hint, $license->plan?->name ?? 'no plan'),
-                route('admin.licenses.index', ['status' => 'pending'], false),
+                route('admin.tenants.index', ['license' => 'pending'], false),
                 $license,
                 can: 'settings.licenses.edit',
             );

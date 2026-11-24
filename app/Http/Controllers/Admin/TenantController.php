@@ -56,6 +56,7 @@ class TenantController extends Controller
         $perPage = in_array($perPage, self::PAGE_SIZES, true) ? $perPage : 15;
 
         $tenants = $this->filtered($request)
+            ->with('latestLicense')
             ->withCount(['shops', 'users'])
             ->paginate($perPage)
             ->withQueryString();
@@ -67,6 +68,9 @@ class TenantController extends Controller
             'search' => $request->string('q')->toString(),
             'status' => $request->string('status')->toString(),
             'sort' => $request->string('sort')->toString() ?: 'order',
+            'license' => $request->string('license')->toString(),
+            'licenseStates' => ['none' => 'No license', 'pending' => 'Pending approval', 'active' => 'Active', 'expiring' => 'Expiring soon', 'expired' => 'Expired', 'inactive' => 'Suspended', 'blocked' => 'Blocked', 'revoked' => 'Revoked', 'issued' => 'Not activated'],
+            'canLicense' => (bool) auth()->user()?->can('settings.licenses.view'),
             'perPage' => $perPage,
             'pageSizes' => self::PAGE_SIZES,
             'canCreate' => $this->isPlatformAdmin(),
@@ -100,6 +104,16 @@ class TenantController extends Controller
             })
             ->when($request->string('status')->toString(), function (Builder $query, string $status) {
                 $query->where('is_active', $status === 'active');
+            })
+            ->when($request->string('license')->toString(), function (Builder $query, string $state) {
+                $warn = (int) config('license.warn_days', 7);
+
+                match ($state) {
+                    'none' => $query->whereDoesntHave('latestLicense'),
+                    'expired' => $query->whereHas('latestLicense', fn (Builder $l) => $l->where('status', \App\Models\License::ACTIVE)->lapsed()),
+                    'expiring' => $query->whereHas('latestLicense', fn (Builder $l) => $l->where('status', \App\Models\License::ACTIVE)->whereBetween('expires_at', [now(), now()->addDays($warn)->endOfDay()])),
+                    default => $query->whereHas('latestLicense', fn (Builder $l) => $l->where('status', $state)),
+                };
             })
             ->tap(function (Builder $query) use ($request) {
                 match ($request->string('sort')->toString()) {

@@ -26,7 +26,8 @@
         if (!key || !wrap) { return; }
 
         wrap.querySelector('[data-license-key]').textContent = key;
-        form.hidden = true;
+        var panel = wrap.querySelector('[data-license-panel]');
+        if (panel) { panel.hidden = true; }
         wrap.querySelector('[data-license-result]').hidden = false;
     });
 

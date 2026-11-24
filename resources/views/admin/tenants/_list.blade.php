@@ -20,6 +20,7 @@
                 <th>GSTIN</th>
                 <th>Branches</th>
                 <th>Status</th>
+                <th>License</th>
                 <th class="col-action">Actions</th>
             </tr>
         </thead>
@@ -102,8 +103,41 @@
                         @endif
                     </td>
 
+                    <td>
+                        @php $lic = $tenant->latestLicense; @endphp
+                        @if ($lic)
+                            @php $licBadge = $lic->badge(); @endphp
+                            <a href="{{ route('admin.tenants.license', $tenant) }}"
+                               data-modal="{{ route('admin.tenants.license', $tenant) }}"
+                               data-modal-title="License" data-modal-sub="{{ $tenant->name }}" data-modal-size="lg"
+                               class="badge badge-{{ $licBadge['tone'] }}"><span class="badge-dot"></span> {{ $licBadge['label'] }}</a>
+                            @if ($lic->expires_at)
+                                <span class="text-xs text-muted" style="display:block">until {{ $lic->expires_at->format('j M Y') }}</span>
+                            @endif
+                            @if ($canLicense && $lic->status === \App\Models\License::PENDING)
+                                <form method="POST" action="{{ route('admin.licenses.act', [$lic, 'approve']) }}" data-ajax data-refresh-list style="display:inline">
+                                    @csrf
+                                    <button type="submit" class="btn btn-sm btn-primary" style="margin-top:4px">Approve</button>
+                                </form>
+                            @endif
+                        @elseif ($tenant->license_exempt)
+                            <span class="text-xs text-muted">Not required</span>
+                        @else
+                            <span class="badge badge-muted">None</span>
+                        @endif
+                    </td>
+
                     <td class="col-action">
                         <div class="row-actions">
+                            @if ($canLicense)
+                                <a class="btn btn-icon" href="{{ route('admin.tenants.license', $tenant) }}"
+                                   data-modal="{{ route('admin.tenants.license', $tenant) }}"
+                                   data-modal-title="License" data-modal-sub="{{ $tenant->name }}" data-modal-size="lg"
+                                   aria-label="License of {{ $tenant->name }}">
+                                    <x-icon name="shield" :size="15" />
+                                </a>
+                            @endif
+
                             <a class="btn btn-icon" href="{{ route('admin.tenants.show', $tenant) }}"
                                data-modal="{{ route('admin.tenants.show', $tenant) }}"
                                data-modal-title="{{ $tenant->name }}"
@@ -154,7 +188,7 @@
                 </tr>
             @empty
                 <tr>
-                    <td colspan="8">
+                    <td colspan="9">
                         <div class="empty">
                             <x-icon name="inbox" :size="28" />
                             <h3>No companies found</h3>

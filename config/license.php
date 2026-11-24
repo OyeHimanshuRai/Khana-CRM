@@ -13,6 +13,9 @@ return [
     // First segment of every key: TSW-2026-ABCD-7890-XYZ.
     'prefix' => env('LICENSE_PREFIX', 'TSW'),
 
+    // Validity given to the license created for a customer the moment they register.
+    'default_days' => (int) env('LICENSE_DEFAULT_DAYS', 365),
+
     // Days before a license/subscription ends at which customers start seeing a warning.
     'warn_days' => (int) env('LICENSE_WARN_DAYS', 7),
 

@@ -4,13 +4,10 @@ namespace App\Http\Controllers\Admin;
 
 use App\Http\Controllers\Controller;
 use App\Models\License;
-use App\Models\LicenseActivation;
-use App\Models\LicenseLog;
 use App\Models\Plan;
 use App\Models\Tenant;
 use App\Services\LicenseService;
 use App\Support\ApiResponse;
-use Illuminate\Database\Eloquent\Builder;
 use Illuminate\Http\JsonResponse;
 use Illuminate\Http\Request;
 use Illuminate\Validation\Rule;
@@ -18,7 +15,7 @@ use Illuminate\View\View;
 use RuntimeException;
 
 /**
- * The Super Admin's license desk.
+ * The Super Admin's license actions, used from the Companies screen.
  *
  * Reading is `settings.licenses.view`, everything that changes a license is
  * `settings.licenses.edit` - and both are only ever held by the platform.
@@ -28,82 +25,31 @@ use RuntimeException;
  */
 class LicenseController extends Controller
 {
-    private const PAGE_SIZES = [15, 25, 50];
-
     /** Actions reachable through act(), and the validation each one takes. */
     private const ACTIONS = [
         'approve', 'reject', 'deactivate', 'reactivate', 'block', 'unblock',
         'revoke', 'reset', 'renew', 'extend', 'expiry', 'plan', 'assign',
-        'block-customer', 'unblock-customer',
+        'block-customer', 'unblock-customer', 'rotate',
     ];
 
     public function __construct(private readonly LicenseService $licenses) {}
 
-    public function index(Request $request): View
+    /**
+     * A company's license, inside the Companies screen - there is no separate
+     * licenses page. Rendered into a modal: the license (or the form to give
+     * the company one), its actions, activation attempts and history.
+     */
+    public function forTenant(Tenant $tenant): View
     {
-        $perPage = (int) $request->integer('per_page', 15);
-        $perPage = in_array($perPage, self::PAGE_SIZES, true) ? $perPage : 15;
+        $license = $tenant->latestLicense()->with(['tenant.subscription.plan', 'plan', 'approver', 'activatedBy'])->first();
 
-        $status = $request->string('status')->toString();
-        $expiry = $request->string('expiry')->toString();
-
-        $licenses = License::query()
-            ->with(['tenant', 'plan'])
-            ->search($request->string('q')->toString())
-            ->when($request->integer('plan_id'), fn (Builder $q, int $id) => $q->where('plan_id', $id))
-            ->when($request->integer('tenant_id'), fn (Builder $q, int $id) => $q->where('tenant_id', $id))
-            ->when($status === 'expired', fn (Builder $q) => $q->where('status', License::ACTIVE)->lapsed())
-            ->when($status === 'expiring', fn (Builder $q) => $q->where('status', License::ACTIVE)
-                ->whereBetween('expires_at', [now(), now()->addDays((int) config('license.warn_days', 7))->endOfDay()]))
-            ->when(array_key_exists($status, License::STATUSES), fn (Builder $q) => $q->where('status', $status))
-            ->when($expiry === 'within_30', fn (Builder $q) => $q->whereBetween('expires_at', [now(), now()->addDays(30)->endOfDay()]))
-            ->when($expiry === 'past', fn (Builder $q) => $q->lapsed())
-            ->when($expiry === 'none', fn (Builder $q) => $q->whereNull('expires_at'))
-            ->orderByRaw("CASE status WHEN 'pending' THEN 0 ELSE 1 END")
-            ->orderByDesc('id')
-            ->paginate($perPage)
-            ->withQueryString();
-
-        $data = [
-            'licenses' => $licenses,
-            'search' => $request->string('q')->toString(),
-            'status' => $status,
-            'expiry' => $expiry,
-            'planId' => $request->integer('plan_id') ?: null,
-            'perPage' => $perPage,
-            'pageSizes' => self::PAGE_SIZES,
-            'plans' => Plan::query()->orderBy('sort_order')->get(['id', 'name']),
-            'statuses' => License::STATUSES + ['expiring' => ['label' => 'Expiring soon', 'tone' => 'warning'], 'expired' => ['label' => 'Expired', 'tone' => 'danger']],
+        return view('admin.licenses._tenant', [
+            'tenant' => $tenant,
+            'license' => $license,
+            'activations' => $license?->activations()->with(['tenant', 'user', 'decider'])->get() ?? collect(),
+            'logs' => $license?->logs()->with(['user'])->limit(60)->get() ?? collect(),
+            'plans' => Plan::query()->orderBy('sort_order')->get(),
             'canEdit' => $this->canEdit(),
-        ];
-
-        if ($request->header('X-Fragment')) {
-            return view('admin.licenses._list', $data);
-        }
-
-        return view('admin.licenses.index', $data + ['stats' => $this->stats()]);
-    }
-
-    /** @return array<string, int> */
-    private function stats(): array
-    {
-        $warn = (int) config('license.warn_days', 7);
-
-        return [
-            'total' => License::query()->count(),
-            'pending' => License::query()->where('status', License::PENDING)->count(),
-            'active' => License::query()->where('status', License::ACTIVE)->where(fn ($q) => $q->whereNull('expires_at')->orWhere('expires_at', '>=', now()))->count(),
-            'expiring' => License::query()->where('status', License::ACTIVE)->whereBetween('expires_at', [now(), now()->addDays($warn)->endOfDay()])->count(),
-            'expired' => License::query()->where('status', License::ACTIVE)->lapsed()->count(),
-            'blocked' => License::query()->whereIn('status', [License::BLOCKED, License::REVOKED, License::INACTIVE])->count(),
-        ];
-    }
-
-    public function create(): View
-    {
-        return view('admin.licenses._generate', [
-            'plans' => Plan::query()->active()->orderBy('sort_order')->get(),
-            'tenants' => $this->tenants(),
         ]);
     }
 
@@ -113,7 +59,7 @@ class LicenseController extends Controller
 
         $data = $request->validate([
             'plan_id' => ['required', 'integer', Rule::exists('plans', 'id')->whereNull('deleted_at')],
-            'tenant_id' => ['nullable', 'integer', 'exists:tenants,id'],
+            'tenant_id' => ['required', 'integer', 'exists:tenants,id'],
             'validity_days' => ['nullable', 'integer', 'min:1', 'max:3650', 'required_without:expires_at'],
             'expires_at' => ['nullable', 'date', 'after:today', 'required_without:validity_days'],
             'notes' => ['nullable', 'string', 'max:500'],
@@ -133,20 +79,6 @@ class LicenseController extends Controller
         ]);
     }
 
-    public function show(License $license): View
-    {
-        $license->load(['tenant.subscription.plan', 'plan', 'approver', 'creator', 'activatedBy']);
-
-        return view('admin.licenses._show', [
-            'license' => $license,
-            'activations' => $license->activations()->with(['tenant', 'user', 'decider'])->get(),
-            'logs' => $license->logs()->with(['user'])->limit(60)->get(),
-            'plans' => Plan::query()->orderBy('sort_order')->get(),
-            'tenants' => $this->tenants(),
-            'canEdit' => $this->canEdit(),
-        ]);
-    }
-
     /**
      * One endpoint per change, behind one whitelist.
      *
@@ -157,6 +89,18 @@ class LicenseController extends Controller
     {
         $this->authoriseEdit();
         abort_unless(in_array($action, self::ACTIONS, true), 404);
+
+        if ($action === 'rotate') {
+            try {
+                [$rotated, $key] = $this->licenses->rotateKey($license);
+            } catch (RuntimeException $e) {
+                return ApiResponse::error($e->getMessage());
+            }
+
+            return ApiResponse::success('New key issued. Copy it now - it cannot be shown again.', [
+                'key' => $key, 'hint' => $rotated->key_hint, 'status' => $rotated->status,
+            ]);
+        }
 
         $reason = fn () => $request->validate(['reason' => ['nullable', 'string', 'max:255']])['reason'] ?? null;
 
@@ -183,20 +127,6 @@ class LicenseController extends Controller
         }
 
         return ApiResponse::success($message, ['status' => $license->fresh()->status]);
-    }
-
-    /** The History tab: every license's audit trail, newest first. */
-    public function history(Request $request): View
-    {
-        $logs = LicenseLog::query()
-            ->with(['license', 'tenant', 'user'])
-            ->when($request->integer('license_id'), fn (Builder $q, int $id) => $q->where('license_id', $id))
-            ->when($request->string('q')->toString(), fn (Builder $q, string $term) => $q->where('description', 'like', '%'.str_replace(['%', '_'], ['\%', '\_'], $term).'%'))
-            ->orderByDesc('id')
-            ->paginate(25)
-            ->withQueryString();
-
-        return view('admin.licenses.history', ['logs' => $logs, 'search' => $request->string('q')->toString()]);
     }
 
     /* ----------------------------------------------------------- actions */
@@ -272,12 +202,6 @@ class LicenseController extends Controller
     }
 
     /* ------------------------------------------------------------ guards */
-
-    /** @return \Illuminate\Support\Collection<int, Tenant> */
-    private function tenants()
-    {
-        return Tenant::query()->orderBy('name')->get(['id', 'name', 'code']);
-    }
 
     private function canEdit(): bool
     {

@@ -99,7 +99,7 @@ class LicenseTest extends TestCase
         $this->actingAs($this->superAdmin());
     }
 
-    /** @return array{0: License, 1: string} */
+    /** A key nobody is assigned to yet (the first customer to type it gets it). @return array{0: License, 1: string} */
     private function issue(?Tenant $for = null, int $days = 365): array
     {
         $this->asSuperAdmin();
@@ -116,6 +116,28 @@ class LicenseTest extends TestCase
         return User::query()->withoutGlobalScopes()->where('email', $email)->firstOrFail()->tenant()->withoutGlobalScopes()->firstOrFail();
     }
 
+    /** The license that was created for this customer when they registered. */
+    private function registrationLicense(string $email = 'asha@spicegarden.test'): License
+    {
+        return License::query()->where('tenant_id', $this->tenantOf($email)->id)->latest('id')->firstOrFail();
+    }
+
+    /**
+     * Put a customer back to "enter your key", and give them one to type.
+     *
+     * @return array{0: License, 1: string}
+     */
+    private function keyFor(string $email = 'asha@spicegarden.test'): array
+    {
+        $this->asSuperAdmin();
+        $license = $this->registrationLicense($email);
+        $this->postJson(route('admin.licenses.act', [$license, 'reset']))->assertOk();
+
+        $response = $this->postJson(route('admin.licenses.act', [$license, 'rotate']))->assertOk();
+
+        return [$license->fresh(), $response->json('data.key')];
+    }
+
     /* ------------------------------------------------- registration & login */
 
     public function test_a_new_customer_registers_and_cannot_use_the_product_without_a_licence(): void
@@ -125,6 +147,13 @@ class LicenseTest extends TestCase
 
         $this->assertFalse((bool) $tenant->license_exempt);
 
+        // The license is created at registration, assigned to the company, waiting for the Super Admin.
+        $license = $this->registrationLicense();
+        $this->assertSame(License::PENDING, $license->status);
+        $this->assertSame($tenant->id, $license->holder_tenant_id);
+        $this->assertSame('restaurant', $license->plan->code);
+        $this->assertSame(1, $license->activations()->count());
+
         $this->signIn();
 
         $this->get('/dashboard')->assertRedirect('/license');
@@ -132,9 +161,18 @@ class LicenseTest extends TestCase
         $this->getJson('/dashboard')->assertStatus(403)->assertJsonPath('code', 'license_required');
     }
 
-    public function test_the_first_login_lands_on_the_activation_page(): void
+    public function test_the_first_login_lands_on_the_license_page_waiting_for_approval(): void
     {
         $this->register();
+        $this->signIn();
+
+        $this->get('/license')->assertOk()->assertSee('Waiting for approval');
+    }
+
+    public function test_after_a_reset_the_license_page_asks_for_the_key(): void
+    {
+        $this->register();
+        $this->keyFor();
         $this->signIn();
 
         $this->get('/license')
@@ -152,17 +190,17 @@ class LicenseTest extends TestCase
             ->assertStatus(422)
             ->assertJsonPath('success', false);
 
-        $this->assertSame(0, License::query()->where('status', '!=', License::ISSUED)->count());
+        $this->assertSame(License::PENDING, $this->registrationLicense()->status);
         $this->get('/dashboard')->assertRedirect('/license');
     }
 
     public function test_a_valid_key_waits_for_the_super_admin_then_the_dashboard_opens(): void
     {
         $this->register();
-        [$license, $key] = $this->issue();
+        [$license, $key] = $this->keyFor();
 
         $this->signIn();
-        
+
         $this->postJson('/license/activate', ['license_key' => $key])
             ->assertOk()
             ->assertJsonPath('data.state', 'pending');
@@ -194,7 +232,7 @@ class LicenseTest extends TestCase
     public function test_the_second_login_never_asks_for_the_key_again(): void
     {
         $this->register();
-        [$license, $key] = $this->issue();
+        [$license, $key] = $this->keyFor();
         $this->signIn();
         $this->postJson('/license/activate', ['license_key' => $key])->assertOk();
         $this->asSuperAdmin();
@@ -214,6 +252,8 @@ class LicenseTest extends TestCase
     {
         $this->register('Spice Garden', 'asha@spicegarden.test');
         $this->register('Curry House', 'bala@curryhouse.test');
+        $this->keyFor('asha@spicegarden.test');
+        $this->keyFor('bala@curryhouse.test');
         [$license, $key] = $this->issue();
 
         $this->signIn('asha@spicegarden.test');
@@ -229,6 +269,8 @@ class LicenseTest extends TestCase
     {
         $this->register('Spice Garden', 'asha@spicegarden.test');
         $this->register('Curry House', 'bala@curryhouse.test');
+        $this->keyFor('asha@spicegarden.test');
+        $this->keyFor('bala@curryhouse.test');
         [$license, $key] = $this->issue($this->tenantOf('asha@spicegarden.test'));
 
         $this->signIn('bala@curryhouse.test');
@@ -246,9 +288,15 @@ class LicenseTest extends TestCase
     public function test_one_customer_cannot_hold_two_licences(): void
     {
         $this->register();
-        [, $first] = $this->issue();
-        [, $second] = $this->issue();
+        [, $other] = $this->issue();
 
+        // They already hold the one created at registration.
+        $this->signIn();
+        $this->postJson('/license/activate', ['license_key' => $other])->assertStatus(422);
+
+        // And after a reset they can hold exactly one more.
+        [, $first] = $this->keyFor();
+        [, $second] = $this->issue();
         $this->signIn();
         $this->postJson('/license/activate', ['license_key' => $first])->assertOk();
         $this->postJson('/license/activate', ['license_key' => $second])->assertStatus(422);
@@ -283,7 +331,8 @@ class LicenseTest extends TestCase
         $license = $this->approved();
         $this->signIn();
 
-        $this->get('/licenses')->assertForbidden();
+        // There is no licenses page to open at all; only the actions exist, and they are forbidden.
+        $this->get('/licenses')->assertStatus(405);
         $this->postJson('/licenses', ['plan_id' => 1, 'validity_days' => 30])->assertForbidden();
         $this->postJson('/licenses/'.$license->id.'/approve')->assertForbidden();
         $this->postJson('/licenses/'.$license->id.'/extend', ['days' => 999])->assertForbidden();
@@ -314,12 +363,16 @@ class LicenseTest extends TestCase
 
     /* ---------------------------------------------------- super admin controls */
 
+    /** Register-time license approved by the Super Admin, optionally with a shorter validity. */
     private function approved(string $email = 'asha@spicegarden.test', int $days = 365): License
     {
-        [$license, $key] = $this->issue(null, $days);
-        $this->signIn($email);
-        $this->postJson('/license/activate', ['license_key' => $key])->assertOk();
         $this->asSuperAdmin();
+        $license = $this->registrationLicense($email);
+
+        if ($days !== 365) {
+            app(LicenseService::class)->setExpiry($license, now()->addDays($days), $this->superAdmin());
+        }
+
         $this->postJson(route('admin.licenses.act', [$license, 'approve']))->assertOk();
 
         return $license->fresh();
@@ -418,32 +471,48 @@ class LicenseTest extends TestCase
     public function test_resetting_an_activation_asks_the_customer_for_the_key_again(): void
     {
         $this->register();
-        [$license, $key] = $this->issue();
-        $this->signIn();
-        $this->postJson('/license/activate', ['license_key' => $key])->assertOk();
-        $this->asSuperAdmin();
-        $this->postJson(route('admin.licenses.act', [$license, 'approve']))->assertOk();
+        $license = $this->approved();
 
+        $this->asSuperAdmin();
         $this->postJson(route('admin.licenses.act', [$license, 'reset']), ['reason' => 'new device'])->assertOk();
         $this->assertSame(License::ISSUED, $license->fresh()->status);
 
+        // A reset license has to be given a key to type; nothing else can be rotated.
+        $this->postJson(route('admin.licenses.act', [$license, 'rotate']))->assertOk()->assertJsonStructure(['data' => ['key']]);
+
         $this->signIn();
         $this->get('/dashboard')->assertRedirect('/license');
-        $this->postJson('/license/activate', ['license_key' => $key])->assertOk();
+        $this->get('/license')->assertSee('Activate your license');
+    }
+
+    public function test_a_new_key_can_only_be_issued_before_activation(): void
+    {
+        $this->register();
+        $license = $this->registrationLicense();
+
+        $this->asSuperAdmin();
+        // Pending: nothing to type yet.
+        $this->postJson(route('admin.licenses.act', [$license, 'rotate']))->assertStatus(422);
+
+        $this->postJson(route('admin.licenses.act', [$license, 'reset']))->assertOk();
+        $old = $license->fresh()->key_hash;
+        $this->postJson(route('admin.licenses.act', [$license, 'rotate']))->assertOk();
+        $this->assertNotSame($old, $license->fresh()->key_hash);
     }
 
     public function test_rejecting_an_activation_lets_the_key_be_entered_again(): void
     {
         $this->register();
-        [$license, $key] = $this->issue();
-        $this->signIn();
-        $this->postJson('/license/activate', ['license_key' => $key])->assertOk();
+        $license = $this->registrationLicense();
 
         $this->asSuperAdmin();
         $this->postJson(route('admin.licenses.act', [$license, 'reject']), ['reason' => 'wrong shop'])->assertOk();
 
         $this->assertSame(License::ISSUED, $license->fresh()->status);
         $this->assertNull($license->fresh()->holder_tenant_id);
+
+        $this->signIn();
+        $this->get('/license')->assertSee('Activate your license');
     }
 
     public function test_renewing_and_extending_move_the_licence_and_the_subscription_together(): void
@@ -598,38 +667,86 @@ class LicenseTest extends TestCase
 
         $actions = LicenseLog::query()->where('license_id', $license->id)->pluck('action')->all();
 
-        foreach (['generated', 'activation_requested', 'approved', 'extended', 'deactivated'] as $expected) {
+        foreach (['generated', 'registered', 'approved', 'extended', 'deactivated'] as $expected) {
             $this->assertContains($expected, $actions);
         }
 
         $this->assertDatabaseHas('activity_logs', ['event' => 'license.approved']);
     }
 
-    public function test_the_super_admin_screens_render_and_the_key_is_shown_only_once(): void
+    public function test_registration_creates_the_license_and_it_shows_in_the_companies_list(): void
+    {
+        $this->register();
+        $license = $this->registrationLicense();
+
+        $this->asSuperAdmin();
+
+        $this->get(route('admin.tenants.index'))
+            ->assertOk()
+            ->assertSee('Spice Garden')
+            ->assertSee('Pending Approval')
+            ->assertSee('Approve');
+
+        // Filtered by license state.
+        $listed = fn (string $state) => $this->get(route('admin.tenants.index', ['license' => $state]))->assertOk()->viewData('tenants')->pluck('name')->all();
+
+        $this->assertContains('Spice Garden', $listed('pending'));
+        $this->assertNotContains('Spice Garden', $listed('active'));
+        $this->assertNotContains('Spice Garden', $listed('none'));
+
+        // The company's license panel is a modal inside Companies, and never shows a key.
+        $this->get(route('admin.tenants.license', $license->tenant_id))
+            ->assertOk()
+            ->assertSee($license->key_hint)
+            ->assertSee('Approve');
+
+        // Approved from there, it is Active in the list.
+        $this->postJson(route('admin.licenses.act', [$license, 'approve']))->assertOk();
+        $this->assertContains('Spice Garden', $listed('active'));
+    }
+
+    public function test_there_is_no_separate_licenses_page_or_menu_entry(): void
     {
         $this->asSuperAdmin();
-        $plan = Plan::query()->firstOrFail();
 
-        $response = $this->postJson(route('admin.licenses.store'), ['plan_id' => $plan->id, 'validity_days' => 90])
-            ->assertOk()
-            ->assertJsonStructure(['data' => ['key', 'id', 'hint']]);
+        $this->get('/superadmin/licenses')->assertStatus(405);
+        $this->get('/superadmin/licenses/history')->assertNotFound();
+        $this->get(route('admin.tenants.index'))->assertOk()->assertDontSee('Generate License');
+    }
+
+    public function test_the_super_admin_can_generate_a_license_for_a_company_and_the_key_is_shown_once(): void
+    {
+        $this->register();
+        $tenant = $this->tenantOf('asha@spicegarden.test');
+        $tenant->forceFill(['license_exempt' => true])->save();
+        License::query()->where('tenant_id', $tenant->id)->delete();
+
+        $this->asSuperAdmin();
+        $this->get(route('admin.tenants.license', $tenant))->assertOk()->assertSee('Generate license');
+
+        $response = $this->postJson(route('admin.licenses.store'), [
+            'tenant_id' => $tenant->id,
+            'plan_id' => Plan::query()->firstOrFail()->id,
+            'validity_days' => 90,
+        ])->assertOk()->assertJsonStructure(['data' => ['key', 'id', 'hint']]);
 
         $key = $response->json('data.key');
         $license = License::query()->findOrFail($response->json('data.id'));
 
-        $this->get(route('admin.licenses.index'))->assertOk()->assertSee($license->key_hint)->assertDontSee($key);
-        $this->get(route('admin.licenses.show', $license))->assertOk()->assertDontSee($key);
-        $this->get(route('admin.licenses.create'))->assertOk();
-        $this->get(route('admin.licenses.history'))->assertOk()->assertDontSee($key);
-        $this->get(route('admin.licenses.index', ['status' => 'pending', 'q' => 'Spice', 'plan_id' => $plan->id, 'expiry' => 'within_30']))->assertOk();
+        $this->assertSame($tenant->id, $license->tenant_id);
+        $this->get(route('admin.tenants.license', $tenant))->assertOk()->assertSee($license->key_hint)->assertDontSee($key);
+        $this->get(route('admin.tenants.index'))->assertOk()->assertDontSee($key);
     }
 
     public function test_generating_validates_the_form(): void
     {
         $this->asSuperAdmin();
 
-        $this->postJson(route('admin.licenses.store'), [])->assertStatus(422)->assertJsonValidationErrors(['plan_id']);
-        $this->postJson(route('admin.licenses.store'), ['plan_id' => Plan::query()->firstOrFail()->id])->assertStatus(422);
-        $this->postJson(route('admin.licenses.store'), ['plan_id' => Plan::query()->firstOrFail()->id, 'expires_at' => '2001-01-01'])->assertStatus(422);
+        $this->postJson(route('admin.licenses.store'), [])->assertStatus(422)->assertJsonValidationErrors(['plan_id', 'tenant_id']);
+
+        $plan = Plan::query()->firstOrFail();
+        $tenant = Tenant::query()->firstOrFail();
+        $this->postJson(route('admin.licenses.store'), ['plan_id' => $plan->id, 'tenant_id' => $tenant->id])->assertStatus(422);
+        $this->postJson(route('admin.licenses.store'), ['plan_id' => $plan->id, 'tenant_id' => $tenant->id, 'expires_at' => '2001-01-01'])->assertStatus(422);
     }
 }

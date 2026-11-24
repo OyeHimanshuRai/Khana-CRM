@@ -12,7 +12,7 @@
 @endphp
 
 <div class="sec-name"><code>{{ $license->key_hint }}</code></div>
-<div class="text-sm text-muted">{{ $license->tenant?->name ?? 'Not assigned to a customer' }}</div>
+<div class="text-sm text-muted">{{ $license->tenant?->name ?? $tenant->name }}</div>
 
 <div style="display:flex;flex-wrap:wrap;gap:7px;margin:8px 0 14px">
     <span class="badge badge-{{ $badge['tone'] }}"><span class="badge-dot"></span> {{ $badge['label'] }}</span>
@@ -54,6 +54,11 @@
         <div class="form-section-title">Actions</div>
 
         <div class="license-actions">
+            @if ($status === License::ISSUED)
+                <form method="POST" action="{{ $act('rotate') }}" data-ajax data-refresh-list data-license-generate data-toast-success="false">@csrf
+                    <button class="btn btn-sm btn-primary" type="submit">Generate key for {{ $tenant->name }}</button></form>
+            @endif
+
             @if ($status === License::PENDING)
                 <form method="POST" action="{{ $act('approve') }}" data-ajax data-close-modal data-refresh-list>@csrf
                     <button class="btn btn-primary btn-sm" type="submit">Approve</button></form>
@@ -141,18 +146,6 @@
                     <button class="btn btn-sm" type="submit">Upgrade / downgrade</button>
                 </form>
 
-                @if ($status === License::ISSUED)
-                    <form method="POST" action="{{ $act('assign') }}" data-ajax data-close-modal data-refresh-list class="license-inline">@csrf
-                        <label class="sr-only" for="as-{{ $license->id }}">Customer</label>
-                        <select id="as-{{ $license->id }}" name="tenant_id" class="input">
-                            <option value="">Nobody</option>
-                            @foreach ($tenants as $tenant)
-                                <option value="{{ $tenant->id }}" @selected($license->tenant_id === $tenant->id)>{{ $tenant->name }}</option>
-                            @endforeach
-                        </select>
-                        <button class="btn btn-sm" type="submit">Assign</button>
-                    </form>
-                @endif
             </div>
         @endif
     </div>
@@ -196,6 +189,3 @@
     @endif
 </div>
 
-<div class="modal-actions">
-    <button type="button" class="btn" data-modal-close>Close</button>
-</div>

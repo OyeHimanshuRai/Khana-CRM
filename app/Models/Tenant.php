@@ -96,6 +96,12 @@ class Tenant extends Model
         return $this->hasMany(License::class)->orderByDesc('id');
     }
 
+    /** The newest license on file for this business, whatever its state - what the Companies list shows. */
+    public function latestLicense(): \Illuminate\Database\Eloquent\Relations\HasOne
+    {
+        return $this->hasOne(License::class)->latestOfMany();
+    }
+
     /**
      * The license the business holds right now (pending, active, suspended or
      * blocked) - at most one, enforced by `licenses.holder_tenant_id`.

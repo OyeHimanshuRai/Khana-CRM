@@ -2,6 +2,10 @@
 
 @section('title', 'Companies')
 
+@push('scripts')
+    <script src="{{ asset('assets/js/license.js') }}?v={{ filemtime(public_path('assets/js/license.js')) }}" defer></script>
+@endpush
+
 @section('content')
     <x-page-header
         title="Companies"
@@ -74,6 +78,16 @@
                     <option value="active" @selected($status === 'active')>Trading</option>
                     <option value="inactive" @selected($status === 'inactive')>Suspended</option>
                 </select>
+
+                @if ($canLicense)
+                    <label for="f-license" class="sr-only">License</label>
+                    <select id="f-license" name="license" data-ajax-filter>
+                        <option value="">Any license</option>
+                        @foreach ($licenseStates as $value => $label)
+                            <option value="{{ $value }}" @selected($license === $value)>{{ $label }}</option>
+                        @endforeach
+                    </select>
+                @endif
 
                 <label for="f-sort" class="sr-only">Sort by</label>
                 <select id="f-sort" name="sort" data-ajax-filter>

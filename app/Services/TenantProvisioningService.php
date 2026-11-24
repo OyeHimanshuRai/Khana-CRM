@@ -133,6 +133,9 @@ class TenantProvisioningService
 
             $this->openTrial($tenant, $plan, $period);
 
+            // The license for this customer is created now and waits for the Super Admin.
+            app(LicenseService::class)->issueAtRegistration($tenant, $plan, $user, request());
+
             return $user->fresh();
         });
     }

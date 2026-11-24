@@ -155,6 +155,98 @@ class LicenseService
         throw new RuntimeException('Could not generate a unique license key. Please try again.');
     }
 
+    /**
+     * A customer has just registered: their license is created on the spot and
+     * is waiting for the Super Admin, who sees it against the company.
+     *
+     * The key is generated and stored hashed like any other, and is not shown
+     * to anybody: this license is approved, not typed in. If the platform
+     * would rather the customer enter a key, "Reset" it and issue one from the
+     * company's License panel.
+     */
+    public function issueAtRegistration(Tenant $tenant, Plan $plan, User $owner, ?Request $request = null): ?License
+    {
+        if (! $tenant->needsLicense()) {
+            return null;
+        }
+
+        [$license] = $this->generate([
+            'plan_id' => $plan->id,
+            'validity_days' => (int) config('license.default_days', 365),
+            'tenant_id' => $tenant->id,
+            'notes' => 'Created at registration',
+        ], $owner);
+
+        DB::transaction(function () use ($license, $tenant, $owner, $request) {
+            $license->forceFill([
+                'holder_tenant_id' => $tenant->id,
+                'activated_by_user_id' => $owner->id,
+                'status' => License::PENDING,
+                'requested_at' => now(),
+            ])->save();
+
+            LicenseActivation::create([
+                'license_id' => $license->id,
+                'tenant_id' => $tenant->id,
+                'user_id' => $owner->id,
+                'status' => LicenseActivation::PENDING,
+                'ip_address' => $request?->ip(),
+                'user_agent' => $request ? Str::limit((string) $request->userAgent(), 250, '') : null,
+                'requested_at' => now(),
+                'created_by' => $owner->id,
+                'updated_by' => $owner->id,
+            ]);
+
+            $this->log($license, 'registered', sprintf('%s registered; license created and waiting for approval', $tenant->name), [], $owner, $tenant, $request);
+        });
+
+        DB::afterCommit(fn () => app(EventNotifier::class)->licenseRequested($license->fresh(['tenant', 'plan'])));
+
+        return $license->fresh();
+    }
+
+    /**
+     * Issue a fresh key for a license nobody has entered yet; the plain key is
+     * returned once. This is how the Super Admin hands a customer something to
+     * type after a reset.
+     *
+     * @return array{0: License, 1: string}
+     */
+    public function rotateKey(License $license, ?User $actor = null): array
+    {
+        $actor ??= Auth::user();
+
+        for ($attempt = 0; $attempt < 5; $attempt++) {
+            $key = $this->freshKey();
+
+            try {
+                $license = $this->locked($license, function (License $l) use ($key, $actor) {
+                    if ($l->status !== License::ISSUED) {
+                        throw new RuntimeException('A new key can only be issued while the license is not activated. Reset it first.');
+                    }
+
+                    $l->forceFill([
+                        'key_hash' => self::hashKey($key),
+                        'key_hint' => self::hint($key),
+                        'updated_by' => $actor?->id,
+                    ])->save();
+
+                    $this->log($l, 'key_issued', 'A new key '.$l->key_hint.' was issued', [], $actor, $l->tenant);
+
+                    return $l;
+                });
+
+                return [$license, $key];
+            } catch (QueryException $e) {
+                if ($attempt === 4) {
+                    throw $e;
+                }
+            }
+        }
+
+        throw new RuntimeException('Could not generate a unique license key. Please try again.');
+    }
+
     /* --------------------------------------------------------- customer */
 
     /**

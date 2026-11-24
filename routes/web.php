@@ -1136,12 +1136,11 @@ Route::prefix('superadmin')->name('admin.')->group(function () {
             ->middleware(['permission:settings.subscriptions.pay', 'throttle:20,1'])
             ->name('license.activate');
 
-        Route::middleware('permission:settings.licenses.view')->group(function () {
-            Route::get('licenses', [LicenseController::class, 'index'])->name('licenses.index');
-            Route::get('licenses/history', [LicenseController::class, 'history'])->name('licenses.history');
-            Route::get('licenses/create', [LicenseController::class, 'create'])->name('licenses.create');
-            Route::get('licenses/{license}', [LicenseController::class, 'show'])->whereNumber('license')->name('licenses.show');
-        });
+        // A company's license lives inside the Companies screen: a modal, not a page of its own.
+        Route::get('tenants/{tenant}/license', [LicenseController::class, 'forTenant'])
+            ->whereNumber('tenant')
+            ->middleware('permission:settings.licenses.view')
+            ->name('tenants.license');
         Route::middleware('permission:settings.licenses.edit')->group(function () {
             Route::post('licenses', [LicenseController::class, 'store'])->name('licenses.store');
             Route::post('licenses/{license}/{action}', [LicenseController::class, 'act'])

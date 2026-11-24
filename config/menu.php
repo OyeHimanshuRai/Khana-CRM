@@ -796,21 +796,6 @@ return [
                 'can' => 'settings.subscriptions.edit',
             ],
             [
-                'label' => 'Licenses',
-                'icon' => 'shield',
-                'route' => 'admin.licenses.index',
-                'active' => 'admin.licenses.*',
-                'can' => 'settings.licenses.view',
-            ],
-            [
-                'label' => 'My License',
-                'icon' => 'shield',
-                'route' => 'admin.license.show',
-                'active' => 'admin.license.*',
-                'can' => 'settings.subscriptions.view',
-                'unless_can' => 'settings.licenses.view',
-            ],
-            [
                 'label' => 'Plans',
                 'icon' => 'tag',
                 'route' => 'admin.plans.index',
