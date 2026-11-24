@@ -12,10 +12,10 @@
             : ($locked
                 ? 'This role has unrestricted access and cannot be edited.'
                 : 'Changes to permissions apply to every user holding this role.')"
-        :crumbs="['Settings' => null, 'Roles' => route('admin.roles.index'), ($isNew ? 'New' : 'Edit') => null]"
+        :crumbs="['Settings' => null, 'Roles' => route('admin.roles.index', $role->name === \App\Models\User::SUPER_ADMIN ? [] : ['scope' => 'restaurant']), ($isNew ? 'New' : 'Edit') => null]"
     >
         <x-slot:actions>
-            <a class="btn btn-sm" href="{{ route('admin.roles.index') }}">Back to roles</a>
+            <a class="btn btn-sm" href="{{ route('admin.roles.index', $role->name === \App\Models\User::SUPER_ADMIN ? [] : ['scope' => 'restaurant']) }}">Back to roles</a>
         </x-slot:actions>
     </x-page-header>
 
@@ -46,7 +46,7 @@
                     <x-permission-matrix :tree="$tree" :granted="$granted" />
                 </div>
                 <div class="card-footer" style="display:flex;gap:9px;justify-content:flex-end">
-                    <a class="btn" href="{{ route('admin.roles.index') }}">Cancel</a>
+                    <a class="btn" href="{{ route('admin.roles.index', $role->name === \App\Models\User::SUPER_ADMIN ? [] : ['scope' => 'restaurant']) }}">Cancel</a>
                     <button type="submit" class="btn btn-primary">Create role</button>
                 </div>
             </div>

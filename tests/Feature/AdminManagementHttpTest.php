@@ -79,6 +79,20 @@ class AdminManagementHttpTest extends TestCase
 
     /* ----------------------------------------------------- roles and users */
 
+    public function test_the_roles_page_shows_platform_roles_first_and_restaurant_roles_on_their_own_tab(): void
+    {
+        $this->get(route('admin.roles.index'))
+            ->assertOk()
+            ->assertSee('Super Admin')
+            ->assertDontSee('Tenant Owner')
+            ->assertDontSee('Cashier');
+
+        $this->get(route('admin.roles.index', ['scope' => 'restaurant']))
+            ->assertOk()
+            ->assertSee('Tenant Owner')
+            ->assertSee('Cashier');
+    }
+
     public function test_a_role_can_be_cloned_and_its_permissions_replaced(): void
     {
         $source = Role::findByName('Manager');

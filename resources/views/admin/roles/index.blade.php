@@ -5,7 +5,7 @@
 @section('content')
     <x-page-header
         title="Roles & Permissions"
-        subtitle="{{ $roles->count() }} role(s) across {{ $totalPermissions }} declared permissions."
+        subtitle="{{ $roles->count() }} {{ $scope === 'platform' ? 'platform' : 'restaurant' }} role(s) across {{ $totalPermissions }} declared permissions."
         :crumbs="['Settings' => null, 'Roles' => null]"
     >
         <x-slot:actions>
@@ -18,8 +18,16 @@
     </x-page-header>
 
     <div class="card">
+        <nav class="tabs" aria-label="Role type">
+            <a class="tab {{ $scope === 'platform' ? 'is-active' : '' }}" href="{{ route('admin.roles.index') }}">Platform roles</a>
+            <a class="tab {{ $scope === 'restaurant' ? 'is-active' : '' }}" href="{{ route('admin.roles.index', ['scope' => 'restaurant']) }}">Restaurant roles</a>
+        </nav>
+
         <div class="card-header">
             <form method="GET" class="pmatrix-search" style="max-width:320px">
+                @if ($scope === 'restaurant')
+                    <input type="hidden" name="scope" value="restaurant">
+                @endif
                 <x-icon name="search" :size="15" />
                 <label for="role-search" class="sr-only">Search roles</label>
                 <input id="role-search" type="search" name="q" value="{{ $search }}"

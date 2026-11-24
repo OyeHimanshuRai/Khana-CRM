@@ -26,10 +26,26 @@ class RoleController extends Controller
      */
     private const PROTECTED_ROLES = [User::SUPER_ADMIN];
 
+    /** Roles that belong to the platform itself, not to a restaurant's staff. */
+    private const PLATFORM_ROLES = [User::SUPER_ADMIN];
+
     public function index(Request $request): View
     {
+        /*
+         | The platform's own roles come first and alone; the restaurant staff
+         | templates (Tenant Owner, Manager, Cashier...) sit one tab over, so
+         | the Super Admin is not looking at a restaurant's roles unless they
+         | go there on purpose.
+         */
+        $scope = $request->query('scope') === 'restaurant' ? 'restaurant' : 'platform';
+
         $roles = Role::query()
             ->withCount(['permissions', 'users'])
+            ->when(
+                $scope === 'platform',
+                fn ($q) => $q->whereIn('name', self::PLATFORM_ROLES),
+                fn ($q) => $q->whereNotIn('name', self::PLATFORM_ROLES),
+            )
             ->when($request->string('q')->toString(), fn ($q, $term) => $q->where('name', 'like', "%{$term}%"))
             ->orderBy('name')
             ->get();
@@ -38,6 +54,7 @@ class RoleController extends Controller
             'roles' => $roles,
             'totalPermissions' => PermissionRegistry::count(),
             'search' => $request->string('q')->toString(),
+            'scope' => $scope,
         ]);
     }
 
@@ -201,7 +218,7 @@ class RoleController extends Controller
         ActivityLog::record('role.deleted', "Deleted role \"{$name}\"");
 
         return redirect()
-            ->route('admin.roles.index')
+            ->route('admin.roles.index', ['scope' => 'restaurant'])
             ->with('status', "Role \"{$name}\" deleted.");
     }
 
