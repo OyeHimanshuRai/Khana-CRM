@@ -1,0 +1,25 @@
+name: Set the new support phone number (manual)
+
+# One-off, run by hand. Never runs on push. Sets Settings > General > Phone No and replaces the
+# old number wherever it is written as text in Settings, pages and FAQs. Logs and customer data
+# are never touched. Does not flush the cache (it is shared with other apps).
+
+on:
+  workflow_dispatch:
+
+jobs:
+  run:
+    name: Support phone
+    runs-on: ubuntu-latest
+    steps:
+      - name: Run on server
+        uses: appleboy/ssh-action@v1.0.3
+        with:
+          host: ${{ secrets.VPS_HOST }}
+          username: ${{ secrets.VPS_USER }}
+          key: ${{ secrets.VPS_SSH_KEY }}
+          port: ${{ secrets.VPS_PORT }}
+          script: |
+            cd ${{ secrets.VPS_PROJECT_PATH }}
+            php artisan tinker --execute="echo 'before phone: '.(\App\Models\Setting::get('phone') ?: '(empty)').PHP_EOL; echo 'before whatsapp_no: '.(\App\Models\Setting::get('whatsapp_no') ?: '(empty)').PHP_EOL; \App\Models\Setting::put(['phone' => '+91 95103 85828']); echo 'after phone: '.\App\Models\Setting::get('phone').PHP_EOL; \$skip = ['activity_logs','email_logs','license_logs','alerts','jobs','failed_jobs','sessions','demo_requests','login_histories','migrations']; \$map = ['+91 90547 32126' => '+91 95103 85828', '+91-90547-32126' => '+91-95103-85828', '90547 32126' => '95103 85828', '+919054732126' => '+919510385828', '9054732126' => '9510385828']; \$cols = \Illuminate\Support\Facades\DB::select(\"select table_name t, column_name c from information_schema.columns where table_schema = ? and data_type in ('varchar','char','text','mediumtext','longtext')\", [\Illuminate\Support\Facades\DB::getDatabaseName()]); foreach (\$cols as \$x) { \$t = \$x->t; \$c = \$x->c; if (in_array(\$t, \$skip, true) || str_contains(\$t, 'mail') || str_contains(\$t, 'token')) { continue; } try { \$n = \Illuminate\Support\Facades\DB::table(\$t)->where(\$c, 'like', '%90547%')->count(); } catch (\Throwable \$e) { continue; } if (!\$n) { continue; } foreach (\$map as \$old => \$new) { \Illuminate\Support\Facades\DB::table(\$t)->where(\$c, 'like', '%'.\$old.'%')->update([\$c => \Illuminate\Support\Facades\DB::raw('REPLACE('.\$c.', '.\Illuminate\Support\Facades\DB::getPdo()->quote(\$old).', '.\Illuminate\Support\Facades\DB::getPdo()->quote(\$new).')')]); } echo 'REPLACED in '.\$t.'.'.\$c.' (rows that had it: '.\$n.')'.PHP_EOL; \$left = \Illuminate\Support\Facades\DB::table(\$t)->where(\$c, 'like', '%90547%')->count(); if (\$left) { echo 'STILL THERE '.\$t.'.'.\$c.': '.\$left.PHP_EOL; } } echo 'final phone: '.\App\Models\Setting::get('phone').PHP_EOL; echo 'final whatsapp_no: '.(\App\Models\Setting::get('whatsapp_no') ?: '(empty)').PHP_EOL;"
+            echo "### DONE"
