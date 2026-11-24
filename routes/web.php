@@ -106,7 +106,9 @@ Route::get('/', LandingController::class)->name('landing');
 // The price list and the demo form each have a page of their own, rather than
 // a #section of the landing page.
 Route::get('pricing', \App\Http\Controllers\PricingController::class)->name('pricing');
-Route::get('demo', \App\Http\Controllers\DemoPageController::class)->name('demo');
+Route::get('contact-support', \App\Http\Controllers\DemoPageController::class)->name('demo');
+// The page used to live at /demo: old links, bookmarks and search results still land on it.
+Route::get('demo', fn () => redirect()->route('demo', [], 301));
 Route::get('how-it-works', [LandingController::class, 'section'])->defaults('section', 'how-it-works')
     ->name('landing.how');
 Route::get('features', [LandingController::class, 'section'])->defaults('section', 'features')
@@ -187,15 +189,20 @@ Route::get('p/{slug}', [\App\Http\Controllers\PageController::class, 'show'])
 | needs and far less than a script wants. The honeypot inside the controller is
 | the cheaper first line; this is what stops whatever ignores it.
 */
-// The one-time code that confirms the email on a "Book a demo" request.
-Route::post('demo/otp/send', [\App\Http\Controllers\DemoOtpController::class, 'send'])
+// The one-time code that confirms the email on a "Contact support" request.
+Route::post('contact-support/otp/send', [\App\Http\Controllers\DemoOtpController::class, 'send'])
     ->middleware(['ip.allowed', 'throttle:demo-otp-send'])->name('demo.otp.send');
-Route::post('demo/otp/verify', [\App\Http\Controllers\DemoOtpController::class, 'verify'])
+Route::post('contact-support/otp/verify', [\App\Http\Controllers\DemoOtpController::class, 'verify'])
     ->middleware(['ip.allowed', 'throttle:demo-otp-verify'])->name('demo.otp.verify');
 
-Route::post('demo-request', [DemoRequestController::class, 'store'])
+Route::post('contact-support', [DemoRequestController::class, 'store'])
     ->middleware('throttle:6,60')
     ->name('demo-request.store');
+
+// The old addresses of the same three endpoints: a page opened before the change still posts to them.
+Route::post('demo/otp/send', [\App\Http\Controllers\DemoOtpController::class, 'send'])->middleware(['ip.allowed', 'throttle:demo-otp-send']);
+Route::post('demo/otp/verify', [\App\Http\Controllers\DemoOtpController::class, 'verify'])->middleware(['ip.allowed', 'throttle:demo-otp-verify']);
+Route::post('demo-request', [DemoRequestController::class, 'store'])->middleware('throttle:6,60');
 use Illuminate\Support\Facades\Artisan;
 /*
 | Maintenance shortcut: clear caches and re-link storage.

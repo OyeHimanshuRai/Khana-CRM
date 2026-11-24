@@ -134,7 +134,7 @@ class LandingPageTest extends TestCase
             '/billing' => 'Restaurant Billing &amp; GST Invoices',
             '/faq' => 'Restaurant POS FAQs',
             '/pricing' => 'Restaurant POS Pricing',
-            '/demo' => 'Contact Support',
+            '/contact-support' => 'Contact Support',
         ];
 
         foreach ($pages as $path => $title) {
@@ -304,7 +304,7 @@ class LandingPageTest extends TestCase
             '/billing' => 'A proper tax invoice on every bill',
             '/pricing' => 'Plans',
             '/faq' => 'Asked often',
-            '/demo' => 'Contact our support team',
+            '/contact-support' => 'Contact our support team',
         ];
 
         foreach ($pages as $url => $heading) {
@@ -316,7 +316,7 @@ class LandingPageTest extends TestCase
                 ->assertSee('href="http://localhost/billing"', false)
                 ->assertSee('href="http://localhost/pricing"', false)
                 ->assertSee('href="http://localhost/faq"', false)
-                ->assertSee('href="http://localhost/demo"', false);
+                ->assertSee('href="http://localhost/contact-support"', false);
         }
     }
 

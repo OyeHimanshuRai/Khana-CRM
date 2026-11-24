@@ -6,7 +6,7 @@ use App\Support\SiteBrand;
 use Illuminate\View\View;
 
 /**
- * Book a demo, on a page of its own at /demo.
+ * Contact support, on a page of its own at /contact-support (it used to be /demo).
  *
  * It was a section at the bottom of the landing page reached by a #demo
  * anchor. A form people are asked to fill in is worth a URL they can be sent,

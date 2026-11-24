@@ -31,7 +31,7 @@
                 ['href_matches' => $specBase.'/register'],
                 ['href_matches' => $specBase.'/pricing'],
                 ['href_matches' => $specBase.'/login'],
-                ['href_matches' => $specBase.'/demo'],
+                ['href_matches' => $specBase.'/contact-support'],
             ]],
             'eagerness' => 'moderate',
         ]]];

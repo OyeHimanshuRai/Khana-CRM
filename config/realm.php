@@ -16,7 +16,7 @@
 
 return [
     'public_segments' => [
-        '', 'api', 'billing', 'broadcasting', 'clear-all', 'demo', 'demo-request',
+        '', 'api', 'billing', 'broadcasting', 'clear-all', 'contact-support', 'demo', 'demo-request',
         'email', 'faq', 'features', 'forgot-password', 'geo', 'how-it-works', 'impersonate',
         'login', 'p', 'payments', 'pricing', 'register', 'reset-password', 'sanctum',
         'shop', 'storage', 't', 'up',

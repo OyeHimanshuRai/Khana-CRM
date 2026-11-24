@@ -121,7 +121,7 @@ abstract class TestCase extends BaseTestCase
     {
         $path = trim((string) parse_url($uri, PHP_URL_PATH), '/');
 
-        if (! $this->autoConfirmSignupEmail || strtoupper($method) !== 'POST' || ! in_array($path, ['register', 'demo-request'], true)) {
+        if (! $this->autoConfirmSignupEmail || strtoupper($method) !== 'POST' || ! in_array($path, ['register', 'demo-request', 'contact-support'], true)) {
             return;
         }
 

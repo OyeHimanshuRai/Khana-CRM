@@ -113,7 +113,7 @@ class DemoOtpTest extends TestCase
 
     public function test_the_forms_carry_the_code_step_and_the_faq_page_has_the_window(): void
     {
-        $this->get('/demo')->assertOk()->assertSee('data-send-url="'.route('demo.otp.send').'"', false)->assertSee('Send OTP to this email');
+        $this->get('/contact-support')->assertOk()->assertSee('data-send-url="'.route('demo.otp.send').'"', false)->assertSee('Send OTP to this email');
         $this->get('/')->assertOk()->assertSee('data-verify-url="'.route('demo.otp.verify').'"', false);
         $this->get('/faq')->assertOk()->assertSee('data-demo-modal', false)->assertSee('demo-modal.js', false)->assertSee('Ask our support team');
     }
@@ -161,5 +161,16 @@ class DemoOtpTest extends TestCase
         $this->postJson(route('demo-request.store'), $this->lead())->assertOk()->assertJsonPath('success', true);
 
         $this->assertDatabaseHas('demo_requests', ['email' => 'aditi@example.test']);
+    }
+
+    public function test_the_page_lives_at_contact_support_and_the_old_address_redirects_there(): void
+    {
+        $this->assertSame('http://localhost/contact-support', route('demo'));
+
+        $this->get('/contact-support')->assertOk()->assertSee('Contact our support team');
+        $this->get('/demo')->assertStatus(301)->assertRedirect('http://localhost/contact-support');
+
+        // A page opened before the change still posts to the old address.
+        $this->post('/demo-request', ['name' => 'Old Page', 'phone' => '9876543210'])->assertSessionHasErrors('email');
     }
 }

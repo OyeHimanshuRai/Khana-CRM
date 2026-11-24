@@ -16,13 +16,13 @@
         return;
     }
 
-    var demoPath = '/demo';
+    var demoPaths = ['/contact-support', '/demo'];
 
     function opens(link) {
         if (link.hasAttribute('data-demo-open')) { return true; }
 
         try {
-            return new URL(link.href, window.location.href).pathname.replace(/\/+$/, '') === demoPath;
+            return demoPaths.indexOf(new URL(link.href, window.location.href).pathname.replace(/\/+$/, '')) !== -1;
         } catch (e) {
             return false;
         }
