@@ -115,12 +115,16 @@ class LandingPageTest extends TestCase
      */
     public function test_the_seo_title_does_not_become_the_headline(): void
     {
-        Setting::put(['meta_title_home' => 'RestroOne']);
+        Setting::put(['meta_title_home' => 'Best Restaurant Billing Software in Jaipur | RestroOne']);
 
         $response = $this->get('/')->assertOk();
 
-        $this->assertStringContainsString('<title>RestroOne</title>', $response->getContent());
+        $this->assertStringContainsString('<title>Best Restaurant Billing Software in Jaipur | RestroOne</title>', $response->getContent());
         $this->assertStringContainsString('<h1>Run the whole restaurant from one screen</h1>', $response->getContent());
+
+        // A title that is only the company name is not a search title: the standard one stands in.
+        Setting::put(['meta_title_home' => 'RestroOne']);
+        $this->assertStringContainsString('Restaurant POS Software, QR Ordering &amp; GST Billing</title>', $this->get('/')->getContent());
     }
 
     public function test_public_pages_render_canonical_and_social_metadata(): void
@@ -128,7 +132,7 @@ class LandingPageTest extends TestCase
         $this->plan();
 
         $pages = [
-            '/' => 'Restaurant POS &amp; QR Ordering',
+            '/' => 'Restaurant POS Software, QR Ordering &amp; GST Billing',
             '/how-it-works' => 'How QR table ordering works',
             '/features' => 'Restaurant POS Features',
             '/billing' => 'Restaurant Billing &amp; GST Invoices',
@@ -139,7 +143,7 @@ class LandingPageTest extends TestCase
 
         foreach ($pages as $path => $title) {
             $response = $this->get($path)->assertOk()
-                ->assertSee('<link rel="canonical" href="http://localhost'.($path === '/' ? '' : $path).'">', false)
+                ->assertSee('<link rel="canonical" href="http://localhost'.($path === '/' ? '/' : $path).'">', false)
                 ->assertSee('<meta property="og:type" content="website">', false)
                 ->assertSee('<meta name="twitter:card"', false);
 

@@ -23,7 +23,6 @@
     @include('site._seo', [
         'title' => 'Start Your Free Trial · '.$site['name'],
         'description' => 'Start a free trial of '.$site['name'].' restaurant POS and set up billing, QR ordering, kitchen and reports.',
-        'robots' => 'noindex,nofollow',
         'site' => $site,
     ])
 

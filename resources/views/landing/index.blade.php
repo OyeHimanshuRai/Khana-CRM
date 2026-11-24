@@ -40,6 +40,7 @@
 
     @include('site._seo', [
         'title' => $site['meta_title'],
+        'schema' => \App\Support\StructuredData::graph(\App\Support\StructuredData::organization($site), \App\Support\StructuredData::website($site), \App\Support\StructuredData::software($site)),
         'description' => $site['meta_description'] ?: 'Restaurant POS for billing, QR table ordering, kitchen tickets, GST invoices, inventory and reports. Start a free trial with '.$site['name'].'.',
         'site' => $site,
     ])

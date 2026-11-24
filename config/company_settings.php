@@ -200,6 +200,16 @@ return [
                 'rules' => ['nullable', 'string', 'max:320'],
             ],
             'topbar_offer_text' => ['label' => 'Topbar Offer Text', 'rules' => ['nullable', 'string', 'max:180']],
+            'google_site_verification' => [
+                'label' => 'Google Search Console Verification',
+                'hint' => 'The content="..." code of the Google verification meta tag (Search Console > Settings > Ownership verification > HTML tag).',
+                'rules' => ['nullable', 'string', 'max:120'],
+            ],
+            'bing_site_verification' => [
+                'label' => 'Bing Webmaster Verification',
+                'hint' => 'The content="..." code of the Bing msvalidate.01 meta tag.',
+                'rules' => ['nullable', 'string', 'max:120'],
+            ],
             'ticker_messages' => [
                 'label' => 'Home Page Scrolling Strip',
                 'type' => 'textarea',

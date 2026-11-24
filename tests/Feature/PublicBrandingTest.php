@@ -147,8 +147,9 @@ class PublicBrandingTest extends TestCase
 
         $html = $this->get('/')->assertOk()->getContent();
 
-        // Header, footer, and the og:image share tag.
-        $this->assertSame(3, substr_count($html, Storage::disk('public')->url($logo)));
+        // Header, footer, the og:image share tag, and the organisation's logo in the structured data
+        // (written with its slashes unescaped, so it counts the same).
+        $this->assertSame(4, substr_count($html, Storage::disk('public')->url($logo)));
     }
 
     public function test_the_admin_sign_in_shows_the_wide_logo_and_names_the_company_from_settings(): void

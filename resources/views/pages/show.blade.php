@@ -7,6 +7,7 @@
 
     @include('site._seo', [
         'title' => $metaTitle,
+        'schema' => \App\Support\StructuredData::graph(\App\Support\StructuredData::breadcrumbs([['Home', route('landing')], [$page->title, url()->current()]])),
         'description' => $metaDescription,
         'keywords' => $metaKeywords,
         'site' => $site,

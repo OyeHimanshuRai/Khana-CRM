@@ -36,6 +36,7 @@
     <meta name="csrf-token" content="{{ csrf_token() }}">
     @include('site._seo', [
         'title' => $seoTitle.' · '.$site['name'],
+        'schema' => \App\Support\StructuredData::graph(\App\Support\StructuredData::breadcrumbs([['Home', route('landing')], [$eyebrow, url()->current()]])),
         'description' => $seoDescription,
         'site' => $site,
     ])

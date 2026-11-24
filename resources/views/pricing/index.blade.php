@@ -34,6 +34,7 @@
 
     @include('site._seo', [
         'title' => 'Restaurant POS Pricing · '.$site['name'],
+        'schema' => \App\Support\StructuredData::graph(\App\Support\StructuredData::software($site), \App\Support\StructuredData::breadcrumbs([['Home', route('landing')], ['Pricing', route('pricing')]])),
         'description' => 'Compare simple per-outlet restaurant POS plans from '.$site['name'].'. Start with a free trial; GST extra.',
         'site' => $site,
     ])

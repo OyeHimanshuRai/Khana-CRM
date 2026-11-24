@@ -16,6 +16,7 @@
 
     @include('site._seo', [
         'title' => 'Contact Support · '.$site['name'],
+        'schema' => \App\Support\StructuredData::graph(\App\Support\StructuredData::breadcrumbs([['Home', route('landing')], ['Contact support', route('demo')]])),
         'description' => $site['contact_description'] ?: 'Questions about '.$site['name'].' - setup, plans or a problem? Write to our support team and we will call you back in 5 minutes.',
         'site' => $site,
     ])

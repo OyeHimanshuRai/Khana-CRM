@@ -3,7 +3,25 @@
 @if (! empty($keywords))
     <meta name="keywords" content="{{ $keywords }}">
 @endif
-<link rel="canonical" href="{{ url()->current() }}">
+@php
+    // The home page's address always ends in a slash, the same as the sitemap says.
+    $canonical = url()->current();
+    if (parse_url($canonical, PHP_URL_PATH) === null) { $canonical .= '/'; }
+@endphp
+<link rel="canonical" href="{{ $canonical }}">
+@php
+    $googleVerify = \App\Models\Setting::get('google_site_verification');
+    $bingVerify = \App\Models\Setting::get('bing_site_verification');
+@endphp
+@if (filled($googleVerify))
+    <meta name="google-site-verification" content="{{ $googleVerify }}">
+@endif
+@if (filled($bingVerify))
+    <meta name="msvalidate.01" content="{{ $bingVerify }}">
+@endif
+@if (! empty($schema))
+    <script type="application/ld+json">{!! $schema !!}</script>
+@endif
 @if (! empty($robots))
     <meta name="robots" content="{{ $robots }}">
 @endif
@@ -12,7 +30,7 @@
 <meta property="og:site_name" content="{{ $site['name'] }}">
 <meta property="og:title" content="{{ $title }}">
 <meta property="og:description" content="{{ $description }}">
-<meta property="og:url" content="{{ url()->current() }}">
+<meta property="og:url" content="{{ $canonical }}">
 @if (! empty($site['logo']))
     <meta property="og:image" content="{{ $site['logo'] }}">
 @endif

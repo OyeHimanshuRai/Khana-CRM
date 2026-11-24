@@ -103,6 +103,10 @@ use Illuminate\Support\Facades\Route;
 */
 Route::get('/', LandingController::class)->name('landing');
 
+// What a search engine asks for first.
+Route::get('robots.txt', [\App\Http\Controllers\SeoController::class, 'robots'])->name('seo.robots');
+Route::get('sitemap.xml', [\App\Http\Controllers\SeoController::class, 'sitemap'])->name('seo.sitemap');
+
 // The price list and the demo form each have a page of their own, rather than
 // a #section of the landing page.
 Route::get('pricing', \App\Http\Controllers\PricingController::class)->name('pricing');

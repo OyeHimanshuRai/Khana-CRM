@@ -61,7 +61,11 @@ final class SiteBrand
                 'LinkedIn' => Setting::get('linkedin_url'),
             ])->filter()->all(),
 
-            'meta_title' => Setting::get('meta_title_home') ?: $name.' | Restaurant POS & QR Ordering',
+            // The setting often holds just the company name (right for a tab, useless for a search result):
+            // a title of its own is used when it says something, else the standard one.
+            'meta_title' => mb_strlen((string) Setting::get('meta_title_home')) >= 25
+                ? Setting::get('meta_title_home')
+                : $name.' | Restaurant POS Software, QR Ordering & GST Billing',
             'meta_description' => Setting::get('meta_description_home'),
             'ticker' => self::ticker($name),
             'contact_heading' => Setting::get('contact_heading'),
