@@ -409,4 +409,15 @@ class LandingPageTest extends TestCase
             ->assertSee('Open late? We run all night')
             ->assertDontSee('GST Billing, Kitchen Display & Stock in One Place');
     }
+
+    public function test_the_strip_also_carries_the_phone_and_the_email_as_links(): void
+    {
+        \App\Models\Setting::put(['phone' => '+91 90547 32126', 'company_email' => 'support@restroone.test']);
+
+        $this->get('/')->assertOk()
+            ->assertSee('Call us: +91 90547 32126')
+            ->assertSee('href="tel:+919054732126"', false)
+            ->assertSee('Write to us: support@restroone.test')
+            ->assertSee('href="mailto:support@restroone.test"', false);
+    }
 }

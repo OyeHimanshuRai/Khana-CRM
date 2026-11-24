@@ -92,9 +92,11 @@ final class SiteBrand
 
     /**
      * The messages for the scrolling strip on the home page: one per line in Settings,
-     * or a standard set about the product when none were written.
+     * or a standard set about the product when none were written - and always the name
+     * with the phone number and the email from Settings, as links, so the strip carries
+     * everything a visitor needs to reach us.
      *
-     * @return array<int, string>
+     * @return array<int, array{text: string, url: ?string}>
      */
     private static function ticker(string $name): array
     {
@@ -104,12 +106,27 @@ final class SiteBrand
             ->values()
             ->all();
 
-        return $lines !== [] ? $lines : [
+        $messages = $lines !== [] ? $lines : [
             'Restaurant POS & QR Ordering Software | '.$name,
             'GST Billing, Kitchen Display & Stock in One Place | '.$name,
             'From Table Orders to Daily Reports, on One Screen | '.$name,
             'Set Up in Minutes - Start Your Free Trial | '.$name,
             'Dine-in, Takeaway & Delivery from the Same Counter | '.$name,
         ];
+
+        $items = array_map(fn (string $text) => ['text' => $text, 'url' => null], $messages);
+
+        $phone = trim((string) Setting::get('phone'));
+        $email = trim((string) Setting::get('company_email'));
+
+        if ($phone !== '') {
+            $items[] = ['text' => 'Call us: '.$phone.' | '.$name, 'url' => 'tel:'.preg_replace('/\s+/', '', $phone)];
+        }
+
+        if ($email !== '') {
+            $items[] = ['text' => 'Write to us: '.$email.' | '.$name, 'url' => 'mailto:'.$email];
+        }
+
+        return $items;
     }
 }

@@ -61,7 +61,7 @@
 {{-- ------------------------------------------------------------- strip -- --}}
 {{-- The offer (if there is one) leads, then the standard messages, all scrolling. --}}
 @include('site._ticker', ['messages' => collect($strip ? [['text' => $strip->text, 'url' => $strip->url]] : [])
-    ->merge(collect($site['ticker'])->map(fn ($t) => ['text' => $t, 'url' => null]))
+    ->merge($site['ticker'])
     ->all()])
 
 {{-- ------------------------------------------------------------ header -- --}}
