@@ -124,4 +124,42 @@ class DemoOtpTest extends TestCase
 
         $this->postJson(route('demo.otp.send'), ['email' => 'aditi@example.test'])->assertStatus(429)->assertJsonPath('success', false);
     }
+
+    /* ----------------------------------------------------------- the emails */
+
+    public function test_a_request_emails_the_super_admins_and_the_support_address_and_a_copy_to_the_sender(): void
+    {
+        \App\Models\Setting::put(['company_email' => 'support@restroone.test']);
+        $code = $this->askForCode();
+        $this->postJson(route('demo.otp.verify'), ['email' => 'aditi@example.test', 'otp' => $code])->assertOk();
+
+        $this->postJson(route('demo-request.store'), $this->lead(['message' => 'I need help with GST.']))->assertOk();
+
+        // To the platform's people, once each, with the sender as the reply-to.
+        Mail::assertSent(\App\Mail\SupportRequestMail::class, function ($mail) {
+            return $mail->hasTo('admin@erp.test')
+                && $mail->hasTo('support@restroone.test')
+                && $mail->hasReplyTo('aditi@example.test')
+                && str_contains($mail->render(), 'I need help with GST.')
+                && str_contains($mail->render(), 'Aditi Rao')
+                && str_contains($mail->render(), '/superadmin/demo-requests/');
+        });
+
+        // And a confirmation copy to the person who wrote.
+        Mail::assertSent(\App\Mail\SupportRequestReceivedMail::class, function ($mail) {
+            return $mail->hasTo('aditi@example.test')
+                && str_contains($mail->render(), 'We received your message')
+                && str_contains($mail->render(), 'I need help with GST.');
+        });
+    }
+
+    public function test_a_mail_failure_never_loses_the_request(): void
+    {
+        Mail::shouldReceive('to')->andThrow(new \RuntimeException('SMTP down'));
+        $this->withSession([\App\Http\Controllers\DemoOtpController::SESSION_KEY => 'aditi@example.test']);
+
+        $this->postJson(route('demo-request.store'), $this->lead())->assertOk()->assertJsonPath('success', true);
+
+        $this->assertDatabaseHas('demo_requests', ['email' => 'aditi@example.test']);
+    }
 }

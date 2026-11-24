@@ -103,6 +103,9 @@ class DemoRequestController extends Controller
 
         $request->session()->forget(DemoOtpController::SESSION_KEY);
 
+        // The details to the Super Admins and the support address, and a copy to the person who wrote.
+        \App\Support\SupportMailer::send($lead);
+
         app(\App\Services\EventNotifier::class)->demoRequested($lead);
 
         return $this->thanks($request);
