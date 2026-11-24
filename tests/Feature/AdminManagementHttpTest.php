@@ -231,7 +231,7 @@ class AdminManagementHttpTest extends TestCase
     {
         foreach (['a', 'b', 'c'] as $k) {
             Alert::query()->create([
-                'shop_id' => $this->shop->id, 'type' => 'test', 'level' => 'info', 'title' => "Alert {$k}",
+                'shop_id' => $this->shop->id, 'type' => Alert::SIGNUP, 'level' => 'info', 'title' => "Alert {$k}",
                 'dedupe_key' => "t-{$k}", 'created_at' => now(), 'updated_at' => now(),
             ]);
         }

@@ -219,7 +219,17 @@ class AlertSweepTest extends TestCase
         $this->staleRegister();
         app(AlertService::class)->sweep($this->shop());
 
-        $this->actingAs($this->admin())
+        $owner = User::create([
+            'tenant_id' => $this->shop()->tenant_id,
+            'name' => 'Shop Owner',
+            'email' => 'bellowner@example.test',
+            'password' => 'owner-password-1',
+            'is_admin' => true,
+        ]);
+        $owner->assignRole('Tenant Owner');
+        $owner->shops()->attach($this->shop()->id);
+
+        $this->actingAs($owner)
             ->get('/superadmin/alerts/bell')
             ->assertOk()
             ->assertSee('has not been closed')

@@ -297,6 +297,29 @@ class LiveNotificationsTest extends TestCase
 
     /* -------------------------------------------------------------- push */
 
+    public function test_the_super_admin_is_told_about_the_platform_never_about_a_restaurants_orders(): void
+    {
+        $superAdmin = User::query()->get()->first(fn (User $u) => $u->isSuperAdmin());
+        $this->assertNotNull($superAdmin);
+
+        $service = app(AlertService::class);
+        $order = $service->raise($this->shop(), Alert::ORDER_PLACED, 'New order T-9 · Table 2', 'order:sa-1');
+        $stock = $service->raise($this->shop(), Alert::LOW_STOCK, 'Low stock: Rice', 'stock:sa-1');
+        $signup = $service->raise($this->shop(), Alert::SIGNUP, 'New signup', 'signup:sa-1');
+        $demo = $service->raise($this->shop(), Alert::DEMO_REQUEST, 'Support request', 'demo:sa-1');
+
+        $this->assertFalse($order->isVisibleTo($superAdmin));
+        $this->assertFalse($stock->isVisibleTo($superAdmin));
+        $this->assertTrue($signup->isVisibleTo($superAdmin));
+        $this->assertTrue($demo->isVisibleTo($superAdmin));
+
+        $titles = Alert::query()->withoutGlobalScopes()->visibleTo($superAdmin)->pluck('title')->all();
+        $this->assertContains('New signup', $titles);
+        $this->assertContains('Support request', $titles);
+        $this->assertNotContains('New order T-9 · Table 2', $titles);
+        $this->assertNotContains('Low stock: Rice', $titles);
+    }
+
     public function test_a_new_alert_is_pushed_once_to_the_devices_of_people_who_may_see_it(): void
     {
         $this->firebase();

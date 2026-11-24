@@ -65,6 +65,15 @@ class Alert extends Model
     /** Platform-only: a lapsed business asked to renew, where nothing is paid online. */
     public const RENEWAL_REQUEST = 'renewal_request';
 
+    /**
+     * What the platform's own people (the Super Admins) are told: the business itself - who signed up,
+     * who paid, who wrote to support, who asked to renew. Never what happens inside a customer's restaurant
+     * (its orders, its stock, its till): that is the restaurant's own news, for its own staff.
+     *
+     * @var array<int, string>
+     */
+    public const PLATFORM_TYPES = [self::SIGNUP, self::SUBSCRIPTION_PAID, self::DEMO_REQUEST, self::RENEWAL_REQUEST];
+
     /** @var array<string, array{label: string, icon: string}> */
     public const TYPES = [
         self::LOW_STOCK => ['label' => 'Low stock', 'icon' => 'package'],
@@ -127,6 +136,8 @@ class Alert extends Model
     public function scopeVisibleTo(Builder $query, User $user): Builder
     {
         return $query
+            // A Super Admin's bell is the platform's, not any restaurant's (see PLATFORM_TYPES).
+            ->when($user->isSuperAdmin(), fn (Builder $q) => $q->whereIn('type', self::PLATFORM_TYPES))
             ->where(fn (Builder $q) => $q
                 ->where('user_id', $user->getKey())
                 ->orWhereNull('user_id'))
@@ -150,6 +161,11 @@ class Alert extends Model
      */
     public function isVisibleTo(User $user): bool
     {
+        // The same rule as the scope above, for the rows already fetched and for the push devices.
+        if ($user->isSuperAdmin() && ! in_array($this->type, self::PLATFORM_TYPES, true)) {
+            return false;
+        }
+
         if ($this->user_id !== null && (int) $this->user_id !== (int) $user->getKey()) {
             return false;
         }
