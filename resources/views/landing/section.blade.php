@@ -139,6 +139,8 @@
         </div>
     </section>
 
+    {{-- The FAQ page has its own "Ask our support team" button above; it needs no second banner. --}}
+    @unless ($section === 'faq')
     <section class="lp-section lp-section-alt">
         <div class="lp-wrap lp-head lp-head-center">
             <h2>See it on your own menu</h2>
@@ -147,6 +149,7 @@
             <a class="lp-btn lp-btn-ghost" href="{{ route('pricing') }}">View pricing</a>
         </div>
     </section>
+    @endunless
 </main>
 
 @include('site._footer')
