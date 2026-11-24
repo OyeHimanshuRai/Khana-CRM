@@ -199,7 +199,7 @@ class RegistrationTest extends TestCase
             ->assertSee('name="address_line1"', false)
             ->assertSee('data-get-location', false)
             ->assertSee('name="latitude"', false)
-            ->assertSee('name="logo"', false)
+            ->assertDontSee('name="logo"', false)
             ->assertSee('Already have an account?')
             ->assertDontSee('type="radio"', false);
     }

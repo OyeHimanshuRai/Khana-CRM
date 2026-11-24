@@ -2,7 +2,7 @@
     Self-service sign-up.
 
     One wide card on a three-column grid (two on a tablet, one on a phone):
-    plan, billing and business name; the address; the location and logo; then
+    plan, billing and business name; the address; the location; then
     the person and the terms. Plan and billing stay real <select>s - the
     billing one is dressed as a Monthly/Yearly switch by register.js.
 
@@ -80,7 +80,7 @@
             </ul>
         @endif
 
-        <form method="POST" action="{{ route('register.store') }}" class="rg-form" enctype="multipart/form-data"
+        <form method="POST" action="{{ route('register.store') }}" class="rg-form"
               data-ajax data-register novalidate data-redirect-delay="1200">
             @csrf
 
@@ -214,14 +214,6 @@
                     @error('latitude')<span class="rg-error" role="alert">{{ $message }}</span>@enderror
                     @error('longitude')<span class="rg-error" role="alert">{{ $message }}</span>@enderror
                 </div>
-
-                <p class="lp-field field rg-field-wide">
-                    <label for="r-logo">Business logo <span class="rg-optional">(optional)</span></label>
-                    <input id="r-logo" type="file" name="logo" accept="image/jpeg,image/png,image/webp"
-                           aria-describedby="r-logo-hint" data-logo-input>
-                    <span class="rg-hint" id="r-logo-hint" data-logo-name hidden></span>
-                    @error('logo')<span class="rg-error" role="alert">{{ $message }}</span>@enderror
-                </p>
 
                 <p class="lp-field field">
                     <label for="r-name" class="rg-sr">Your name</label>
