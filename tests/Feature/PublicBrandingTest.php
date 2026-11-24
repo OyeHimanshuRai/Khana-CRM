@@ -66,7 +66,6 @@ class PublicBrandingTest extends TestCase
         return [
             '/' => 'landing',
             route('page.show', 'privacy-policy') => 'policy page',
-            '/register' => 'sign-up',
         ];
     }
 
@@ -87,6 +86,18 @@ class PublicBrandingTest extends TestCase
                 ->assertSee('Mon - Sat · 10 am - 7 pm')
                 ->assertSee('Privacy Policy')
                 ->assertSee('&copy; '.date('Y').' RestroOne', false);
+        }
+    }
+
+    /** The sign-in and sign-up pages are just the form: no site footer under them. */
+    public function test_the_login_and_register_pages_have_no_footer(): void
+    {
+        $this->brand();
+
+        foreach (['/login', '/register'] as $url) {
+            $this->get($url)->assertOk()
+                ->assertDontSee('<footer class="lp-footer">', false)
+                ->assertDontSee('mailto:hello@restroone.test', false);
         }
     }
 

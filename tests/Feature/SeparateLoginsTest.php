@@ -70,7 +70,7 @@ class SeparateLoginsTest extends TestCase
             ->assertSee('Sign in to your restaurant')
             ->assertSee(route('register'), false)
             ->assertSee('aria-label="Primary"', false)
-            ->assertSee('aria-label="Explore"', false)
+            ->assertDontSee('<footer class="lp-footer">', false)
             ->assertSee(route('landing.how'), false)
             ->assertSee(route('landing.features'), false)
             ->assertSee(route('landing.billing'), false)
