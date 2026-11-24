@@ -26,6 +26,7 @@
         if (!key || !wrap) { return; }
 
         wrap.querySelector('[data-license-key]').textContent = key;
+        wrap.setAttribute('data-license-id', (event.detail.data && event.detail.data.id) || '');
         var panel = wrap.querySelector('[data-license-panel]');
         if (panel) { panel.hidden = true; }
         wrap.querySelector('[data-license-result]').hidden = false;
@@ -48,6 +49,57 @@
         } else {
             window.prompt('Copy the key:', key);
         }
+    });
+
+    /* Send the key shown above to the customer. The server checks it is the key issued for this license. */
+    document.addEventListener('click', function (event) {
+        var button = event.target.closest('[data-license-send]');
+        if (!button) { return; }
+
+        var wrap = button.closest('[data-license-generate-wrap]');
+        var box = button.closest('[data-license-result]');
+        var email = box.querySelector('[data-license-email]');
+        var key = box.querySelector('[data-license-key]').textContent;
+        var id = wrap && wrap.getAttribute('data-license-id');
+
+        if (!id || !key) { return; }
+
+        if (!email.value || !email.checkValidity()) {
+            email.focus();
+            if (window.Toast) { window.Toast.error('Enter a valid email address.'); }
+            return;
+        }
+
+        var meta = document.querySelector('meta[name="csrf-token"]');
+        var label = button.textContent;
+        button.disabled = true;
+        button.textContent = 'Sending…';
+
+        fetch(box.getAttribute('data-send-url').replace('__ID__', id), {
+            method: 'POST',
+            credentials: 'same-origin',
+            headers: {
+                'Accept': 'application/json',
+                'X-Requested-With': 'XMLHttpRequest',
+                'X-CSRF-TOKEN': meta ? meta.getAttribute('content') : ''
+            },
+            body: new URLSearchParams({ key: key, email: email.value })
+        }).then(function (response) {
+            return response.json().catch(function () { return null; });
+        }).then(function (payload) {
+            if (payload && payload.success) {
+                button.textContent = 'Sent ✓';
+                if (window.Toast) { window.Toast.success(payload.message); }
+                return;
+            }
+            button.disabled = false;
+            button.textContent = label;
+            if (window.Toast) { window.Toast.error((payload && payload.message) || 'Could not send the email.'); }
+        }).catch(function () {
+            button.disabled = false;
+            button.textContent = label;
+            if (window.Toast) { window.Toast.error('Could not reach the server. Please try again.'); }
+        });
     });
 
     document.addEventListener('input', function (event) {

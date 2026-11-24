@@ -790,6 +790,59 @@ class LicenseTest extends TestCase
         $this->assertSame(License::ISSUED, $this->registrationLicense()->status);
     }
 
+    public function test_the_super_admin_can_email_the_issued_key_to_the_customer_once(): void
+    {
+        \Illuminate\Support\Facades\Mail::fake();
+        $this->register();
+        $license = $this->registrationLicense();
+
+        $this->asSuperAdmin();
+        $key = $this->postJson(route('admin.licenses.act', [$license, 'rotate']))->assertOk()
+            ->assertJsonStructure(['data' => ['key', 'id']])->json('data.key');
+
+        // The panel offers it, prefilled with the customer's own address.
+        $this->get(route('admin.tenants.license', $license->tenant_id))->assertOk();
+
+        $this->postJson(route('admin.licenses.act', [$license, 'send-key']), ['key' => $key, 'email' => 'asha@spicegarden.test'])
+            ->assertOk()->assertJsonPath('success', true);
+
+        \Illuminate\Support\Facades\Mail::assertSent(\App\Mail\LicenseKeyMail::class, function ($mail) use ($key) {
+            return $mail->hasTo('asha@spicegarden.test') && $mail->key === $key
+                && str_contains($mail->render(), $key) && str_contains($mail->render(), 'works only once');
+        });
+
+        // The history says who it went to, never the key.
+        $log = LicenseLog::query()->where('license_id', $license->id)->where('action', 'key_emailed')->firstOrFail();
+        $this->assertStringContainsString('asha@spicegarden.test', $log->description);
+        $this->assertStringNotContainsString($key, json_encode($log->toArray()));
+
+        // Only the key that was really issued can be sent, and only to a real address.
+        $this->postJson(route('admin.licenses.act', [$license, 'send-key']), ['key' => 'TSW-2026-AAAA-BBBB-CCC', 'email' => 'x@y.test'])->assertStatus(422);
+        $this->postJson(route('admin.licenses.act', [$license, 'send-key']), ['key' => $key, 'email' => 'not-an-email'])->assertStatus(422);
+
+        // And it really is single use: typed once, then it is spent.
+        $this->signIn();
+        $this->postJson('/license/activate', ['license_key' => $key])->assertOk();
+        $this->signOut();
+        $this->asSuperAdmin();
+        $this->postJson(route('admin.licenses.act', [$license, 'send-key']), ['key' => $key, 'email' => 'asha@spicegarden.test'])->assertStatus(422);
+    }
+
+    public function test_a_failed_email_tells_the_admin_to_send_the_key_themselves(): void
+    {
+        $this->register();
+        $license = $this->registrationLicense();
+
+        $this->asSuperAdmin();
+        $key = $this->postJson(route('admin.licenses.act', [$license, 'rotate']))->assertOk()->json('data.key');
+
+        \Illuminate\Support\Facades\Mail::shouldReceive('to')->andThrow(new \RuntimeException('smtp down'));
+
+        $this->postJson(route('admin.licenses.act', [$license, 'send-key']), ['key' => $key, 'email' => 'asha@spicegarden.test'])
+            ->assertStatus(422)
+            ->assertJsonPath('message', 'The email could not be sent. Copy the key and send it yourself.');
+    }
+
     public function test_enforcement_can_be_switched_off(): void
     {
         $this->register();

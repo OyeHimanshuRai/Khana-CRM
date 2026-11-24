@@ -29,7 +29,7 @@ class LicenseController extends Controller
     private const ACTIONS = [
         'approve', 'reject', 'deactivate', 'reactivate', 'block', 'unblock',
         'revoke', 'reset', 'renew', 'extend', 'expiry', 'plan', 'assign',
-        'block-customer', 'unblock-customer', 'rotate',
+        'block-customer', 'unblock-customer', 'rotate', 'send-key',
     ];
 
     public function __construct(private readonly LicenseService $licenses) {}
@@ -45,6 +45,9 @@ class LicenseController extends Controller
 
         return view('admin.licenses._tenant', [
             'tenant' => $tenant,
+            // Where the key is emailed unless the Super Admin types another address.
+            'defaultEmail' => $tenant->email ?: $tenant->owner?->email,
+            'sendUrl' => str_replace('/0/', '/__ID__/', route('admin.licenses.act', [0, 'send-key'])),
             'license' => $license,
             'activations' => $license?->activations()->with(['tenant', 'user', 'decider'])->get() ?? collect(),
             'logs' => $license?->logs()->with(['user'])->limit(60)->get() ?? collect(),
@@ -98,8 +101,23 @@ class LicenseController extends Controller
             }
 
             return ApiResponse::success('New key issued. Copy it now - it cannot be shown again.', [
-                'key' => $key, 'hint' => $rotated->key_hint, 'status' => $rotated->status,
+                'key' => $key, 'id' => $rotated->id, 'hint' => $rotated->key_hint, 'status' => $rotated->status,
             ]);
+        }
+
+        if ($action === 'send-key') {
+            $data = $request->validate([
+                'key' => ['required', 'string', 'min:8', 'max:60'],
+                'email' => ['required', 'email', 'max:150'],
+            ]);
+
+            try {
+                $this->licenses->emailKey($license, $data['key'], $data['email']);
+            } catch (RuntimeException $e) {
+                return ApiResponse::error($e->getMessage());
+            }
+
+            return ApiResponse::success('Key emailed to '.$data['email'].'.');
         }
 
         $reason = fn () => $request->validate(['reason' => ['nullable', 'string', 'max:255']])['reason'] ?? null;

@@ -18,7 +18,7 @@
 | Optional trigger attributes:
 |   data-modal-title="..."   heading text (falls back to the trigger's text)
 |   data-modal-sub="..."     small line under the heading
-|   data-modal-size="sm|lg"  narrower / wider dialog
+|   data-modal-size="sm|md|lg"  narrower / medium / wider dialog
 |
 | Anything inside the modal marked [data-modal-close] dismisses it, as do
 | Escape and a backdrop click.
@@ -281,6 +281,7 @@
 
         dialog().className = 'modal-dialog' +
             (options.size === 'sm' ? ' is-sm' : '') +
+            (options.size === 'md' ? ' is-md' : '') +
             (options.size === 'lg' ? ' is-lg' : '') +
             (options.compact ? ' is-compact' : '');
 
@@ -407,7 +408,7 @@
                 : build().querySelector('.modal-sub').textContent,
             size: dialog().classList.contains('is-lg')
                 ? 'lg'
-                : (dialog().classList.contains('is-sm') ? 'sm' : null),
+                : (dialog().classList.contains('is-md') ? 'md' : (dialog().classList.contains('is-sm') ? 'sm' : null)),
         });
     }
 

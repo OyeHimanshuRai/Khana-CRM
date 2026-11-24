@@ -78,7 +78,7 @@
                             <div class="lic-inline">
                                 <a href="{{ route('admin.tenants.license', $tenant) }}"
                                    data-modal="{{ route('admin.tenants.license', $tenant) }}"
-                                   data-modal-title="License" data-modal-sub="{{ $tenant->name }}" data-modal-size="lg"
+                                   data-modal-title="License" data-modal-sub="{{ $tenant->name }}" data-modal-size="md"
                                    class="badge badge-{{ $mb['tone'] ?? 'muted' }}"><span class="badge-dot"></span>
                                     License: {{ $mb['label'] ?? ($tenant->license_exempt ? 'Not required' : 'None') }}</a>
                                 @if ($mlic && $mlic->status === \App\Models\License::PENDING)
@@ -141,7 +141,7 @@
                             @php $licBadge = $lic->badge(); @endphp
                             <a href="{{ route('admin.tenants.license', $tenant) }}"
                                data-modal="{{ route('admin.tenants.license', $tenant) }}"
-                               data-modal-title="License" data-modal-sub="{{ $tenant->name }}" data-modal-size="lg"
+                               data-modal-title="License" data-modal-sub="{{ $tenant->name }}" data-modal-size="md"
                                class="badge badge-{{ $licBadge['tone'] }}"><span class="badge-dot"></span> {{ $licBadge['label'] }}</a>
                             @if ($lic->expires_at)
                                 <span class="text-xs text-muted" style="display:block">until {{ $lic->expires_at->format('j M Y') }}</span>
@@ -164,7 +164,7 @@
                             @if ($canLicense)
                                 <a class="btn btn-icon" href="{{ route('admin.tenants.license', $tenant) }}"
                                    data-modal="{{ route('admin.tenants.license', $tenant) }}"
-                                   data-modal-title="License" data-modal-sub="{{ $tenant->name }}" data-modal-size="lg"
+                                   data-modal-title="License" data-modal-sub="{{ $tenant->name }}" data-modal-size="md"
                                    aria-label="License of {{ $tenant->name }}">
                                     <x-icon name="shield" :size="15" />
                                 </a>

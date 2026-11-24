@@ -207,6 +207,32 @@ class LicenseService
     }
 
     /**
+     * Email the key shown at generation to the customer, once.
+     *
+     * The plain key is checked against the stored hash, so only the key that was
+     * really issued for this license can be sent; it is never stored, and the log
+     * records who it went to but not the key.
+     */
+    public function emailKey(License $license, string $plainKey, string $to, ?User $actor = null): void
+    {
+        $license->loadMissing(['tenant', 'plan']);
+
+        if ($license->status !== License::ISSUED) {
+            throw new RuntimeException('Only a key that has not been entered yet can be emailed.');
+        }
+
+        if (! hash_equals((string) $license->key_hash, self::hashKey($plainKey)) || $license->tenant === null) {
+            throw new RuntimeException('That is not the key issued for this license.');
+        }
+
+        if (! \App\Support\LicenseMailer::sendKey($license->tenant, $license, $plainKey, $to)) {
+            throw new RuntimeException('The email could not be sent. Copy the key and send it yourself.');
+        }
+
+        $this->log($license, 'key_emailed', 'The key was emailed to '.$to, ['to' => $to], $actor ?? Auth::user(), $license->tenant);
+    }
+
+    /**
      * Issue a fresh key for a license nobody has entered yet; the plain key is
      * returned once. This is how the Super Admin hands a customer something to
      * type after a reset.

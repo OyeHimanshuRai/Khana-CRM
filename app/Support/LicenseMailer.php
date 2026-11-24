@@ -21,6 +21,25 @@ use Illuminate\Support\Facades\Mail;
  */
 final class LicenseMailer
 {
+    /**
+     * Email a freshly issued key to the customer. Sent at once, with the plain
+     * key the Super Admin has just been shown; the caller is told if it failed,
+     * so they can copy the key and send it another way.
+     */
+    public static function sendKey(\App\Models\Tenant $tenant, License $license, string $key, string $to): bool
+    {
+        try {
+            Mail::to($to)->sendNow(new \App\Mail\LicenseKeyMail($tenant, $license->loadMissing('plan'), $key));
+
+            return true;
+        } catch (\Throwable $e) {
+            EmailLogger::fail($e);
+            Log::warning('License key email failed', ['license_id' => $license->id, 'error' => $e->getMessage()]);
+
+            return false;
+        }
+    }
+
     public static function notifyPlatform(string $kind, Tenant $tenant, ?License $license = null, ?User $owner = null): void
     {
         try {

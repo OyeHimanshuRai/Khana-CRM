@@ -63,14 +63,25 @@
         </div>
     </div>
 
-    <div data-license-result hidden>
+    <div data-license-result hidden data-send-url="{{ $sendUrl }}">
         <div class="alert alert-success" style="margin-bottom:12px">
-            <strong>Key ready.</strong> Copy it now and send it to the customer - it is stored only as a hash and cannot be shown again.
+            <strong>Key ready.</strong> Copy it now - it is stored only as a hash and cannot be shown again.
         </div>
+
         <div class="license-key-box">
             <code data-license-key aria-live="polite"></code>
             <button type="button" class="btn btn-sm" data-license-copy>Copy</button>
         </div>
+
+        <div class="lic-send">
+            <label for="lic-send-email" class="lic-label">Send this key to the customer by email</label>
+            <div class="lic-line">
+                <input id="lic-send-email" type="email" class="input" data-license-email value="{{ $defaultEmail }}" placeholder="customer@email.com" autocomplete="off">
+                <button type="button" class="btn btn-sm btn-primary" data-license-send>Send email</button>
+            </div>
+            <p class="lic-hint">The key works once only, for {{ $tenant->name }} - after it is entered it cannot be used again.</p>
+        </div>
+
         <div class="modal-actions">
             <button type="button" class="btn btn-primary" data-modal-close>Done</button>
         </div>
