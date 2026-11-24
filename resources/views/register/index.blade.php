@@ -68,7 +68,6 @@
                 </a>
             @endif
             <h1>Create your RestroOne account</h1>
-            <p class="lp-meta">Start your free trial. No card needed.</p>
         </header>
 
         @if ($errors->any())
