@@ -613,7 +613,7 @@ return [
                     'actions' => ['view', 'create', 'edit', 'delete'],
                 ],
                 'demo_requests' => [
-                    'label' => 'Demo Requests',
+                    'label' => 'Support Requests',
                     // No create: these arrive from the public form. Nobody
                     // types a lead in by hand, and an action that exists only
                     // to be granted by mistake is one worth leaving out.

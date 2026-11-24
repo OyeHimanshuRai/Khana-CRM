@@ -1,5 +1,5 @@
 {{--
-    One demo request (§19), rendered into the modal body.
+    One support request (§19), rendered into the modal body.
 
     Nothing here edits what the enquirer typed. The only writes are the status
     and an internal note — what somebody said they wanted is a record, and a

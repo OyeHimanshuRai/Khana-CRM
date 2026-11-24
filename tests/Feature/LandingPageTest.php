@@ -134,7 +134,7 @@ class LandingPageTest extends TestCase
             '/billing' => 'Restaurant Billing &amp; GST Invoices',
             '/faq' => 'Restaurant POS FAQs',
             '/pricing' => 'Restaurant POS Pricing',
-            '/demo' => 'Book a Restaurant POS Demo',
+            '/demo' => 'Contact Support',
         ];
 
         foreach ($pages as $path => $title) {
@@ -304,7 +304,7 @@ class LandingPageTest extends TestCase
             '/billing' => 'A proper tax invoice on every bill',
             '/pricing' => 'Plans',
             '/faq' => 'Asked often',
-            '/demo' => 'See it on your own menu',
+            '/demo' => 'Contact our support team',
         ];
 
         foreach ($pages as $url => $heading) {
@@ -329,7 +329,7 @@ class LandingPageTest extends TestCase
             ->assertSee('aria-labelledby="lp-footer-contact-title"', false)
             ->assertSee('id="lp-footer-contact-title">Contact', false)
             ->assertSee('aria-label="Company"', false)
-            ->assertSee('Questions? Book a demo')
+            ->assertSee('Questions? Contact support')
             ->assertSee('Start free trial');
 
         $footerStart = strpos($content, '<footer class="lp-footer">');

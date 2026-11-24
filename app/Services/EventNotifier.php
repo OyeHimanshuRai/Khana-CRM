@@ -151,7 +151,7 @@ class EventNotifier
             $this->alerts->raise(
                 $shop,
                 Alert::DEMO_REQUEST,
-                'Demo request: '.($lead->business_name ?: $lead->name),
+                'Support request: '.($lead->business_name ?: $lead->name),
                 'demo_request:'.$lead->id,
                 trim(implode(' · ', array_filter([$lead->name, $lead->phone, $lead->email, $lead->city]))),
                 route('admin.demo-requests.show', $lead->id, false),

@@ -44,12 +44,12 @@
     <link rel="stylesheet" href="{{ asset('assets/css/ui.css') }}?v={{ filemtime(public_path('assets/css/ui.css')) }}">
     <link rel="stylesheet"
           href="{{ asset('assets/css/landing.css') }}?v={{ filemtime(public_path('assets/css/landing.css')) }}">
-    {{-- Toasts and field-error states for the "Book a demo" window. --}}
+    {{-- Toasts and field-error states for the "Contact support" window. --}}
     <link rel="stylesheet" href="{{ asset('assets/css/app.css') }}?v={{ filemtime(public_path('assets/css/app.css')) }}">
 </head>
 <body class="lp">
 @include('site._header', [
-    'actions' => [['Sign in', route('login'), 'ghost'], ['Book a demo', route('demo'), 'solid']],
+    'actions' => [['Sign in', route('login'), 'ghost'], ['Support', route('demo'), 'solid']],
 ])
 
 <main>
@@ -118,10 +118,10 @@
                         </details>
                     @endforeach
                 @empty
-                    <p class="lp-meta">Have a question? <a href="{{ route('demo') }}">Book a demo</a> and our team will help.</p>
+                    <p class="lp-meta">Have a question? <a href="{{ route('demo') }}">Contact support</a> and our team will help.</p>
                 @endforelse
 
-                <p class="lp-faq-ask">Still have a question? <a class="lp-btn lp-btn-solid" href="{{ route('demo') }}" data-demo-open>Ask us - book a demo</a></p>
+                <p class="lp-faq-ask">Still have a question? <a class="lp-btn lp-btn-solid" href="{{ route('demo') }}" data-demo-open>Ask our support team</a></p>
 
                 {{-- The questions, in a form a search engine can read. --}}
                 @if ($faqs->isNotEmpty())
@@ -142,8 +142,8 @@
     <section class="lp-section lp-section-alt">
         <div class="lp-wrap lp-head lp-head-center">
             <h2>See it on your own menu</h2>
-            <p>We can set up a demo with your restaurant's menu.</p>
-            <a class="lp-btn lp-btn-solid" href="{{ route('demo') }}">Book a demo</a>
+            <p>Questions about setup, plans or a problem? Our support team will reply by email.</p>
+            <a class="lp-btn lp-btn-solid" href="{{ route('demo') }}">Contact support</a>
             <a class="lp-btn lp-btn-ghost" href="{{ route('pricing') }}">View pricing</a>
         </div>
     </section>
@@ -151,7 +151,7 @@
 
 @include('site._footer')
 
-{{-- "Book a demo" opens in a window on this page (demo-modal.js); without JavaScript the links go to /demo. --}}
+{{-- "Contact support" opens in a window on this page (demo-modal.js); without JavaScript the links go to /demo. --}}
 @include('demo._modal')
 <script src="{{ asset('assets/js/app.js') }}?v={{ filemtime(public_path('assets/js/app.js')) }}"></script>
 <script src="{{ asset('assets/js/demo-form.js') }}?v={{ filemtime(public_path('assets/js/demo-form.js')) }}"></script>

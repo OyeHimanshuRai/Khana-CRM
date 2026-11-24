@@ -39,7 +39,7 @@
             <a href="{{ route('landing.billing') }}">Billing</a>
             <a href="{{ route('pricing') }}">Pricing</a>
             <a href="{{ route('landing.faq') }}">FAQ</a>
-            <a href="{{ route('demo') }}">Book a demo</a>
+            <a href="{{ route('demo') }}">Support</a>
         </nav>
 
         <section class="lp-footer-contact" aria-labelledby="lp-footer-contact-title">
@@ -66,7 +66,7 @@
             @endif
 
             @unless ($site['phone'] || $site['email'] || $site['whatsapp'])
-                <a href="{{ route('demo') }}">Questions? Book a demo</a>
+                <a href="{{ route('demo') }}">Questions? Contact support</a>
             @endunless
         </section>
 

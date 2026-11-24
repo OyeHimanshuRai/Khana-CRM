@@ -211,7 +211,7 @@ class PublicBrandingTest extends TestCase
         $this->postJson(route('demo-request.store'), $this->demo())
             ->assertOk()
             ->assertJsonPath('success', true)
-            ->assertJsonPath('message', 'Thank you — we will call you back shortly.');
+            ->assertJsonPath('message', 'Thank you — our support team will get back to you shortly.');
 
         $lead = DemoRequest::query()->firstOrFail();
         $this->assertSame('ravi@spice.test', $lead->email);
@@ -267,7 +267,7 @@ class PublicBrandingTest extends TestCase
         $this->post(route('demo-request.store'), $this->demo())
             ->assertRedirect(route('demo'));
 
-        $this->get(route('demo'))->assertSee('Thank you — we will call you back shortly.');
+        $this->get(route('demo'))->assertSee('Thank you — our support team will get back to you shortly.');
         $this->assertSame(1, DemoRequest::query()->count());
     }
 }

@@ -80,7 +80,7 @@ class CompanySettingSeeder extends Seeder
             'meta_title_products' => 'Restaurant POS software',
             'topbar_offer_text' => '',
             'contact_heading' => '',
-            'demo_form_title' => 'Request a Demo',
+            'demo_form_title' => 'Contact Support',
             'contact_card_title' => 'Talk to a restaurant software specialist',
 
             // Mail

@@ -77,7 +77,7 @@ class Alert extends Model
         self::FEEDBACK => ['label' => 'Guest feedback', 'icon' => 'star'],
         self::SIGNUP => ['label' => 'New sign-up', 'icon' => 'user-plus'],
         self::SUBSCRIPTION_PAID => ['label' => 'Plan payment', 'icon' => 'wallet'],
-        self::DEMO_REQUEST => ['label' => 'Demo request', 'icon' => 'phone'],
+        self::DEMO_REQUEST => ['label' => 'Support request', 'icon' => 'phone'],
         self::RENEWAL_REQUEST => ['label' => 'Renewal request', 'icon' => 'wallet'],
     ];
 
@@ -200,8 +200,8 @@ class Alert extends Model
                 'hi' => 'प्लान का भुगतान मिला',
             ],
             self::DEMO_REQUEST => [
-                'en' => 'New demo request',
-                'hi' => 'नई डेमो रिक्वेस्ट आई है',
+                'en' => 'New support request',
+                'hi' => 'नई सपोर्ट रिक्वेस्ट आई है',
             ],
             self::RENEWAL_REQUEST => [
                 'en' => 'A business asked to renew',

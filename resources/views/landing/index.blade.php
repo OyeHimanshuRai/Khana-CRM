@@ -558,7 +558,7 @@
     <section class="lp-section lp-section-alt" id="demo">
         <div class="lp-wrap lp-demo">
             <div class="lp-demo-copy">
-                <h2>{{ $site['contact_heading'] ?: 'See it on your own menu' }}</h2>
+                <h2>{{ $site['contact_heading'] ?: 'Contact our support team' }}</h2>
 
                 <p>
                     {{ $site['contact_description']
@@ -591,12 +591,12 @@
                 @endif
             </div>
 
-            {{-- A button, not a form on the page: "Book a demo" opens the form in a window (demo-modal.js);
+            {{-- A button, not a form on the page: "Contact support" opens the form in a window (demo-modal.js);
                  without JavaScript the same button goes to the /demo page. --}}
             <div class="lp-demo-form lp-demo-cta">
-                <h3>Book a free demo</h3>
-                <p>Tell us about your restaurant and we will set up a trial with your menu in it.</p>
-                <a class="lp-btn lp-btn-solid lp-btn-lg" href="{{ route('demo') }}" data-demo-open>Book a demo</a>
+                <h3>Talk to our support team</h3>
+                <p>Questions about setup, plans or a problem? Write to us and our support team will reply by email.</p>
+                <a class="lp-btn lp-btn-solid lp-btn-lg" href="{{ route('demo') }}" data-demo-open>Contact support</a>
                 <p class="lp-demo-note">We confirm your email with a 6-digit code. Your phone number is optional.</p>
             </div>
         </div>

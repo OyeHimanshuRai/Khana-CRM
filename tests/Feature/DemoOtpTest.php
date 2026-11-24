@@ -11,7 +11,7 @@ use Illuminate\Support\Facades\URL;
 use Tests\TestCase;
 
 /**
- * "Book a demo": an email that is given is confirmed with a one-time code first;
+ * "Contact support": an email that is given is confirmed with a one-time code first;
  * a phone number alone needs none.
  */
 class DemoOtpTest extends TestCase
@@ -115,7 +115,7 @@ class DemoOtpTest extends TestCase
     {
         $this->get('/demo')->assertOk()->assertSee('data-send-url="'.route('demo.otp.send').'"', false)->assertSee('Send OTP to this email');
         $this->get('/')->assertOk()->assertSee('data-verify-url="'.route('demo.otp.verify').'"', false);
-        $this->get('/faq')->assertOk()->assertSee('data-demo-modal', false)->assertSee('demo-modal.js', false)->assertSee('Ask us - book a demo');
+        $this->get('/faq')->assertOk()->assertSee('data-demo-modal', false)->assertSee('demo-modal.js', false)->assertSee('Ask our support team');
     }
 
     public function test_a_code_cannot_be_asked_for_every_second(): void

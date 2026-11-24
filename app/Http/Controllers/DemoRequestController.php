@@ -119,7 +119,7 @@ class DemoRequestController extends Controller
      */
     private function thanks(Request $request): RedirectResponse|JsonResponse
     {
-        $message = 'Thank you — we will call you back shortly.';
+        $message = 'Thank you — our support team will get back to you shortly.';
 
         if ($request->expectsJson()) {
             return json_success($message);

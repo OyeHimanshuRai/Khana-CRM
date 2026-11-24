@@ -180,7 +180,7 @@ class RegisterController extends Controller
          | worst possible first impression.
          */
         if ((int) $plan->trial_days <= 0 && ! app(GatewayManager::class)->platform()->isConfigured()) {
-            return $this->failed($request, 'plan', 'This plan cannot be started online yet. Please book a demo and we will set it up with you.');
+            return $this->failed($request, 'plan', 'This plan cannot be started online yet. Please contact support and we will set it up with you.');
         }
 
         $logoPath = $request->file('logo')?->store('tenants', 'public');

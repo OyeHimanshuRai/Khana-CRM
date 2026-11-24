@@ -116,12 +116,12 @@ class DemoRequestController extends Controller
 
         ActivityLog::record(
             'demo_request.updated',
-            sprintf('Marked a demo request %s', $demoRequest->statusLabel()),
+            sprintf('Marked a support request %s', $demoRequest->statusLabel()),
             $demoRequest,
             ['name' => $demoRequest->name],
         );
 
-        return ApiResponse::success('Demo request updated.');
+        return ApiResponse::success('Support request updated.');
     }
 
     public function destroy(DemoRequest $demoRequest): JsonResponse
@@ -130,9 +130,9 @@ class DemoRequestController extends Controller
 
         $demoRequest->delete();
 
-        ActivityLog::record('demo_request.deleted', 'Deleted a demo request', null, ['name' => $name]);
+        ActivityLog::record('demo_request.deleted', 'Deleted a support request', null, ['name' => $name]);
 
-        return ApiResponse::success('Demo request deleted.');
+        return ApiResponse::success('Support request deleted.');
     }
 
     /**

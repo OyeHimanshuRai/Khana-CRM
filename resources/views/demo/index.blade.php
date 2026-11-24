@@ -1,5 +1,5 @@
 {{--
-    Book a demo, on a page of its own (it was the landing page's #demo section).
+    Contact support, on a page of its own (it was the landing page's #demo section).
 
     With JavaScript: demo-form.js checks each field as it is left, and app.js
     posts without a reload - errors on the fields, the thank-you as a toast and
@@ -15,8 +15,8 @@
     <meta name="csrf-token" content="{{ csrf_token() }}">
 
     @include('site._seo', [
-        'title' => 'Book a Restaurant POS Demo · '.$site['name'],
-        'description' => $site['contact_description'] ?: 'See '.$site['name'].' on your own menu. Tell us about your restaurant and we will set up a trial for you.',
+        'title' => 'Contact Support · '.$site['name'],
+        'description' => $site['contact_description'] ?: 'Questions about '.$site['name'].' - setup, plans or a problem? Write to our support team and we will reply by email.',
         'site' => $site,
     ])
 
@@ -38,11 +38,11 @@
     <section class="lp-section lp-section-alt lp-demo-page">
         <div class="lp-wrap lp-demo">
             <div class="lp-demo-copy">
-                <h1 class="lp-page-title">{{ $site['contact_heading'] ?: 'See it on your own menu' }}</h1>
+                <h1 class="lp-page-title">{{ $site['contact_heading'] ?: 'Contact our support team' }}</h1>
 
                 <p>
                     {{ $site['contact_description']
-                        ?: 'Tell us how many outlets you run and we will set up a trial with your menu already in it.' }}
+                        ?: 'Tell us what you need - setup, plans or a problem - and our support team will reply by email.' }}
                 </p>
 
                 <div class="lp-demo-contacts">

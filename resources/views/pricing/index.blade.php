@@ -110,7 +110,7 @@
             </div>
 
             <p class="lp-pricing-foot">
-                Not sure which plan fits? <a href="{{ route('demo') }}">Book a demo</a> and we will set one up with your menu in it.
+                Not sure which plan fits? <a href="{{ route('demo') }}">Contact support</a> and we will help you choose.
             </p>
         </div>
     </section>

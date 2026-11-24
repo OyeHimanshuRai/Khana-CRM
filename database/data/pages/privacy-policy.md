@@ -7,7 +7,7 @@ This policy explains what information **RestroOne** ("we", "us") collects, why, 
 - **Business data you enter:** menu items, prices, orders, bills, tables, stock, suppliers, staff and your customers' details (name, phone, address). This is your data; we hold it for you.
 - **Payments:** the plan you chose, invoices, and payment references. Card details are handled by the payment provider and are not stored by us.
 - **Technical data:** device and browser type, IP address, pages used, sign-in history and error logs, to keep the Service secure and working.
-- **Messages:** what you send us through Support or a demo request.
+- **Messages:** what you send us through Support or the Contact support form.
 
 ## 2. Why we use it
 

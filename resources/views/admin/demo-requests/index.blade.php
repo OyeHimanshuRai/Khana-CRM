@@ -1,6 +1,6 @@
 @extends('admin.layouts.app')
 
-@section('title', 'Demo Requests')
+@section('title', 'Support Requests')
 
 @section('content')
     {{--
@@ -12,11 +12,11 @@
         month.
     --}}
     <x-page-header
-        title="Demo Requests"
+        title="Support Requests"
         :subtitle="$stats['new'] > 0
             ? $stats['new'].' waiting for a call'
             : 'Nobody is waiting'"
-        :crumbs="['Content' => null, 'Landing Page' => null, 'Demo Requests' => null]"
+        :crumbs="['Content' => null, 'Landing Page' => null, 'Support Requests' => null]"
     >
         <x-slot:actions>
             @allows('content.demo_requests.export')
@@ -84,7 +84,7 @@
         <form method="GET" class="list-toolbar">
             <div class="list-search">
                 <x-icon name="search" :size="15" />
-                <label for="dr-search" class="sr-only">Search demo requests</label>
+                <label for="dr-search" class="sr-only">Search support requests</label>
                 <input id="dr-search" type="search" name="q" value="{{ $search }}"
                        placeholder="Search name, business, city, email or phone…"
                        autocomplete="off" data-ajax-filter>

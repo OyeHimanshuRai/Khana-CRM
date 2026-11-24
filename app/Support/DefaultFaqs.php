@@ -68,7 +68,7 @@ final class DefaultFaqs
         ['Can I take my data with me?', 'Yes. Your menu, customers, sales and stock can be exported at any time, and for 30 days after an account ends you can ask us for a full export.', 'Data and security'],
 
         // ---- Support
-        ['How do I get help?', 'Open the Support section in your account and we will reply there, or write to us at the email address in the footer. You can also book a demo and our team will show you around your own menu.', 'Support'],
+        ['How do I get help?', 'Open the Support section in your account and we will reply there, or write to us at the email address in the footer. You can also use Contact support on our website and our team will reply by email.', 'Support'],
     ];
 
     /** @return int how many questions were added */

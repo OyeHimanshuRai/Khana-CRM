@@ -79,8 +79,8 @@
                         </p>
 
                         <p class="lp-field lp-field-full field">
-                            <label for="{{ $idp }}-message" class="lp-sr">Anything else</label>
-                            <textarea id="{{ $idp }}-message" name="message" rows="2" maxlength="2000" placeholder="Anything else">{{ old('message') }}</textarea>
+                            <label for="{{ $idp }}-message" class="lp-sr">How can we help?</label>
+                            <textarea id="{{ $idp }}-message" name="message" rows="2" maxlength="2000" placeholder="How can we help? *">{{ old('message') }}</textarea>
                         </p>
                     </div>
 
@@ -88,6 +88,6 @@
                          who only has a phone, and that is the likelier buyer. --}}
                     <p class="lp-demo-note">We confirm your email with a 6-digit code we send to it. Your phone number is optional.</p>
 
-                    <button type="submit" class="lp-btn lp-btn-solid">Book a demo</button>
+                    <button type="submit" class="lp-btn lp-btn-solid">Send to support</button>
                 </form>
             

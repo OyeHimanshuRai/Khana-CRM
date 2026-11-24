@@ -201,7 +201,7 @@ return [
             ],
             'topbar_offer_text' => ['label' => 'Topbar Offer Text', 'rules' => ['nullable', 'string', 'max:180']],
             'contact_heading' => ['label' => 'Contact Heading', 'rules' => ['nullable', 'string', 'max:180']],
-            'demo_form_title' => ['label' => 'Demo Form Title', 'rules' => ['nullable', 'string', 'max:120']],
+            'demo_form_title' => ['label' => 'Support Form Title', 'rules' => ['nullable', 'string', 'max:120']],
             'hero_demo_video_url' => [
                 'label' => 'Hero Demo Video URL',
                 'type' => 'url',

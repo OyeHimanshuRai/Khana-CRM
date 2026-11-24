@@ -14,7 +14,7 @@
         'Start free trial' => 'fa-rocket',
         'See pricing' => 'fa-tags',
         'Pricing' => 'fa-tags',
-        'Book a demo' => 'fa-calendar-check',
+        'Support' => 'fa-life-ring',
         'View pricing' => 'fa-tags',
         'Home' => 'fa-house',
     ];
@@ -24,7 +24,7 @@
         'Billing' => route('landing.billing'),
         'Pricing' => route('pricing'),
         'FAQ' => route('landing.faq'),
-        'Book a demo' => route('demo'),
+        'Support' => route('demo'),
     ];
     $actions = $actions ?? [['Sign in', route('login'), 'solid']];
 @endphp

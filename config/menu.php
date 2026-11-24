@@ -578,7 +578,7 @@ return [
                         'can' => 'content.showcases.view',
                     ],
                     [
-                        'label' => 'Demo Requests',
+                        'label' => 'Support Requests',
                         'route' => 'admin.demo-requests.index',
                         'active' => 'admin.demo-requests.*',
                         'can' => 'content.demo_requests.view',

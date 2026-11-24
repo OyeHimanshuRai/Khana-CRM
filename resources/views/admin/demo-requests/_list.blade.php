@@ -67,7 +67,7 @@
                         <div class="row-actions">
                             <a class="btn btn-icon" href="{{ route('admin.demo-requests.show', $row) }}"
                                data-modal="{{ route('admin.demo-requests.show', $row) }}"
-                               data-modal-title="Demo request"
+                               data-modal-title="Support request"
                                data-modal-sub="{{ $row->name }}"
                                data-modal-size="lg"
                                aria-label="Open request from {{ $row->name }}">
