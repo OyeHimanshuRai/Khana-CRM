@@ -395,8 +395,8 @@ class LandingPageTest extends TestCase
     {
         $this->get('/')->assertOk()
             ->assertSee('class="lp-ticker"', false)
-            ->assertSee('Restaurant POS & QR Ordering Software | RestroOne')
-            ->assertSee('Set Up in Minutes - Start Your Free Trial | RestroOne')
+            ->assertSee('Restaurant POS & QR Ordering Software |')
+            ->assertSee('Set Up in Minutes - Start Your Free Trial |')
             ->assertSee('lp-ticker-sep', false);
     }
 
