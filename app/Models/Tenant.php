@@ -96,6 +96,12 @@ class Tenant extends Model
         return $this->hasMany(License::class)->orderByDesc('id');
     }
 
+    /** The company's first user - the owner who signed up - for the contact line in the Companies list. */
+    public function owner(): \Illuminate\Database\Eloquent\Relations\HasOne
+    {
+        return $this->hasOne(User::class)->oldestOfMany();
+    }
+
     /** The newest license on file for this business, whatever its state - what the Companies list shows. */
     public function latestLicense(): \Illuminate\Database\Eloquent\Relations\HasOne
     {

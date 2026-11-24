@@ -68,7 +68,7 @@
                 <x-icon name="search" :size="15" />
                 <label for="tenant-search" class="sr-only">Search companies</label>
                 <input id="tenant-search" type="search" name="q" value="{{ $search }}"
-                       placeholder="Search name, code, city or GSTIN…" autocomplete="off" data-ajax-filter>
+                       placeholder="Search name, email, mobile, code or GSTIN…" autocomplete="off" data-ajax-filter>
             </div>
 
             <div class="list-filters">

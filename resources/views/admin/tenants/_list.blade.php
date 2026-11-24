@@ -58,6 +58,20 @@
                             <span class="text-xs text-muted" style="display:block">{{ $tenant->legal_name }}</span>
                         @endif
 
+                        {{-- Who to contact: the owner's name, and the company's email and mobile. --}}
+                        @php
+                            $contactName = $tenant->owner?->name;
+                            $contactEmail = $tenant->email ?: $tenant->owner?->email;
+                            $contactPhone = $tenant->phone ?: $tenant->owner?->mobile;
+                        @endphp
+                        @if ($contactName || $contactEmail || $contactPhone)
+                            <div class="text-xs text-muted tenant-contact">
+                                @if ($contactName)<span>{{ $contactName }}</span>@endif
+                                @if ($contactEmail)<a href="mailto:{{ $contactEmail }}">{{ $contactEmail }}</a>@endif
+                                @if ($contactPhone)<a href="tel:{{ preg_replace('/[^0-9+]/', '', $contactPhone) }}">{{ $contactPhone }}</a>@endif
+                            </div>
+                        @endif
+
                         {{-- Phones: the License column is out of sight, so the same thing sits under the name. --}}
                         @if ($canLicense)
                             @php $mlic = $tenant->latestLicense; $mb = $mlic?->badge(); @endphp

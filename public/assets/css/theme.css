@@ -3499,6 +3499,9 @@ input[type="number"],
     .table-tenants { min-width: 0; }
     .table-tenants .col-hide-sm { display: none; }
     .table-tenants .lic-inline { display: flex; }
-    .table-tenants .col-action { width: 92px; }
     .table-tenants .row-actions { flex-wrap: wrap; justify-content: flex-end; }
 }
+
+.tenant-contact { display: flex; flex-direction: column; gap: 1px; margin-top: 3px; overflow-wrap: anywhere; }
+.tenant-contact a { color: inherit; text-decoration: none; }
+@media (hover: hover) and (pointer: fine) { .tenant-contact a:hover { color: var(--brand-text); text-decoration: underline; } }

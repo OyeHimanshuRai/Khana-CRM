@@ -850,6 +850,27 @@ class LicenseTest extends TestCase
         $this->assertNotContains('Spice Garden', $listed('pending'));
     }
 
+    public function test_the_companies_list_shows_who_the_customer_is_and_how_to_reach_them(): void
+    {
+        $this->register();
+        $this->asSuperAdmin();
+
+        $this->get(route('admin.tenants.index'))
+            ->assertOk()
+            ->assertSee('Asha Rao')
+            ->assertSee('asha@spicegarden.test')
+            ->assertSee('mailto:asha@spicegarden.test', false)
+            ->assertSee('tel:+919876543210', false);
+
+        // And the list can be searched by them.
+        $found = fn (string $q) => $this->get(route('admin.tenants.index', ['q' => $q]))->assertOk()->viewData('tenants')->pluck('name')->all();
+
+        $this->assertContains('Spice Garden', $found('asha@spicegarden'));
+        $this->assertContains('Spice Garden', $found('Asha Rao'));
+        $this->assertContains('Spice Garden', $found('98765'));
+        $this->assertNotContains('Spice Garden', $found('nobody-at-all'));
+    }
+
     public function test_there_is_no_separate_licenses_page_or_menu_entry(): void
     {
         $this->asSuperAdmin();

@@ -56,7 +56,7 @@ class TenantController extends Controller
         $perPage = in_array($perPage, self::PAGE_SIZES, true) ? $perPage : 15;
 
         $tenants = $this->filtered($request)
-            ->with('latestLicense')
+            ->with(['latestLicense', 'owner'])
             ->withCount(['shops', 'users'])
             ->paginate($perPage)
             ->withQueryString();
@@ -100,7 +100,13 @@ class TenantController extends Controller
                     ->orWhere('code', 'like', $like)
                     ->orWhere('legal_name', 'like', $like)
                     ->orWhere('gstin', 'like', $like)
-                    ->orWhere('city', 'like', $like));
+                    ->orWhere('city', 'like', $like)
+                    ->orWhere('email', 'like', $like)
+                    ->orWhere('phone', 'like', $like)
+                    ->orWhereHas('owner', fn (Builder $o) => $o
+                        ->where('name', 'like', $like)
+                        ->orWhere('email', 'like', $like)
+                        ->orWhere('mobile', 'like', $like)));
             })
             ->when($request->string('status')->toString(), function (Builder $query, string $status) {
                 $query->where('is_active', $status === 'active');
