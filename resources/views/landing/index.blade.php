@@ -59,15 +59,10 @@
 <body class="lp">
 
 {{-- ------------------------------------------------------------- strip -- --}}
-@if ($strip)
-    <div class="lp-strip">
-        @if ($strip->url)
-            <a href="{{ $strip->url }}">{{ $strip->text }}</a>
-        @else
-            <span>{{ $strip->text }}</span>
-        @endif
-    </div>
-@endif
+{{-- The offer (if there is one) leads, then the standard messages, all scrolling. --}}
+@include('site._ticker', ['messages' => collect($strip ? [['text' => $strip->text, 'url' => $strip->url]] : [])
+    ->merge(collect($site['ticker'])->map(fn ($t) => ['text' => $t, 'url' => null]))
+    ->all()])
 
 {{-- ------------------------------------------------------------ header -- --}}
 @include('site._header', [

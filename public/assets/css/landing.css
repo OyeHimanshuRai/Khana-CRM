@@ -1521,3 +1521,23 @@ html.lp-modal-open { overflow: hidden; }
 .lp-support-final .lp-meta { margin-top: 12px; }
 .lp-demo-copy .lp-support-badge { color: #fff; }
 .lp-demo-copy .lp-support-badge svg { color: #fff; }
+
+/* ----------------------------------------------- the scrolling strip */
+
+.lp-ticker {
+    overflow: hidden;
+    background: #1b1b1f;
+    color: #fff;
+    border-bottom: 1px solid rgba(255, 255, 255, .08);
+}
+.lp-ticker-track { display: flex; width: max-content; animation: lp-ticker 55s linear infinite; }
+.lp-ticker:hover .lp-ticker-track { animation-play-state: paused; }
+.lp-ticker-list { display: flex; align-items: center; margin: 0; padding: 0; list-style: none; flex: none; }
+.lp-ticker-list li { flex: none; padding: 10px 0; font-size: 13.5px; font-weight: 500; letter-spacing: .01em; white-space: nowrap; }
+.lp-ticker-list a { color: inherit; text-decoration: underline; text-underline-offset: 3px; }
+.lp-ticker-sep { padding: 10px 34px !important; color: var(--lp-brand-soft, #f97316); font-size: 12px !important; }
+@keyframes lp-ticker { from { transform: translateX(0); } to { transform: translateX(-50%); } }
+@media (prefers-reduced-motion: reduce) {
+    .lp-ticker { overflow-x: auto; }
+    .lp-ticker-track { animation: none; }
+}

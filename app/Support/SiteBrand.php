@@ -63,6 +63,7 @@ final class SiteBrand
 
             'meta_title' => Setting::get('meta_title_home') ?: $name.' | Restaurant POS & QR Ordering',
             'meta_description' => Setting::get('meta_description_home'),
+            'ticker' => self::ticker($name),
             'contact_heading' => Setting::get('contact_heading'),
             'contact_description' => Setting::get('contact_description'),
             'demo_video' => Setting::get('hero_demo_video_url'),
@@ -87,5 +88,28 @@ final class SiteBrand
             'svg' => 'image/svg+xml',
             default => 'image/x-icon',
         };
+    }
+
+    /**
+     * The messages for the scrolling strip on the home page: one per line in Settings,
+     * or a standard set about the product when none were written.
+     *
+     * @return array<int, string>
+     */
+    private static function ticker(string $name): array
+    {
+        $lines = collect(preg_split('/\r\n|\r|\n/', (string) Setting::get('ticker_messages')) ?: [])
+            ->map(fn ($l) => trim((string) $l))
+            ->filter()
+            ->values()
+            ->all();
+
+        return $lines !== [] ? $lines : [
+            'Restaurant POS & QR Ordering Software | '.$name,
+            'GST Billing, Kitchen Display & Stock in One Place | '.$name,
+            'From Table Orders to Daily Reports, on One Screen | '.$name,
+            'Set Up in Minutes - Start Your Free Trial | '.$name,
+            'Dine-in, Takeaway & Delivery from the Same Counter | '.$name,
+        ];
     }
 }

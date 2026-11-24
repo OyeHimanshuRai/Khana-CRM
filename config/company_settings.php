@@ -200,6 +200,13 @@ return [
                 'rules' => ['nullable', 'string', 'max:320'],
             ],
             'topbar_offer_text' => ['label' => 'Topbar Offer Text', 'rules' => ['nullable', 'string', 'max:180']],
+            'ticker_messages' => [
+                'label' => 'Home Page Scrolling Strip',
+                'type' => 'textarea',
+                'width' => 'full',
+                'hint' => 'The strip of messages that scrolls across the top of the home page. One message per line. Leave blank for the standard messages.',
+                'rules' => ['nullable', 'string', 'max:1500'],
+            ],
             'contact_heading' => ['label' => 'Contact Heading', 'rules' => ['nullable', 'string', 'max:180']],
             'demo_form_title' => ['label' => 'Support Form Title', 'rules' => ['nullable', 'string', 'max:120']],
             'hero_demo_video_url' => [

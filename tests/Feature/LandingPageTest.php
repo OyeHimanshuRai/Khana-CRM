@@ -388,4 +388,25 @@ class LandingPageTest extends TestCase
         // An empty href would render as a link to the current page.
         $response->assertDontSee('>Facebook</a>', false);
     }
+
+    /* ------------------------------------------------- the scrolling strip */
+
+    public function test_the_home_page_has_a_scrolling_strip_with_the_standard_messages(): void
+    {
+        $this->get('/')->assertOk()
+            ->assertSee('class="lp-ticker"', false)
+            ->assertSee('Restaurant POS & QR Ordering Software | RestroOne')
+            ->assertSee('Set Up in Minutes - Start Your Free Trial | RestroOne')
+            ->assertSee('lp-ticker-sep', false);
+    }
+
+    public function test_the_owner_can_write_the_strips_messages_in_settings(): void
+    {
+        \App\Models\Setting::put(['ticker_messages' => "Two months free on annual plans\n\n  Open late? We run all night  \n"]);
+
+        $this->get('/')->assertOk()
+            ->assertSee('Two months free on annual plans')
+            ->assertSee('Open late? We run all night')
+            ->assertDontSee('GST Billing, Kitchen Display & Stock in One Place');
+    }
 }
