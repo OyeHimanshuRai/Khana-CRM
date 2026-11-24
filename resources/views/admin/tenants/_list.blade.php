@@ -10,17 +10,17 @@
 @endphp
 
 <div class="table-wrap">
-    <table class="table table-list">
+    <table class="table table-list table-tenants">
         <thead>
             <tr>
-                <th style="width:1%">Logo</th>
+                <th style="width:1%" class="col-hide-sm">Logo</th>
                 <th>Company</th>
-                <th>Code</th>
-                <th>Location</th>
-                <th>GSTIN</th>
-                <th>Branches</th>
+                <th class="col-hide-sm">Code</th>
+                <th class="col-hide-sm">Location</th>
+                <th class="col-hide-sm">GSTIN</th>
+                <th class="col-hide-sm">Branches</th>
                 <th>Status</th>
-                <th>License</th>
+                <th class="col-hide-sm">License</th>
                 <th class="col-action">Actions</th>
             </tr>
         </thead>
@@ -29,7 +29,7 @@
             @forelse ($tenants as $tenant)
                 @php $logo = $tenant->logoUrl(); @endphp
                 <tr>
-                    <td>
+                    <td class="col-hide-sm">
                         <span class="cat-thumb">
                             @if ($logo)
                                 <img src="{{ $logo }}" alt="{{ $tenant->name }}">
@@ -57,17 +57,35 @@
                         @if ($tenant->legal_name)
                             <span class="text-xs text-muted" style="display:block">{{ $tenant->legal_name }}</span>
                         @endif
+
+                        {{-- Phones: the License column is out of sight, so the same thing sits under the name. --}}
+                        @if ($canLicense)
+                            @php $mlic = $tenant->latestLicense; $mb = $mlic?->badge(); @endphp
+                            <div class="lic-inline">
+                                <a href="{{ route('admin.tenants.license', $tenant) }}"
+                                   data-modal="{{ route('admin.tenants.license', $tenant) }}"
+                                   data-modal-title="License" data-modal-sub="{{ $tenant->name }}" data-modal-size="lg"
+                                   class="badge badge-{{ $mb['tone'] ?? 'muted' }}"><span class="badge-dot"></span>
+                                    License: {{ $mb['label'] ?? ($tenant->license_exempt ? 'Not required' : 'None') }}</a>
+                                @if ($mlic && $mlic->status === \App\Models\License::PENDING)
+                                    <form method="POST" action="{{ route('admin.licenses.act', [$mlic, 'approve']) }}" data-ajax data-refresh-list style="display:inline">
+                                        @csrf
+                                        <button type="submit" class="btn btn-sm btn-primary">Approve</button>
+                                    </form>
+                                @endif
+                            </div>
+                        @endif
                     </td>
 
-                    <td><span class="list-ref">{{ $tenant->code }}</span></td>
+                    <td class="col-hide-sm"><span class="list-ref">{{ $tenant->code }}</span></td>
 
-                    <td class="text-sm">
+                    <td class="text-sm col-hide-sm">
                         {{ collect([$tenant->city, $tenant->state])->filter()->implode(', ') ?: '—' }}
                     </td>
 
-                    <td class="text-sm">{{ $tenant->gstin ?: '—' }}</td>
+                    <td class="text-sm col-hide-sm">{{ $tenant->gstin ?: '—' }}</td>
 
-                    <td class="text-sm">
+                    <td class="text-sm col-hide-sm">
                         {{ number_format($tenant->shops_count) }}
                         <span class="text-xs text-muted" style="display:block">
                             {{ number_format($tenant->users_count) }} staff
@@ -103,7 +121,7 @@
                         @endif
                     </td>
 
-                    <td>
+                    <td class="col-hide-sm">
                         @php $lic = $tenant->latestLicense; @endphp
                         @if ($lic)
                             @php $licBadge = $lic->badge(); @endphp

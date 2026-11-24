@@ -3491,3 +3491,14 @@ input[type="number"],
 }
 .license-card { margin-bottom: 16px; }
 .license-contact { display: flex; flex-wrap: wrap; gap: 8px; }
+
+/* Companies on a phone: name, status and actions fit without sideways scrolling;
+   the License sits under the name (the column for it is desktop-only). */
+.lic-inline { display: none; margin-top: 6px; gap: 6px; align-items: center; flex-wrap: wrap; }
+@media (max-width: 760px) {
+    .table-tenants { min-width: 0; }
+    .table-tenants .col-hide-sm { display: none; }
+    .table-tenants .lic-inline { display: flex; }
+    .table-tenants .col-action { width: 92px; }
+    .table-tenants .row-actions { flex-wrap: wrap; justify-content: flex-end; }
+}
