@@ -3505,3 +3505,15 @@ input[type="number"],
 .tenant-contact { display: flex; flex-direction: column; gap: 1px; margin-top: 3px; overflow-wrap: anywhere; }
 .tenant-contact a { color: inherit; text-decoration: none; }
 @media (hover: hover) and (pointer: fine) { .tenant-contact a:hover { color: var(--brand-text); text-decoration: underline; } }
+
+/* License modal: actions centred, every control the same height, nothing wrapping mid-form. */
+.license-actions { justify-content: center; }
+.license-forms { justify-content: center; align-items: center; gap: 10px 14px; }
+.license-inline { flex-wrap: nowrap; align-items: center; justify-content: center; }
+.license-inline .input, .license-inline select, .license-inline .btn { height: 38px; box-sizing: border-box; }
+.license-inline .btn { white-space: nowrap; }
+.license-actions .btn { height: 38px; }
+@media (max-width: 560px) {
+    .license-inline { flex-wrap: wrap; width: 100%; }
+    .license-inline .input, .license-inline select { flex: 1 1 120px; min-width: 0; }
+}
