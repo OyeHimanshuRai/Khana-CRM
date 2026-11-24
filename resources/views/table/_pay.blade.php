@@ -14,6 +14,8 @@
 
 <section class="t-card t-pay" data-pay
          data-start="{{ route('table.pay.start') }}"
+         data-failed="{{ route('table.pay.failed') }}"
+         data-receipt="{{ route('table.receipt') }}"
          data-amount="{{ number_format($total, 2, '.', '') }}">
 
     <button type="button" class="t-add-btn t-pay-btn" data-pay-button>
@@ -54,8 +56,30 @@
             var note = box.querySelector('[data-pay-note]');
             var token = document.querySelector('meta[name="csrf-token"]');
 
+            var idle = button.textContent;
+
             function say(message) {
-                if (note) { note.textContent = message; }
+                if (note) { note.textContent = message; note.classList.remove('t-pay-retry'); }
+            }
+
+            /*
+             | A payment that did not go through. The button becomes
+             | "Retry Payment" and the reason stays on screen: the guest
+             | should never have to wonder whether they were charged or what
+             | to press next. The failed attempt is reported so the next try
+             | opens a fresh provider order.
+             */
+            function failed(message, reference) {
+                button.disabled = false;
+                button.textContent = 'Retry Payment';
+                if (note) {
+                    note.textContent = (message || 'The payment did not go through.')
+                        + ' If money was deducted it is returned by your bank automatically.';
+                    note.classList.add('t-pay-retry');
+                }
+                if (reference) {
+                    post(box.dataset.failed, { reference: reference, reason: message || '' }).catch(function () {});
+                }
             }
 
             function post(url, body) {
@@ -74,20 +98,19 @@
 
             button.addEventListener('click', function () {
                 button.disabled = true;
+                button.textContent = idle;
                 say('Opening the payment window…');
 
                 post(box.dataset.start).then(function (result) {
                     if (!result.success) {
-                        button.disabled = false;
-                        say(result.message || 'That did not work. Please ask a member of staff.');
+                        failed(result.message || 'That did not work. Please try again or ask a member of staff.');
                         return;
                     }
 
                     var checkout = result.data.checkout;
 
                     if (!checkout || typeof window.Razorpay !== 'function') {
-                        button.disabled = false;
-                        say('The payment window would not open. Please ask a member of staff.');
+                        failed('The payment window would not open.');
                         return;
                     }
 
@@ -108,29 +131,42 @@
                                 razorpay_signature: response.razorpay_signature
                             }).then(function (confirmed) {
                                 /*
-                                 | Reloaded either way. On success the table is
-                                 | settled and the page should say so; on
-                                 | failure the server has the truth and the
-                                 | guest should see it rather than a stale
-                                 | screen - and the webhook may well have
-                                 | settled it anyway.
+                                 | Paid: straight to the receipt, nothing for
+                                 | the guest to press. Not paid: the server
+                                 | has already marked the attempt failed, so
+                                 | show Retry Payment.
                                  */
-                                say(confirmed.message || 'Thank you.');
-                                window.location.reload();
+                                if (confirmed.success) {
+                                    say(confirmed.message || 'Paid. Opening your receipt…');
+                                    window.location.assign(confirmed.redirect || box.dataset.receipt);
+                                    return;
+                                }
+                                failed(confirmed.message);
+                            }).catch(function () {
+                                // The network dropped after paying: the
+                                // webhook settles it, and the page moves to
+                                // the receipt by itself when it has.
+                                say('Confirming your payment…');
+                                window.setTimeout(function () { window.location.assign(box.dataset.receipt); }, 4000);
                             });
                         },
                         modal: {
                             ondismiss: function () {
                                 button.disabled = false;
-                                say('Payment cancelled. Or ask a member of staff to bring the card machine.');
+                                button.textContent = 'Retry Payment';
+                                say('Payment cancelled. Tap Retry Payment, or ask a member of staff to bring the card machine.');
                             }
                         }
                     });
 
+                    rzp.on('payment.failed', function (response) {
+                        var reason = response && response.error ? response.error.description : '';
+                        failed(reason, result.data.reference);
+                    });
+
                     rzp.open();
                 }).catch(function () {
-                    button.disabled = false;
-                    say('That did not work. Please ask a member of staff.');
+                    failed('That did not work. Please check your connection.');
                 });
             });
         })();

@@ -280,12 +280,17 @@ class TableOrderController extends Controller
         $session = $this->session($request);
 
         if ($session === null) {
-            $request->session()->forget(TableScanController::SESSION_KEY);
+            // Paid (here, or at the counter): go to the receipt, by themselves.
+            $paid = $this->sessions->resolveForReceipt($request->session()->get(TableScanController::SESSION_KEY)) !== null;
+
+            if (! $paid) {
+                $request->session()->forget(TableScanController::SESSION_KEY);
+            }
 
             return response()->json([
                 'success' => false,
-                'message' => 'This sitting has ended.',
-                'redirect' => route('table.expired'),
+                'message' => $paid ? 'Paid. Opening your receipt…' : 'This sitting has ended.',
+                'redirect' => $paid ? route('table.receipt') : route('table.expired'),
             ], 410);
         }
 
@@ -324,6 +329,12 @@ class TableOrderController extends Controller
 
     private function expired(Request $request): RedirectResponse
     {
+        // A table that has just paid is closed, but the guest is owed their
+        // receipt rather than a "session ended" page.
+        if ($this->sessions->resolveForReceipt($request->session()->get(TableScanController::SESSION_KEY)) !== null) {
+            return redirect()->route('table.receipt');
+        }
+
         $request->session()->forget(TableScanController::SESSION_KEY);
 
         return redirect()->route('table.expired');

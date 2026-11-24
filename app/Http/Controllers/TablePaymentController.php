@@ -115,8 +115,44 @@ class TablePaymentController extends Controller
         return ApiResponse::success(
             sprintf('Paid ₹%s. Thank you!', number_format((float) $intent->amount, 2)),
             ['status' => $intent->status],
-            route('table.orders'),
+            route('table.receipt'),
         );
+    }
+
+    /**
+     * The checkout said the payment failed (declined, cancelled, timed out).
+     *
+     * Recorded so the attempt shows as failed to the restaurant and so the
+     * next tap of Retry Payment opens a fresh provider order instead of
+     * resuming one the guest's bank has already rejected. A paid attempt is
+     * never walked back: PaymentIntentService::fail() refuses to.
+     */
+    public function failed(Request $request): JsonResponse
+    {
+        $session = $this->session($request);
+
+        if ($session === null) {
+            return ApiResponse::error('Please scan the code on your table again.', [], 419);
+        }
+
+        $data = $request->validate([
+            'reference' => ['required', 'string', 'max:64'],
+            'reason' => ['nullable', 'string', 'max:200'],
+        ]);
+
+        $intent = PaymentIntent::allShops()
+            ->where('reference', $data['reference'])
+            ->where('payable_type', $session->getMorphClass())
+            ->where('payable_id', $session->id)
+            ->first();
+
+        if ($intent === null) {
+            return ApiResponse::error('That payment does not belong to this table.', [], 404);
+        }
+
+        $intent = $this->payments->fail($intent, $data['reason'] ?: 'The payment did not go through.');
+
+        return ApiResponse::success('', ['status' => $intent->status]);
     }
 
     /**

@@ -85,6 +85,7 @@ use App\Http\Controllers\LandingController;
 use App\Http\Controllers\TableManifestController;
 use App\Http\Controllers\TableOrderController;
 use App\Http\Controllers\TablePaymentController;
+use App\Http\Controllers\TableReceiptController;
 use App\Http\Controllers\TableVerifyController;
 use App\Http\Controllers\TableScanController;
 use Illuminate\Support\Facades\Route;
@@ -353,6 +354,21 @@ Route::middleware('throttle:guest-pay')->group(function () {
 Route::post('t/pay/confirm', [TablePaymentController::class, 'confirm'])
     ->middleware('throttle:guest-pay-confirm')
     ->name('table.pay.confirm');
+
+// The guest's browser reporting that the checkout failed, so the attempt is
+// recorded as failed and Retry Payment opens a fresh one.
+Route::post('t/pay/failed', [TablePaymentController::class, 'failed'])
+    ->middleware('throttle:guest-pay-confirm')
+    ->name('table.pay.failed');
+
+/*
+| The receipt: what opens the moment the table has paid, on the same phone.
+| From the guest's own cookie like everything else here - no id in the URL.
+*/
+Route::middleware('throttle:guest-live')->group(function () {
+    Route::get('t/receipt', [TableReceiptController::class, 'show'])->name('table.receipt');
+    Route::get('t/receipt/download', [TableReceiptController::class, 'download'])->name('table.receipt.download');
+});
 
 /*
 | The provider's webhook (§11).

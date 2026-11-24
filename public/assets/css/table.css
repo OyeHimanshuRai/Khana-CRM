@@ -669,3 +669,15 @@
 }
 .t-sound-toggle[aria-pressed="false"] { color: var(--t-muted); }
 .t-sound-toggle[hidden] { display: none; }
+/* ------------------------------------------------------------ receipt */
+
+.t-rc-actions { display: flex; gap: 10px; margin-bottom: 14px; }
+.t-rc-actions .t-add-btn { flex: 1; text-align: center; }
+.t-rc-alt { background: transparent; color: var(--t-brand); border: 1px solid var(--t-brand); padding: 8px 17px; }
+.t-pay-retry { color: #b91c1c; font-weight: 600; }
+
+@media print {
+    .t-rc-actions, .t-foot { display: none !important; }
+    .t-body { background: #fff; }
+    .t-card { border: 0; }
+}

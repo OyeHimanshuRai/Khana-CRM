@@ -22,6 +22,8 @@
     <link rel="stylesheet"
           href="{{ asset('assets/css/table.css') }}?v={{ filemtime(public_path('assets/css/table.css')) }}">
 
+    @stack('styles')
+
     {{--
         Installable (§14).
 

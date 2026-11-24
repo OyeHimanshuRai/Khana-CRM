@@ -518,6 +518,137 @@ class OnlinePaymentTest extends TestCase
             ->assertJsonPath('success', false);
     }
 
+    /* -------------------------------------------------------------- receipt */
+
+    private function paid(): TableSession
+    {
+        $this->live();
+        $this->fakeOrder();
+
+        $session = $this->seated();
+        $this->get('/t/'.$session->table->activeQr->token);
+        $this->postJson('/t/pay')->assertOk();
+
+        $intent = PaymentIntent::allShops()->firstOrFail();
+
+        $this->postJson('/t/pay/confirm', [
+            'reference' => $intent->reference,
+            'razorpay_order_id' => $intent->provider_order_id,
+            'razorpay_payment_id' => 'pay_GOOD',
+            'razorpay_signature' => $this->sign($intent->provider_order_id, 'pay_GOOD'),
+        ])->assertOk()
+            ->assertJsonPath('success', true)
+            ->assertJsonPath('redirect', route('table.receipt'));
+
+        return $session;
+    }
+
+    public function test_paying_opens_a_receipt_with_everything_the_guest_needs(): void
+    {
+        $session = $this->paid();
+        $order = $session->orders()->firstOrFail();
+
+        $this->get('/t/receipt')
+            ->assertOk()
+            ->assertSee($order->order_number)
+            ->assertSee('Table')
+            ->assertSee('Butter Naan')
+            ->assertSee('180.00')
+            ->assertSee('Online (UPI / Card)')
+            ->assertSee('pay_GOOD')
+            ->assertSeeText('Paid')
+            ->assertSee('Print')
+            ->assertSee('Download Receipt');
+    }
+
+    public function test_the_receipt_can_be_downloaded_as_a_file(): void
+    {
+        $this->paid();
+
+        $response = $this->get('/t/receipt/download')->assertOk();
+
+        $this->assertStringContainsString('attachment; filename="receipt-', $response->headers->get('Content-Disposition'));
+        $this->assertStringContainsString('Butter Naan', $response->getContent());
+        $this->assertStringContainsString('Paid', $response->getContent());
+    }
+
+    public function test_a_paid_table_sends_the_guest_to_the_receipt_not_a_dead_end(): void
+    {
+        $this->paid();
+
+        $this->get('/t/orders')->assertRedirect(route('table.receipt'));
+
+        $this->getJson('/t/orders/live')
+            ->assertStatus(410)
+            ->assertJsonPath('redirect', route('table.receipt'));
+    }
+
+    public function test_a_table_settled_at_the_counter_gets_a_receipt_too(): void
+    {
+        $this->live();
+
+        $session = $this->seated();
+        $this->get('/t/'.$session->table->activeQr->token);
+
+        app(\App\Services\TableBillService::class)->settle($session, [
+            'payments' => [['method' => 'cash', 'amount' => 180]],
+        ]);
+
+        $this->get('/t/receipt')->assertOk()->assertSee('Cash')->assertSeeText('Paid');
+    }
+
+    public function test_there_is_no_receipt_without_a_paid_sitting(): void
+    {
+        $this->get('/t/receipt')->assertRedirect(route('table.expired'));
+
+        $this->live();
+        $session = $this->seated();
+        $this->get('/t/'.$session->table->activeQr->token);
+
+        // Ordered but not paid: nothing to show yet.
+        $this->get('/t/receipt')->assertRedirect(route('table.expired'));
+    }
+
+    public function test_a_failed_payment_is_recorded_and_retry_opens_a_fresh_attempt(): void
+    {
+        $this->live();
+        $this->fakeOrder('order_FIRST');
+
+        $session = $this->seated();
+        $this->get('/t/'.$session->table->activeQr->token);
+
+        $reference = $this->postJson('/t/pay')->assertOk()->json('data.reference');
+
+        $this->postJson('/t/pay/failed', ['reference' => $reference, 'reason' => 'Card declined'])
+            ->assertOk()
+            ->assertJsonPath('data.status', PaymentIntent::FAILED);
+
+        $this->fakeOrder('order_SECOND');
+        $retry = $this->postJson('/t/pay')->assertOk()->json('data.reference');
+
+        $this->assertNotSame($reference, $retry);
+        $this->assertSame(2, PaymentIntent::allShops()->count());
+
+        // The table is still owing and still open.
+        $this->assertSame(TableSession::OPEN, $session->fresh()->status);
+    }
+
+    public function test_one_table_cannot_fail_anothers_payment(): void
+    {
+        $this->live();
+        $this->fakeOrder();
+
+        $session = $this->seated();
+        $this->get('/t/'.$session->table->activeQr->token);
+        $this->postJson('/t/pay')->assertOk();
+
+        $other = PaymentIntent::allShops()->firstOrFail();
+        $other->forceFill(['payable_id' => $session->id + 999])->save();
+
+        $this->postJson('/t/pay/failed', ['reference' => $other->reference])->assertStatus(404);
+        $this->assertSame(PaymentIntent::PENDING, $other->fresh()->status);
+    }
+
     /* ------------------------------------------------------------- helpers */
 
     private function webhookBody(string $orderId, string $paymentId, int $paise): string

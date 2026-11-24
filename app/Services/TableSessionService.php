@@ -227,6 +227,38 @@ class TableSessionService
         return $session;
     }
 
+    /**
+     * The guest's own sitting for their receipt - open, billed or closed.
+     *
+     * A paid table is closed the moment the money lands, and `resolve()` stops
+     * answering for a closed sitting on purpose (no ordering against a bill
+     * that has been printed). The receipt is the one page that must still
+     * open afterwards, so it has its own door: the same cookie token, any
+     * status, but only for a day after closing and only once there is a bill.
+     */
+    public function resolveForReceipt(?string $token): ?TableSession
+    {
+        if (blank($token)) {
+            return null;
+        }
+
+        $session = TableSession::allShops()
+            ->where('token', $token)
+            ->where(fn ($q) => $q
+                ->whereIn('status', [TableSession::OPEN, TableSession::BILLED])
+                ->orWhere('closed_at', '>=', now()->subDay()))
+            ->with(['table.floor', 'table.shop'])
+            ->first();
+
+        CurrentTenant::pinForGuest($session?->table?->shop?->tenant_id);
+
+        if ($session === null || ! $session->invoices()->exists()) {
+            return null;
+        }
+
+        return $session;
+    }
+
     private function freshToken(): string
     {
         do {
