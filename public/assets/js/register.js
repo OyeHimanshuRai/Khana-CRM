@@ -110,6 +110,30 @@
     var logoInput = form.querySelector('[data-logo-input]');
     var logoName = form.querySelector('[data-logo-name]');
 
+    /*
+     | The plan's price follows the billing period: "Chain - Rs 4,999/mo" when Monthly is chosen,
+     | "Chain - Rs 49,990/yr" when Yearly is. The tag on Yearly says what it saves for the chosen plan.
+     */
+    function refreshPricing() {
+        var select = form.querySelector('[data-period-select]');
+        if (!planSelect || !select) { return; }
+
+        var yearly = select.value === 'yearly';
+
+        Array.prototype.forEach.call(planSelect.options, function (option) {
+            var text = option.getAttribute(yearly ? 'data-yearly' : 'data-monthly');
+            if (text) { option.textContent = text; }
+        });
+
+        var chosen = planSelect.options[planSelect.selectedIndex];
+        var save = chosen ? parseInt(chosen.getAttribute('data-save'), 10) || 0 : 0;
+
+        Array.prototype.forEach.call(form.querySelectorAll('.rg-seg-tag'), function (tag) {
+            tag.textContent = save > 0 ? 'Save ' + save + '%' : '';
+            tag.hidden = save <= 0;
+        });
+    }
+
     function showBlurb() {
         if (!planSelect || !planBlurb) {
             return;
@@ -134,7 +158,7 @@
         var seg = document.createElement('div');
         seg.className = 'rg-seg';
         seg.setAttribute('role', 'radiogroup');
-        seg.setAttribute('aria-label', 'Billing after trial');
+        seg.setAttribute('aria-label', 'Billing period');
 
         var segButtons = Array.prototype.map.call(periodSelect.options, function (option) {
             var button = document.createElement('button');
@@ -164,6 +188,8 @@
             segButtons.forEach(function (button) {
                 button.setAttribute('aria-checked', button.dataset.value === periodSelect.value ? 'true' : 'false');
             });
+
+            refreshPricing();
         };
 
         periodSelect.classList.add('rg-seg-source');
@@ -353,6 +379,7 @@
     form.addEventListener('change', function (event) {
         if (event.target.name === 'plan') {
             showBlurb();
+            refreshPricing();
         }
 
         if (event.target.name === 'terms' || event.target.name === 'plan') {

@@ -316,6 +316,17 @@ class RegistrationTest extends TestCase
         $this->assertTrue($subscription->ends_at->equalTo(now()->addDays(10)));
     }
 
+    public function test_the_plan_list_carries_both_prices_so_the_billing_switch_can_change_it(): void
+    {
+        $starter = $this->plan('starter');
+
+        $this->get('/register?period=yearly')->assertOk()
+            ->assertSee('data-monthly="Starter — ₹'.number_format($starter->priceFor('monthly'), 0).'/mo"', false)
+            ->assertSee('data-yearly="Starter — ₹'.number_format($starter->priceFor('yearly'), 0).'/yr"', false)
+            ->assertSee('data-save="', false)
+            ->assertSee('Billing period');
+    }
+
     public function test_a_new_account_sees_only_its_own_company(): void
     {
         $originalShopId = Shop::query()->withoutGlobalScopes()->orderBy('id')->value('id');

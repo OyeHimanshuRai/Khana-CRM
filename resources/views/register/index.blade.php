@@ -105,18 +105,24 @@
                             @php
                                 // Short enough not to be cut off in the box; the trial
                                 // and the description go in the line under it.
-                                $optionText = $p->name.' — ₹'.number_format($p->priceFor('monthly'), 0).'/mo';
+                                $monthlyText = $p->name.' — ₹'.number_format($p->priceFor('monthly'), 0).'/mo';
+                                $yearlyText = $p->name.' — ₹'.number_format($p->priceFor('yearly'), 0).'/yr';
+                                $optionText = $chosenPeriod === 'yearly' ? $yearlyText : $monthlyText;
+                                // What paying by the year saves against twelve months, as a whole percent.
+                                $twelve = $p->priceFor('monthly') * 12;
+                                $save = $twelve > 0 ? max(0, (int) round((1 - $p->priceFor('yearly') / $twelve) * 100)) : 0;
                                 $optionNote = $shortNote($p);
                                 $optionFull = trim(((int) $p->trial_days > 0 ? (int) $p->trial_days.'-day free trial. ' : '').$p->blurb);
                             @endphp
-                            <option value="{{ $p->slug }}" @selected($chosenPlan === $p->slug) data-blurb="{{ $optionNote }}" data-full="{{ $optionFull }}">{{ $optionText }}</option>
+                            <option value="{{ $p->slug }}" @selected($chosenPlan === $p->slug) data-blurb="{{ $optionNote }}" data-full="{{ $optionFull }}"
+                                    data-monthly="{{ $monthlyText }}" data-yearly="{{ $yearlyText }}" data-save="{{ $save }}">{{ $optionText }}</option>
                         @endforeach
                     </select>
                     @error('plan')<span class="rg-error" role="alert">{{ $message }}</span>@enderror
                 </p>
 
                 <p class="lp-field field">
-                    <label for="r-period">Billing after trial</label>
+                    <label for="r-period">Billing period</label>
                     <select id="r-period" name="period" required data-period-select>
                         <option value="monthly" @selected($chosenPeriod === 'monthly')>Monthly</option>
                         <option value="yearly" @selected($chosenPeriod === 'yearly')>Yearly (cheaper per month)</option>
