@@ -75,9 +75,9 @@ class LicenseActivationController extends Controller
         RateLimiter::clear($limiter);
 
         return ApiResponse::success(
-            'License submitted. You will get access as soon as it is approved.',
-            ['state' => LicenseAccess::PENDING],
-            route('admin.license.show'),
+            'License activated. Your plan has started.',
+            ['state' => LicenseAccess::OK],
+            route('admin.dashboard'),
         );
     }
 

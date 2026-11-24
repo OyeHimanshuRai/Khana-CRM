@@ -190,39 +190,61 @@ class LicenseTest extends TestCase
         $this->get('/dashboard')->assertRedirect('/license');
     }
 
-    public function test_a_valid_key_waits_for_the_super_admin_then_the_dashboard_opens(): void
+    public function test_a_valid_key_activates_at_once_and_the_plan_starts(): void
     {
         $this->register();
         [$license, $key] = $this->keyFor();
+        $registeredPlan = $license->plan_id;
 
         $this->signIn();
+        $this->get('/dashboard')->assertRedirect('/license');
 
+        // Typed once: active straight away, nothing waits for anybody.
         $this->postJson('/license/activate', ['license_key' => $key])
             ->assertOk()
-            ->assertJsonPath('data.state', 'pending');
-
-        // Pending approval: still shut out, and told so.
-        $this->get('/dashboard')->assertRedirect('/license');
-        $this->get('/license')->assertOk()->assertSee('Waiting for approval');
-        $this->getJson('/license/status')->assertJsonPath('data.state', 'pending');
-
-        // The Super Admin approves.
-        $this->asSuperAdmin();
-        $this->postJson(route('admin.licenses.act', [$license, 'approve']))->assertOk();
+            ->assertJsonPath('data.state', 'ok')
+            ->assertJsonPath('redirect', url('/dashboard'));
 
         $license->refresh();
         $this->assertSame(License::ACTIVE, $license->status);
         $this->assertNotNull($license->activated_at);
         $this->assertNotNull($license->expires_at);
 
-        // The plan and the term came from the licence, not from the customer.
+        // The plan chosen at registration is running, for the licensed term.
         $sub = $this->tenantOf('asha@spicegarden.test')->subscription()->first();
-        $this->assertSame($license->plan_id, $sub->plan_id);
+        $this->assertSame($registeredPlan, $sub->plan_id);
         $this->assertTrue($sub->ends_at->isSameDay($license->expires_at));
 
-        // ...and the next sign-in goes straight to the dashboard, without the licence page.
-        $this->signIn();
         $this->get('/dashboard')->assertOk()->assertSee('Plan &amp; License', false);
+        $this->get('/products')->assertOk();
+        $this->getJson('/license/status')->assertJsonPath('data.state', 'ok');
+    }
+
+    public function test_a_license_left_pending_by_the_old_flow_can_still_be_approved_or_is_activated_by_the_migration(): void
+    {
+        $this->register();
+        $this->register('Curry House', 'bala@curryhouse.test');
+        $license = $this->makePending($this->registrationLicense());
+
+        // Still shut out while pending.
+        $this->signIn();
+        $this->get('/dashboard')->assertRedirect('/license');
+        $this->get('/license')->assertOk()->assertSee('Waiting for approval');
+
+        // The Super Admin can approve it by hand...
+        $this->asSuperAdmin();
+        $this->postJson(route('admin.licenses.act', [$license, 'approve']))->assertOk();
+        $this->assertSame(License::ACTIVE, $license->fresh()->status);
+
+        // ...and the migration does the same for every one still pending.
+        $second = $this->makePending($this->registrationLicense('bala@curryhouse.test'));
+
+        $migration = require base_path('database/migrations/2026_11_27_100000_activate_pending_licenses.php');
+        $migration->up();
+
+        $this->assertSame(License::ACTIVE, $second->fresh()->status);
+        $this->signIn('bala@curryhouse.test');
+        $this->get('/dashboard')->assertOk();
     }
 
     public function test_the_second_login_never_asks_for_the_key_again(): void
@@ -231,8 +253,6 @@ class LicenseTest extends TestCase
         [$license, $key] = $this->keyFor();
         $this->signIn();
         $this->postJson('/license/activate', ['license_key' => $key])->assertOk();
-        $this->asSuperAdmin();
-        $this->postJson(route('admin.licenses.act', [$license, 'approve']))->assertOk();
 
         foreach ([1, 2] as $_) {
             $this->signIn();
@@ -353,21 +373,31 @@ class LicenseTest extends TestCase
 
     /* ---------------------------------------------------- super admin controls */
 
+    /** A license waiting for approval, as customers were left before keys activated by themselves. */
+    private function makePending(License $license): License
+    {
+        $license->forceFill([
+            'status' => License::PENDING, 'holder_tenant_id' => $license->tenant_id, 'requested_at' => now(),
+        ])->save();
+
+        \App\Models\LicenseActivation::create([
+            'license_id' => $license->id, 'tenant_id' => $license->tenant_id, 'status' => 'pending', 'requested_at' => now(),
+        ]);
+
+        return $license->fresh();
+    }
+
     /** The whole journey to an approved license: key issued, typed by the customer, approved. */
     private function approved(string $email = 'asha@spicegarden.test', int $days = 365): License
     {
         [$license, $key] = $this->keyFor($email);
 
-        $this->signIn($email);
-        $this->postJson('/license/activate', ['license_key' => $key])->assertOk();
-
-        $this->asSuperAdmin();
-
         if ($days !== 365) {
             app(LicenseService::class)->setExpiry($license, now()->addDays($days), $this->superAdmin());
         }
 
-        $this->postJson(route('admin.licenses.act', [$license, 'approve']))->assertOk();
+        $this->signIn($email);
+        $this->postJson('/license/activate', ['license_key' => $key])->assertOk()->assertJsonPath('data.state', 'ok');
 
         return $license->fresh();
     }
@@ -505,12 +535,11 @@ class LicenseTest extends TestCase
         $this->postJson(route('admin.licenses.act', [$license, 'rotate']))->assertStatus(422);
     }
 
-    public function test_rejecting_an_activation_lets_the_key_be_entered_again(): void
+    public function test_rejecting_a_pending_activation_lets_the_key_be_entered_again(): void
     {
         $this->register();
         [$license, $key] = $this->keyFor();
-        $this->signIn();
-        $this->postJson('/license/activate', ['license_key' => $key])->assertOk();
+        $this->makePending($license);
 
         $this->asSuperAdmin();
         $this->postJson(route('admin.licenses.act', [$license, 'reject']), ['reason' => 'wrong shop'])->assertOk();
@@ -750,7 +779,7 @@ class LicenseTest extends TestCase
         // The email says what to do and where.
         $html = (new \App\Mail\LicenseRequestMail('entered', $this->tenantOf('asha@spicegarden.test'), $this->registrationLicense()))->render();
         $this->assertStringContainsString('Spice Garden', $html);
-        $this->assertStringContainsString('Review and approve', $html);
+        $this->assertStringContainsString('View the company', $html);
     }
 
     public function test_a_mail_failure_never_breaks_the_license_flow(): void
@@ -777,6 +806,7 @@ class LicenseTest extends TestCase
         $this->register();
         $license = $this->approved();
 
+        $this->asSuperAdmin();
         $this->postJson(route('admin.licenses.act', [$license, 'extend']), ['days' => 5])->assertOk();
         $this->postJson(route('admin.licenses.act', [$license, 'deactivate']))->assertOk();
 
@@ -809,17 +839,15 @@ class LicenseTest extends TestCase
             ->assertSee($license->key_hint)
             ->assertSee('Generate key');
 
-        // Issued and typed by the customer: now it is waiting for approval, from the same list.
+        // Issued and typed by the customer: active at once, and it says so in the same list.
         [, $key] = $this->keyFor();
         $this->signIn();
         $this->postJson('/license/activate', ['license_key' => $key])->assertOk();
         $this->asSuperAdmin();
 
-        $this->get(route('admin.tenants.index'))->assertOk()->assertSee('Pending Approval')->assertSee('Approve');
-        $this->assertContains('Spice Garden', $listed('pending'));
-
-        $this->postJson(route('admin.licenses.act', [$license, 'approve']))->assertOk();
+        $this->get(route('admin.tenants.index'))->assertOk()->assertSee('Active');
         $this->assertContains('Spice Garden', $listed('active'));
+        $this->assertNotContains('Spice Garden', $listed('pending'));
     }
 
     public function test_there_is_no_separate_licenses_page_or_menu_entry(): void

@@ -36,7 +36,7 @@ class LicenseRequestMail extends PlatformMail
         $subject = match ($this->kind) {
             self::REGISTERED => 'New customer needs a license key: '.$this->tenant->name,
             self::REQUESTED => 'License key requested: '.$this->tenant->name,
-            default => 'License waiting for approval: '.$this->tenant->name,
+            default => 'License activated: '.$this->tenant->name,
         };
 
         return new Envelope(
@@ -57,7 +57,7 @@ class LicenseRequestMail extends PlatformMail
                 'ownerEmail' => $this->ownerEmail,
                 'ownerPhone' => $this->ownerPhone ?: $this->tenant->phone,
                 'adminUrl' => \App\Support\Realm::platformRoute('admin.tenants.index', [
-                    'license' => $this->kind === self::ENTERED ? 'pending' : ($this->license?->status ?? 'none'),
+                    'license' => $this->kind === self::ENTERED ? 'active' : ($this->license?->status ?? 'none'),
                 ]),
             ],
         );

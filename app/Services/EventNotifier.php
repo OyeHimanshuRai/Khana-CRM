@@ -199,16 +199,17 @@ class EventNotifier
             }
 
             $waiting = $license->status === \App\Models\License::ISSUED;
+            $live = $license->status === \App\Models\License::ACTIVE;
 
             $this->alerts->raise(
                 $shop,
                 Alert::LICENSE_REQUEST,
-                ($waiting ? 'License needed: ' : 'License approval: ').($license->tenant?->name ?? $shop->name),
+                ($waiting ? 'License needed: ' : ($live ? 'License activated: ' : 'License approval: ')).($license->tenant?->name ?? $shop->name),
                 'license_request:'.$license->id.':'.$license->status.':'.optional($license->requested_at)->timestamp,
                 $waiting
                     ? sprintf('Issue a key for %s', $license->plan?->name ?? 'their plan')
                     : sprintf('%s · %s', $license->key_hint, $license->plan?->name ?? 'no plan'),
-                route('admin.tenants.index', ['license' => $waiting ? 'issued' : 'pending'], false),
+                route('admin.tenants.index', ['license' => $waiting ? 'issued' : ($live ? 'active' : 'pending')], false),
                 $license,
                 can: 'settings.licenses.edit',
             );

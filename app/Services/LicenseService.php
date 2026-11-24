@@ -319,11 +319,12 @@ class LicenseService
                     'updated_by' => $user->id,
                 ]);
 
-                $this->log($license, 'activation_requested', sprintf(
-                    '%s entered %s; waiting for approval',
-                    $tenant->name,
-                    $license->key_hint,
-                ), [], $user, $tenant, $request);
+                $this->log($license, 'activation_requested', sprintf('%s entered %s', $tenant->name, $license->key_hint), [], $user, $tenant, $request);
+
+                // The key was issued by the platform, so entering it is the activation: the plan
+                // chosen at registration starts now, with nothing for the customer to wait for.
+                $license->setRelation('tenant', $tenant)->load('plan');
+                $this->applyApproval($license, null, true);
 
                 DB::afterCommit(function () use ($license, $tenant, $user) {
                     app(EventNotifier::class)->licenseRequested($license->fresh(['tenant', 'plan']));
@@ -356,7 +357,7 @@ class LicenseService
         });
     }
 
-    /** Approve a customer's activation: the license goes live and the plan is applied. */
+    /** Approve a customer's activation: the license goes live and the plan is applied. (Only needed for one still pending.) */
     public function approve(License $license, ?User $actor = null): License
     {
         $actor ??= Auth::user();
@@ -366,37 +367,55 @@ class LicenseService
                 throw new RuntimeException('Only a license waiting for approval can be approved.');
             }
 
-            if ($l->plan === null || $l->tenant === null) {
-                throw new RuntimeException('This license has no plan or customer to apply.');
-            }
-
-            $expires = $l->expires_at ?? now()->addDays($l->validity_days)->endOfDay();
-
-            if ($expires->isPast()) {
-                throw new RuntimeException('The license expiry date has already passed. Extend it first.');
-            }
-
-            $l->forceFill([
-                'status' => License::ACTIVE,
-                'activated_at' => now(),
-                'approved_by' => $actor?->id,
-                'expires_at' => $expires,
-                'updated_by' => $actor?->id,
-            ])->save();
-
-            LicenseActivation::query()->where('license_id', $l->id)->where('status', LicenseActivation::PENDING)->update([
-                'status' => LicenseActivation::APPROVED,
-                'decided_at' => now(),
-                'decided_by' => $actor?->id,
-                'updated_by' => $actor?->id,
-            ]);
-
-            $this->subscriptions->grantTerm($l->tenant, $l->plan, $expires, 'License '.$l->key_hint);
-
-            $this->log($l, 'approved', sprintf('Approved for %s until %s', $l->tenant->name, $expires->format('j M Y')), [], $actor, $l->tenant);
-
-            return $l;
+            return $this->applyApproval($l, $actor);
         });
+    }
+
+    /**
+     * Make a pending license live and start the plan it was registered with.
+     *
+     * Shared by the Super Admin's Approve and by a customer typing a key the
+     * platform issued to them: issuing the key *is* the platform's decision, so
+     * the customer is not asked to wait for a second one.
+     */
+    private function applyApproval(License $l, ?User $actor, bool $viaKey = false): License
+    {
+        if ($l->plan === null || $l->tenant === null) {
+            throw new RuntimeException('This license has no plan or customer to apply.');
+        }
+
+        $expires = $l->expires_at ?? now()->addDays($l->validity_days)->endOfDay();
+
+        if ($expires->isPast()) {
+            throw new RuntimeException('The license expiry date has already passed. Please contact support.');
+        }
+
+        $l->forceFill([
+            'status' => License::ACTIVE,
+            'activated_at' => now(),
+            'approved_by' => $actor?->id,
+            'expires_at' => $expires,
+            'updated_by' => $actor?->id,
+        ])->save();
+
+        LicenseActivation::query()->where('license_id', $l->id)->where('status', LicenseActivation::PENDING)->update([
+            'status' => LicenseActivation::APPROVED,
+            'decided_at' => now(),
+            'decided_by' => $actor?->id,
+            'reason' => $viaKey ? 'Activated with the key issued by the platform' : null,
+            'updated_by' => $actor?->id,
+        ]);
+
+        $this->subscriptions->grantTerm($l->tenant, $l->plan, $expires, 'License '.$l->key_hint);
+
+        $this->log($l, 'approved', sprintf(
+            '%s for %s until %s',
+            $viaKey ? 'Activated with the issued key' : 'Approved',
+            $l->tenant->name,
+            $expires->format('j M Y'),
+        ), [], $actor, $l->tenant);
+
+        return $l;
     }
 
     public function reject(License $license, ?string $reason = null, ?User $actor = null): License

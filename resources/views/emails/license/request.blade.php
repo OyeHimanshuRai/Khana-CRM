@@ -1,7 +1,7 @@
 @extends('emails.subscriptions.layout')
 
 @section('heading')
-    @if ($kind === 'entered') License waiting for approval
+    @if ($kind === 'entered') License activated
     @elseif ($kind === 'requested') License key requested
     @else New customer needs a license key
     @endif
@@ -9,7 +9,7 @@
 
 @section('intro')
     @if ($kind === 'entered')
-        <strong>{{ $tenant->name }}</strong> entered their license key. They cannot use anything until you approve it.
+        <strong>{{ $tenant->name }}</strong> entered the license key you issued. It is active now and their plan has started - nothing for you to approve.
     @elseif ($kind === 'requested')
         <strong>{{ $tenant->name }}</strong> has not received their license key and asked for it. Please contact them.
     @else
@@ -29,13 +29,13 @@
 @section('cta')
     <a href="{{ $adminUrl }}"
        style="display:inline-block;padding:12px 26px;font-size:14px;font-weight:600;color:#ffffff;text-decoration:none;">
-        {{ $kind === 'entered' ? 'Review and approve' : 'Open Companies' }}
+        {{ $kind === 'entered' ? 'View the company' : 'Open Companies' }}
     </a>
 @endsection
 
 @section('note')
     @if ($kind === 'entered')
-        Open the company's License panel from the Companies list and press Approve.
+        You can block, deactivate, renew or extend it any time from the company's License panel in the Companies list.
     @else
         Open the company's License panel from the Companies list and press Generate key. The key is shown once; send it to the customer.
     @endif
