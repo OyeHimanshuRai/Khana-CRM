@@ -1132,6 +1132,9 @@ Route::prefix('superadmin')->name('admin.')->group(function () {
             Route::get('license', [LicenseActivationController::class, 'show'])->name('license.show');
             Route::get('license/status', [LicenseActivationController::class, 'status'])->name('license.status');
         });
+        Route::post('license/request-key', [LicenseActivationController::class, 'requestKey'])
+            ->middleware(['permission:settings.subscriptions.pay', 'throttle:10,1'])
+            ->name('license.request-key');
         Route::post('license/activate', [LicenseActivationController::class, 'activate'])
             ->middleware(['permission:settings.subscriptions.pay', 'throttle:20,1'])
             ->name('license.activate');

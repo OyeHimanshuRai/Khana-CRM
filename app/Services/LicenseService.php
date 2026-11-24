@@ -186,6 +186,21 @@ class LicenseService
     }
 
     /**
+     * The customer asks the platform for their key ("I have not received it").
+     *
+     * Written to the license history and raised to the Super Admin as an alert;
+     * nothing about the license changes. The customer is told to expect a call.
+     */
+    public function requestKey(Tenant $tenant, User $user, ?Request $request = null): void
+    {
+        $license = License::query()->where('tenant_id', $tenant->id)->latest('id')->first();
+
+        $this->log($license, 'key_requested', sprintf('%s asked for a license key', $tenant->name), [], $user, $tenant, $request);
+
+        DB::afterCommit(fn () => app(EventNotifier::class)->licenseKeyRequested($tenant, $license));
+    }
+
+    /**
      * Issue a fresh key for a license nobody has entered yet; the plain key is
      * returned once. This is how the Super Admin hands a customer something to
      * type after a reset.

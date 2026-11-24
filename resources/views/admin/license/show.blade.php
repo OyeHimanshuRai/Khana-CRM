@@ -63,6 +63,45 @@
         </div>
     @endif
 
+    {{-- How to get the key: the customer should never be left wondering who to ask. --}}
+    @if ($state !== LicenseAccess::OK)
+        <div class="card" style="max-width:560px;margin-top:16px">
+            <div class="card-header"><h3 class="card-title" style="margin:0">
+                {{ in_array($state, [LicenseAccess::REQUIRED, LicenseAccess::REVOKED], true) ? 'How do I get my license key?' : 'Need help?' }}
+            </h3></div>
+            <div style="padding:16px">
+                @if (in_array($state, [LicenseAccess::REQUIRED, LicenseAccess::REVOKED], true))
+                    <ol class="text-sm" style="margin:0 0 12px;padding-left:18px;line-height:1.7">
+                        <li>Contact our team - call, WhatsApp or email us.</li>
+                        <li>We send you your license key.</li>
+                        <li>Enter it above. You only do this once.</li>
+                    </ol>
+                @endif
+
+                <div class="license-contact">
+                    @if ($brand['phone_href'])
+                        <a class="btn btn-sm" href="{{ $brand['phone_href'] }}"><x-icon name="phone" :size="15" /> Call {{ $brand['phone'] }}</a>
+                    @endif
+                    @if ($brand['whatsapp_href'])
+                        <a class="btn btn-sm" href="{{ $brand['whatsapp_href'] }}" target="_blank" rel="noopener">WhatsApp</a>
+                    @endif
+                    @if ($brand['email'])
+                        <a class="btn btn-sm" href="mailto:{{ $brand['email'] }}">Email {{ $brand['email'] }}</a>
+                    @endif
+                    <a class="btn btn-sm" href="{{ url('/contact-support') }}">Contact support</a>
+                </div>
+
+                @if ($canActivate)
+                    <form method="POST" action="{{ route('admin.license.request-key') }}" data-ajax style="margin-top:12px">
+                        @csrf
+                        <button type="submit" class="btn btn-primary btn-sm">Request my license key</button>
+                        <span class="form-hint" style="display:block;margin-top:6px">We will be told straight away and contact you.</span>
+                    </form>
+                @endif
+            </div>
+        </div>
+    @endif
+
     <div style="margin-top:16px">
         @include('admin.license._card')
     </div>

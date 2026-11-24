@@ -215,6 +215,29 @@ class EventNotifier
         });
     }
 
+    /** A customer asked the platform for their license key: somebody should ring them. */
+    public function licenseKeyRequested(\App\Models\Tenant $tenant, ?\App\Models\License $license): void
+    {
+        $this->safely('license_key_request', function () use ($tenant, $license) {
+            $shop = Shop::query()->withoutGlobalScopes()->where('tenant_id', $tenant->id)->orderBy('id')->first();
+
+            if ($shop === null) {
+                return;
+            }
+
+            $this->alerts->raise(
+                $shop,
+                Alert::LICENSE_REQUEST,
+                'Key requested: '.$tenant->name,
+                'license_key_request:'.$tenant->id.':'.now()->format('YmdH'),
+                trim(($tenant->phone ? 'Call '.$tenant->phone.' · ' : '').($tenant->email ?? '')),
+                route('admin.tenants.index', ['license' => $license?->status ?? 'none'], false),
+                $license ?? $tenant,
+                can: 'settings.licenses.edit',
+            );
+        });
+    }
+
     /** Money in for a plan: a receipt to the owners, an alert to us. */
     public function subscriptionPaid(SubscriptionPayment $payment): void
     {

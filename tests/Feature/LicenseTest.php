@@ -688,6 +688,37 @@ class LicenseTest extends TestCase
         $this->get('/license')->assertOk()->assertSee('Activate your license');
     }
 
+    public function test_the_license_page_says_how_to_get_a_key_and_the_customer_can_ask_for_one(): void
+    {
+        \App\Models\Setting::put(['phone' => '+91 90547 32126', 'company_email' => 'support@example.test']);
+
+        $this->register();
+        $this->signIn();
+
+        $this->get('/license')
+            ->assertOk()
+            ->assertSee('How do I get my license key?')
+            ->assertSee('tel:+919054732126', false)
+            ->assertSee('mailto:support@example.test', false)
+            ->assertSee('Request my license key');
+
+        $this->postJson('/license/request-key')->assertOk()->assertJsonPath('success', true);
+
+        $alert = \App\Models\Alert::query()->withoutGlobalScopes()->where('type', \App\Models\Alert::LICENSE_REQUEST)->latest('id')->first();
+        $this->assertNotNull($alert);
+        $this->assertStringContainsString('Key requested', $alert->title);
+        $this->assertDatabaseHas('license_logs', ['action' => 'key_requested']);
+
+        // Once an hour: pressing it again does not flood the platform.
+        $before = \App\Models\Alert::query()->withoutGlobalScopes()->count();
+        $this->postJson('/license/request-key')->assertOk();
+        $this->assertSame($before, \App\Models\Alert::query()->withoutGlobalScopes()->count());
+
+        // It is the platform's alert: the Super Admin sees it, and it names the way to reach them.
+        $this->asSuperAdmin();
+        $this->assertTrue($alert->isVisibleTo($this->superAdmin()));
+    }
+
     public function test_enforcement_can_be_switched_off(): void
     {
         $this->register();

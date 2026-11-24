@@ -38,6 +38,7 @@ class LicenseActivationController extends Controller
         return view('admin.license.show', [
             'tenant' => $tenant,
             'summary' => $summary,
+            'brand' => \App\Support\SiteBrand::get(),
             'canActivate' => $request->user()->can('settings.subscriptions.pay')
                 && in_array($summary['state'], [LicenseAccess::REQUIRED, LicenseAccess::REVOKED], true),
         ]);
@@ -78,6 +79,28 @@ class LicenseActivationController extends Controller
             ['state' => LicenseAccess::PENDING],
             route('admin.license.show'),
         );
+    }
+
+    /** "I have not got my key": tell the platform, once an hour per company. */
+    public function requestKey(Request $request): JsonResponse
+    {
+        $tenant = CurrentTenant::get();
+
+        if ($tenant === null) {
+            return ApiResponse::error('Your account is not linked to a company.', [], 403);
+        }
+
+        $limiter = 'license-key-request:'.$tenant->id;
+
+        if (RateLimiter::tooManyAttempts($limiter, 1)) {
+            return ApiResponse::success('We have already told the team. They will contact you soon - or call us on the number below.');
+        }
+
+        RateLimiter::hit($limiter, 3600);
+
+        $this->licenses->requestKey($tenant, $request->user(), $request);
+
+        return ApiResponse::success('Request sent. Our team will contact you with your license key.');
     }
 
     /** Polled by the waiting page, so approval takes the customer straight in. */

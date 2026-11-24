@@ -3490,3 +3490,4 @@ input[type="number"],
     .license-actions .btn, .license-inline .btn { flex: 1 1 auto; }
 }
 .license-card { margin-bottom: 16px; }
+.license-contact { display: flex; flex-wrap: wrap; gap: 8px; }
