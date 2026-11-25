@@ -113,7 +113,7 @@
                                 $optionFull = trim(((int) $p->trial_days > 0 ? (int) $p->trial_days.'-day free trial. ' : '').$p->blurb);
                             @endphp
                             <option value="{{ $p->slug }}" @selected($chosenPlan === $p->slug) data-blurb="{{ $optionNote }}" data-full="{{ $optionFull }}"
-                                    data-monthly="{{ $monthlyText }}" data-yearly="{{ $yearlyText }}" data-save="{{ $save }}">{{ $optionText }}</option>
+                                    data-monthly="{{ $monthlyText }}" data-yearly="{{ $yearlyText }}" data-save="{{ $save }}" data-trial="{{ (int) $p->trial_days }}">{{ $optionText }}</option>
                         @endforeach
                     </select>
                     @error('plan')<span class="rg-error" role="alert">{{ $message }}</span>@enderror
@@ -126,6 +126,39 @@
                         <option value="yearly" @selected($chosenPeriod === 'yearly')>Yearly (cheaper per month)</option>
                     </select>
                 </p>
+
+                {{-- How to start: the free trial, or pay for the plan now (online). --}}
+                @php
+                    $chosenStart = old('start', 'trial');
+                    $chosenTrialDays = (int) ($plans->firstWhere('slug', $chosenPlan)?->trial_days ?? 7);
+                @endphp
+                <div class="lp-field field rg-field-wide rg-start" role="radiogroup" aria-label="How do you want to start?">
+                    <span class="rg-label-row"><span class="rg-start-title">How do you want to start?</span></span>
+
+                    <label class="rg-start-option">
+                        <input type="radio" name="start" value="trial" @checked($chosenStart !== 'paid') data-start-option>
+                        <span class="rg-start-body">
+                            <strong data-trial-title>Free trial — <span data-trial-days>{{ $chosenTrialDays }}</span> days</strong>
+                            <small>No payment now. Pay only if you want to continue.</small>
+                        </span>
+                    </label>
+
+                    <label class="rg-start-option {{ $canPayOnline ? '' : 'is-disabled' }}">
+                        <input type="radio" name="start" value="paid" @checked($chosenStart === 'paid' && $canPayOnline) @disabled(! $canPayOnline) data-start-option>
+                        <span class="rg-start-body">
+                            <strong>Pay now <span data-pay-price></span></strong>
+                            <small>
+                                @if ($canPayOnline)
+                                    Secure online payment. Your plan starts as soon as it is paid.
+                                @else
+                                    Online payment is not available yet - start the free trial, or contact support.
+                                @endif
+                            </small>
+                        </span>
+                    </label>
+
+                    @error('start')<span class="rg-error" role="alert">{{ $message }}</span>@enderror
+                </div>
 
                 <p class="lp-field field rg-field-business">
                     {{-- Takes the height of the captions over Plan and Billing, so the three boxes start on one line. --}}

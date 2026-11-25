@@ -253,4 +253,12 @@
     if (resume) {
         resume.addEventListener('click', function () { simple(root.getAttribute('data-resume-url')); });
     }
+
+    /* Just registered and chose to pay: open the confirmation for the plan they chose, no hunting for it. */
+    if (/[?&]pay=1(&|$)/.test(window.location.search)) {
+        window.setTimeout(function () {
+            var button = root.querySelector('.billing-plan.is-current [data-plan-select]');
+            if (button) { button.click(); }
+        }, 300);
+    }
 })();

@@ -479,3 +479,16 @@
     .rg-grid { grid-template-columns: minmax(0, 1fr); gap: 14px; }
     .rg-field-wide, .rg-location, .rg-terms-cell, .rg-otp { grid-column: auto; }
 }
+
+/* How to start: free trial, or pay now. Two compact choices side by side; stacked on a phone. */
+.rg-start { display: grid; grid-template-columns: repeat(2, minmax(0, 1fr)); gap: 8px 10px; }
+.rg-start .rg-label-row { grid-column: 1 / -1; }
+.rg-start-title { font-size: 13px; font-weight: 600; }
+.rg-start-option { display: flex; gap: 9px; align-items: flex-start; padding: 10px 12px; border: 1px solid var(--rg-border, #d7dae0); border-radius: 10px; cursor: pointer; background: #fff; }
+.rg-start-option:has(input:checked) { border-color: #d24a0a; box-shadow: 0 0 0 1px #d24a0a inset; background: #fff7f2; }
+.rg-start-option.is-disabled { opacity: .6; cursor: not-allowed; }
+.rg-start-option input { margin-top: 3px; accent-color: #d24a0a; }
+.rg-start-body { display: grid; gap: 2px; min-width: 0; }
+.rg-start-body strong { font-size: 13.5px; }
+.rg-start-body small { font-size: 12px; color: #6b7280; line-height: 1.35; }
+@media (max-width: 560px) { .rg-start { grid-template-columns: 1fr; } }

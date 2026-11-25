@@ -201,7 +201,8 @@ class RegistrationTest extends TestCase
             ->assertSee('name="latitude"', false)
             ->assertDontSee('name="logo"', false)
             ->assertSee('Already have an account?')
-            ->assertDontSee('type="radio"', false);
+            // The one choice on the form: free trial, or pay now.
+            ->assertSee('name="start"', false);
     }
 
     public function test_registration_saves_business_address_gps_coordinates_and_uploaded_logo(): void
@@ -379,21 +380,54 @@ class RegistrationTest extends TestCase
         $this->assertGuest();
     }
 
-    public function test_a_plan_with_no_trial_keeps_the_owner_on_the_billing_screen_after_signing_in(): void
+    public function test_a_plan_with_no_trial_takes_the_owner_straight_to_the_payment(): void
     {
         $this->enableOnlineBilling();
         $this->plan('starter')->forceFill(['trial_days' => 0])->save();
 
-        $owner = $this->signUpAndSignIn(['plan' => 'starter']);
+        // Nothing chosen on a plan with no trial means paying: signed in, on the payment screen.
+        $this->post('/register', $this->payload(['plan' => 'starter']))->assertRedirect('/subscription?pay=1');
+        $this->assertAuthenticated();
 
+        $owner = $this->newOwner();
         $subscription = Subscription::query()->where('tenant_id', $owner->tenant_id)->firstOrFail();
 
+        $this->assertSame('paid', $owner->tenant()->withoutGlobalScopes()->first()->signup_type);
         $this->assertFalse($subscription->isUsable());
         $this->assertNotNull($subscription->ends_at);
 
         $this->resetState();
         $this->get('/superadmin/subscription')->assertOk();
         $this->get('/superadmin/dashboard')->assertRedirect(route('admin.subscription.mine'));
+    }
+
+    public function test_the_owner_chooses_the_free_trial_or_pay_now_at_registration(): void
+    {
+        // Free trial (the default): signed out, home page, trial running.
+        $this->post('/register', $this->payload(['plan' => 'starter', 'start' => 'trial']))->assertRedirect(route('landing'));
+        $this->assertGuest();
+        $trial = $this->newOwner()->tenant()->withoutGlobalScopes()->first();
+        $this->assertSame('trial', $trial->signup_type);
+        $this->assertTrue($trial->subscription()->first()->onTrial());
+
+        // Pay now needs online payment: without it, a clear refusal and nothing created.
+        $before = $this->counts();
+        $this->from('/register')
+            ->post('/register', $this->payload(['plan' => 'starter', 'start' => 'paid', 'email' => 'payer@example.test']))
+            ->assertRedirect('/register')
+            ->assertSessionHasErrors('start');
+        $this->assertSame($before, $this->counts());
+
+        // With it: no trial, paid at the first payment, and the choice is recorded.
+        $this->enableOnlineBilling();
+        $this->post('/register', $this->payload(['plan' => 'starter', 'start' => 'paid', 'email' => 'payer@example.test']))->assertRedirect('/subscription?pay=1');
+        $paid = \App\Models\User::query()->withoutGlobalScopes()->where('email', 'payer@example.test')->firstOrFail()->tenant()->withoutGlobalScopes()->first();
+        $this->assertSame('paid', $paid->signup_type);
+        $this->assertFalse($paid->subscription()->first()->onTrial());
+
+        // The form offers both, and says when paying is not possible.
+        $this->signOut();
+        $this->get('/register')->assertOk()->assertSee('Free trial')->assertSee('Pay now');
     }
 
     /* ---------------------------------------------------------- validation */

@@ -132,6 +132,17 @@
             tag.textContent = save > 0 ? 'Save ' + save + '%' : '';
             tag.hidden = save <= 0;
         });
+
+        // "How do you want to start?": the trial length and the price of the chosen plan.
+        var trialDays = form.querySelector('[data-trial-days]');
+        if (trialDays && chosen) { trialDays.textContent = chosen.getAttribute('data-trial') || '0'; }
+
+        var payPrice = form.querySelector('[data-pay-price]');
+        if (payPrice && chosen) {
+            var text = chosen.textContent || '';
+            var dash = text.indexOf('—');
+            payPrice.textContent = dash >= 0 ? '— ' + text.slice(dash + 1).trim() : '';
+        }
     }
 
     function showBlurb() {

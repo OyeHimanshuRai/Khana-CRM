@@ -3550,3 +3550,4 @@ input[type="number"],
 /* Roles screen: the platform-only permissions, folded away by default. */
 .pmatrix-platform { border: 1px solid var(--border); border-radius: var(--radius-sm); padding: 10px 14px; }
 .pmatrix-platform-head { cursor: pointer; font-weight: 600; font-size: 13.5px; display: flex; flex-wrap: wrap; gap: 6px; align-items: baseline; }
+.tenant-start { display: flex; flex-wrap: wrap; gap: 5px; margin-top: 4px; }

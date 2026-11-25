@@ -117,6 +117,8 @@ final class LicenseAccess
             'seconds_left' => $seconds,
             'ends_timestamp' => $ends?->getTimestamp(),
             'on_trial' => $onTrial,
+            // What the customer is on: the free trial they chose, or a plan they pay for.
+            'plan_kind' => $onTrial ? 'Free trial' : ($granted && ($tenant->startedAsPaid() || $tenant->hasPaidForPlan()) ? 'Paid plan' : null),
             'subscription_status' => $subscription?->stateLabel(),
             'warning' => $left !== null && $left >= 0 && $left <= $warn && $state === self::OK
                 ? __('Your subscription expires in :n day(s) on :date. Contact support to renew and avoid interruption.', ['n' => $left, 'date' => $ends->format('j M Y')])

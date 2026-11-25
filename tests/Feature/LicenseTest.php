@@ -848,29 +848,77 @@ class LicenseTest extends TestCase
         $this->register();
         $this->approved(days: 10);
 
+        // Registered on the free trial (the default): the tile says so, with the time left.
         $this->signIn();
         $this->get('/dashboard')
             ->assertOk()
-            ->assertSee('Time remaining')
-            ->assertSee('data-license-countdown', false)
-            ->assertDontSee('Free trial');
+            ->assertSee('Free trial ends in')
+            ->assertSee('Free trial')
+            ->assertSee('data-license-countdown', false);
 
-        $html = $this->get('/dashboard')->getContent();
-        $this->assertMatchesRegularExpression('/\b(9|10) days \d+ hours?/', $html);
+        $this->assertMatchesRegularExpression('/\b(9|10) days \d+ hours?/', $this->get('/dashboard')->getContent());
 
-        // A company still on its sign-up trial is told so, with the hours left.
+        // Chose to pay up front: a paid plan, not a trial, counting down to its end.
         $tenant = $this->tenantOf('asha@spicegarden.test');
-        $tenant->forceFill(['license_exempt' => true])->save();
-        $sub = $tenant->subscription()->first();
-        $sub->forceFill(['trial_ends_at' => now()->addDays(6)->addHours(5), 'ends_at' => now()->addDays(6)->addHours(5)])->save();
+        $tenant->forceFill(['signup_type' => 'paid'])->save();
+        app(\App\Services\SubscriptionService::class)->recordPayment($tenant->subscription()->first(), 1999.0);
         PlanAccess::forget();
+        $this->resetState();
 
         $this->get('/dashboard')
             ->assertOk()
-            ->assertSee('Free trial ends in')
-            ->assertSee('Free trial');
+            ->assertSee('Time remaining')
+            ->assertSee('Paid plan')
+            ->assertDontSee('Free trial ends in');
+    }
 
-        $this->assertMatchesRegularExpression('/\b6 days (4|5) hours?/', $this->get('/dashboard')->getContent());
+    public function test_a_customer_who_pays_up_front_pays_first_then_waits_for_the_key(): void
+    {
+        config(['payments.platform.key' => 'rzp_test', 'payments.platform.secret' => 'sek']);
+        app()->forgetInstance(\App\Services\Payments\GatewayManager::class);
+
+        $this->post('/register', [
+            'business_name' => 'Paid Cafe', 'name' => 'Pia Rao', 'email' => 'pia@paidcafe.test',
+            'mobile' => '+91 98765 43211', 'password' => 'Secret123', 'password_confirmation' => 'Secret123',
+            'plan' => 'restaurant', 'period' => 'monthly', 'start' => 'paid', 'terms' => '1',
+        ])->assertRedirect('/subscription?pay=1');
+
+        $tenant = $this->tenantOf('pia@paidcafe.test');
+        $this->assertSame('paid', $tenant->signup_type);
+
+        // Signed in, but the only screen is the payment - not the dashboard, not even the license yet.
+        $this->get('/dashboard')->assertRedirect('/subscription');
+        $this->get('/license')->assertRedirect('/subscription');
+        $this->get('/subscription')->assertOk();
+
+        // The license made for them says it is a month, paid for.
+        $license = License::query()->where('tenant_id', $tenant->id)->firstOrFail();
+        $this->assertSame(30, $license->validity_days);
+
+        // The money arrives: now it is the license page, until the Super Admin issues the key.
+        app(\App\Services\SubscriptionService::class)->recordPayment($tenant->subscription()->first(), 1999.0);
+        PlanAccess::forget();
+        $this->resetState();
+
+        $this->get('/dashboard')->assertRedirect('/license');
+        $this->get('/license')->assertOk()->assertSee('Activate your license');
+
+        // The Super Admin sees how they started, in Companies.
+        $this->asSuperAdmin();
+        $this->get(route('admin.tenants.index'))->assertOk()->assertSee('Pays up front')->assertSee('Paid');
+        $this->get(route('admin.tenants.license', $tenant))->assertOk()->assertSee('Started as')->assertSee('payment received');
+    }
+
+    public function test_a_free_trial_customer_is_shown_as_one_to_the_platform(): void
+    {
+        $this->register();
+        $this->asSuperAdmin();
+
+        $this->get(route('admin.tenants.index'))->assertOk()->assertSee('Free trial');
+        $this->get(route('admin.tenants.license', $this->tenantOf('asha@spicegarden.test')))->assertOk()->assertSee('Started as')->assertSee('Free trial');
+
+        // A trial license is the plan's trial days.
+        $this->assertSame(7, $this->registrationLicense()->validity_days);
     }
 
     public function test_enforcement_can_be_switched_off(): void

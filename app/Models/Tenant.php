@@ -117,6 +117,24 @@ class Tenant extends Model
         return $this->hasOne(License::class, 'holder_tenant_id');
     }
 
+    /** Started with the free trial (chosen at registration). */
+    public function startedOnTrial(): bool
+    {
+        return $this->signup_type === 'trial';
+    }
+
+    /** Chose to pay up front at registration. */
+    public function startedAsPaid(): bool
+    {
+        return $this->signup_type === 'paid';
+    }
+
+    /** Has this business ever paid the platform anything for a plan? */
+    public function hasPaidForPlan(): bool
+    {
+        return SubscriptionPayment::query()->withoutGlobalScopes()->where('tenant_id', $this->id)->where('amount', '>', 0)->exists();
+    }
+
     /** Must this business register a license before it can work? */
     public function needsLicense(): bool
     {

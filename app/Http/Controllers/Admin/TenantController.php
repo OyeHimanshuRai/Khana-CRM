@@ -58,6 +58,7 @@ class TenantController extends Controller
         $tenants = $this->filtered($request)
             ->with(['latestLicense', 'owner'])
             ->withCount(['shops', 'users'])
+            ->withExists(['subscriptionPayments as has_paid' => fn ($q) => $q->withoutGlobalScopes()->where('amount', '>', 0)])
             ->paginate($perPage)
             ->withQueryString();
 

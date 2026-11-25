@@ -165,7 +165,7 @@ class LicenseService
      * company's License panel and issues it ("Generate key"), which shows it
      * once so it can be sent to the customer.
      */
-    public function issueAtRegistration(Tenant $tenant, Plan $plan, User $owner, ?Request $request = null): ?License
+    public function issueAtRegistration(Tenant $tenant, Plan $plan, User $owner, ?Request $request = null, string $period = Plan::MONTHLY): ?License
     {
         if (! $tenant->needsLicense()) {
             return null;
@@ -173,9 +173,12 @@ class LicenseService
 
         [$license] = $this->generate([
             'plan_id' => $plan->id,
-            'validity_days' => (int) config('license.default_days', 365),
+            // A free trial is the plan's trial days; a plan paid for up front is what was paid for.
+            'validity_days' => $tenant->startedOnTrial()
+                ? max(1, (int) $plan->trial_days)
+                : ($period === Plan::YEARLY ? 365 : 30),
             'tenant_id' => $tenant->id,
-            'notes' => 'Created at registration',
+            'notes' => 'Created at registration ('.($tenant->startedAsPaid() ? 'pays up front' : 'free trial').')',
         ], $owner);
 
         $this->log($license, 'registered', sprintf('%s registered; license created, waiting for a key to be issued', $tenant->name), [], $owner, $tenant, $request);
@@ -432,7 +435,7 @@ class LicenseService
             'updated_by' => $actor?->id,
         ]);
 
-        $this->subscriptions->grantTerm($l->tenant, $l->plan, $expires, 'License '.$l->key_hint);
+        $this->subscriptions->grantTerm($l->tenant, $l->plan, $expires, 'License '.$l->key_hint, $l->tenant->startedOnTrial());
 
         $this->log($l, 'approved', sprintf(
             '%s for %s until %s',

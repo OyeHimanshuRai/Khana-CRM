@@ -72,6 +72,7 @@ class RegisterController extends Controller
         return view('register.index', [
             'site' => SiteBrand::get(),
             'plans' => $plans,
+            'canPayOnline' => app(GatewayManager::class)->platform()->isConfigured(),
             'selected' => $plans->firstWhere('slug', $request->query('plan')) ?? $this->featured($plans),
             'period' => in_array($period, Plan::PERIODS, true) ? $period : Plan::MONTHLY,
             // The Country dropdown, and the one the mobile number's rules start from.
@@ -142,6 +143,8 @@ class RegisterController extends Controller
             'password' => ['required', 'string', Password::min(8)->letters()->numbers()],
             'plan' => ['required', 'string', Rule::exists('plans', 'slug')->where('is_active', true)->whereNull('tenant_id')->whereNull('deleted_at')],
             'period' => ['required', Rule::in(Plan::PERIODS)],
+            // How they start: the free trial (default), or paying for the plan now.
+            'start' => ['nullable', Rule::in(['trial', 'paid'])],
             'terms' => ['accepted'],
         ], [
             'email.unique' => 'An account with this email already exists. Try signing in instead.',
@@ -173,14 +176,26 @@ class RegisterController extends Controller
 
         $plan = Plan::query()->onSale()->where('slug', $data['plan'])->firstOrFail();
 
+        // Nothing chosen: the trial where the plan has one, paying where it does not.
+        $start = ($data['start'] ?? null) ?: ((int) $plan->trial_days > 0 ? 'trial' : 'paid');
+        $payOnline = app(GatewayManager::class)->platform()->isConfigured();
+
         /*
          | A plan with no trial asks for money before anything else. Without
          | online payment there is no way to take it, and signing the owner
          | straight back out of an account they have just made would be the
          | worst possible first impression.
          */
-        if ((int) $plan->trial_days <= 0 && ! app(GatewayManager::class)->platform()->isConfigured()) {
+        if ((int) $plan->trial_days <= 0 && ! $payOnline) {
             return $this->failed($request, 'plan', 'This plan cannot be started online yet. Please contact support and we will set it up with you.');
+        }
+
+        if ($start === 'paid' && ! $payOnline) {
+            return $this->failed($request, 'start', 'Paying online is not available yet. Please start the free trial, or contact support.');
+        }
+
+        if ($start === 'trial' && (int) $plan->trial_days <= 0) {
+            return $this->failed($request, 'start', 'This plan has no free trial. Please choose to pay now.');
         }
 
         $logoPath = $request->file('logo')?->store('tenants', 'public');
@@ -191,7 +206,7 @@ class RegisterController extends Controller
         $registered = false;
 
         try {
-            $user = $this->provisioning->register($data, $plan, $data['period']);
+            $user = $this->provisioning->register($data, $plan, $data['period'], $start);
             $registered = true;
         } catch (RuntimeException $e) {
             report($e);
@@ -218,6 +233,19 @@ class RegisterController extends Controller
 
         // And on the platform's bell, and its phones.
         app(\App\Services\EventNotifier::class)->signedUp($user);
+
+        // Paying up front: they are signed in and taken straight to the payment, so the plan can start.
+        if ($start === 'paid') {
+            \Illuminate\Support\Facades\Auth::login($user);
+            $request->session()->regenerate();
+
+            $payUrl = route('admin.subscription.mine', ['pay' => 1]);
+            $payMessage = 'Your account is ready. Complete the payment to start your plan.';
+
+            return $request->expectsJson()
+                ? json_success($payMessage, [], $payUrl)
+                : redirect($payUrl)->with('status', $payMessage);
+        }
 
         $trial = (int) $plan->trial_days > 0;
 

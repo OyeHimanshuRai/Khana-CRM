@@ -73,6 +73,14 @@ final class AccountAccess
         }
 
         /*
+         | A customer who chose to pay up front pays first: until the plan has been paid
+         | for, the only screen is the payment (the license comes after it).
+         */
+        if ($tenant->needsLicense() && $tenant->startedAsPaid() && ! $tenant->hasPaidForPlan()) {
+            return self::lapsed($user, $tenant, __('Complete the payment to start :company. Choose Pay below to continue.', ['company' => $tenant->name]));
+        }
+
+        /*
          | The license. A customer cannot reach anything until the platform has
          | approved a license key for them; see LicenseAccess. Judged before the
          | subscription because it is the first thing a new customer lacks.

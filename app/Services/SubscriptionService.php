@@ -122,9 +122,9 @@ class SubscriptionService
      * (so the history shows the change) whose `ends_at` is the license's
      * expiry. No trial and no payment - the license is the entitlement.
      */
-    public function grantTerm(Tenant $tenant, Plan $plan, CarbonInterface $endsAt, ?string $note = null): Subscription
+    public function grantTerm(Tenant $tenant, Plan $plan, CarbonInterface $endsAt, ?string $note = null, bool $trial = false): Subscription
     {
-        return DB::transaction(function () use ($tenant, $plan, $endsAt, $note) {
+        return DB::transaction(function () use ($tenant, $plan, $endsAt, $note, $trial) {
             $current = $tenant->subscriptions()->latest('id')->lockForUpdate()->first();
 
             $subscription = $tenant->subscriptions()->create([
@@ -133,7 +133,8 @@ class SubscriptionService
                 'price' => $plan->priceFor(Plan::MONTHLY),
                 'currency' => $plan->currency,
                 'starts_at' => Carbon::now(),
-                'trial_ends_at' => null,
+                // A customer who chose the free trial is on a trial until the term ends.
+                'trial_ends_at' => $trial ? $endsAt : null,
                 'ends_at' => $endsAt,
                 'grace_days' => $current->grace_days ?? 3,
                 'note' => $note,

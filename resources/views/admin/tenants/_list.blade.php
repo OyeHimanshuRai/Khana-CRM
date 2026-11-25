@@ -58,6 +58,18 @@
                             <span class="text-xs text-muted" style="display:block">{{ $tenant->legal_name }}</span>
                         @endif
 
+                        {{-- How they chose to start: the free trial, or paying up front (and whether the money has come). --}}
+                        @if ($tenant->signup_type)
+                            <div class="tenant-start">
+                                @if ($tenant->startedAsPaid())
+                                    <span class="badge badge-info">Pays up front</span>
+                                    <span class="badge {{ $tenant->has_paid ? 'badge-success' : 'badge-warning' }}">{{ $tenant->has_paid ? 'Paid' : 'Payment pending' }}</span>
+                                @else
+                                    <span class="badge badge-info">Free trial</span>
+                                @endif
+                            </div>
+                        @endif
+
                         {{-- Who to contact: the owner's name, and the company's email and mobile. --}}
                         @php
                             $contactName = $tenant->owner?->name;

@@ -16,7 +16,7 @@
     <div class="card-header" style="display:flex;align-items:center;justify-content:space-between;gap:10px;flex-wrap:wrap">
         <h3 class="card-title" style="margin:0">Plan &amp; License</h3>
         <span style="display:inline-flex;gap:6px;align-items:center">
-        @if ($s['on_trial'])<span class="badge badge-info">Free trial</span>@endif
+        @if ($s['plan_kind'])<span class="badge badge-info">{{ $s['plan_kind'] }}</span>@endif
         <span class="badge badge-{{ $s['badge']['tone'] }}" data-license-badge="{{ $s['badge']['key'] }}">
             <span class="badge-dot"></span> {{ $s['badge']['label'] }}
         </span>

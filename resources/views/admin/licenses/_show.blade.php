@@ -31,6 +31,18 @@
 <dl class="sec-facts">
     <div><dt>Customer</dt><dd>{{ $license->tenant?->name ?? '—' }}</dd></div>
     <div><dt>Plan</dt><dd>{{ $license->plan?->name ?? '—' }}</dd></div>
+    <div>
+        <dt>Started as</dt>
+        <dd>
+            @if ($license->tenant?->startedAsPaid())
+                Paid plan <span class="text-xs text-muted">({{ $license->tenant->hasPaidForPlan() ? 'payment received' : 'payment pending' }})</span>
+            @elseif ($license->tenant?->startedOnTrial())
+                Free trial
+            @else
+                <span class="text-muted">Not recorded</span>
+            @endif
+        </dd>
+    </div>
     <div><dt>Validity</dt><dd>{{ $license->validity_days }} days</dd></div>
     <div>
         <dt>Expires</dt>

@@ -51,9 +51,9 @@ class TenantProvisioningService
      *
      * @throws RuntimeException when the platform is not set up to take sign-ups
      */
-    public function register(array $data, Plan $plan, string $period): User
+    public function register(array $data, Plan $plan, string $period, string $start = 'trial'): User
     {
-        return DB::transaction(function () use ($data, $plan, $period) {
+        return DB::transaction(function () use ($data, $plan, $period, $start) {
             $role = Role::query()->where('name', self::OWNER_ROLE)->where('guard_name', 'web')->first();
 
             if ($role === null) {
@@ -83,6 +83,9 @@ class TenantProvisioningService
                 'is_active' => true,
                 'sort_order' => 0,
             ]);
+
+            // How they chose to start; written by the platform, never by a form field of the tenant.
+            $tenant->forceFill(['signup_type' => $start === 'paid' ? 'paid' : 'trial'])->save();
 
             $shop = Shop::create([
                 'tenant_id' => $tenant->id,
@@ -131,10 +134,10 @@ class TenantProvisioningService
             $user->shops()->attach($shop->id, ['is_default' => true]);
             $user->assignRole($role);
 
-            $this->openTrial($tenant, $plan, $period);
+            $this->openTrial($tenant, $plan, $period, $start === 'paid');
 
             // The license for this customer is created now and waits for the Super Admin.
-            app(LicenseService::class)->issueAtRegistration($tenant, $plan, $user, request());
+            app(LicenseService::class)->issueAtRegistration($tenant, $plan, $user, request(), $period);
 
             return $user->fresh();
         });
@@ -147,9 +150,10 @@ class TenantProvisioningService
      * out and waits for its first payment; a free plan has no payment to wait
      * for and no end date.
      */
-    private function openTrial(Tenant $tenant, Plan $plan, string $period): void
+    private function openTrial(Tenant $tenant, Plan $plan, string $period, bool $paysUpFront = false): void
     {
-        $trialDays = max(0, (int) $plan->trial_days);
+        // Paying up front: no trial, the term starts with the first payment.
+        $trialDays = $paysUpFront ? 0 : max(0, (int) $plan->trial_days);
 
         $subscription = $this->subscriptions->subscribe(
             $tenant, $plan, $period, $trialDays, null, 'Self-service sign-up',

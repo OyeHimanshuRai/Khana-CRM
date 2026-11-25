@@ -23,6 +23,7 @@
     @if ($ownerEmail)<strong style="color:#111827;">Email</strong> {{ $ownerEmail }}<br>@endif
     @if ($ownerPhone)<strong style="color:#111827;">Phone</strong> {{ $ownerPhone }}<br>@endif
     @if ($license?->plan)<strong style="color:#111827;">Plan</strong> {{ $license->plan->name }}<br>@endif
+    @if ($tenant->signup_type)<strong style="color:#111827;">Started as</strong> {{ $tenant->startedAsPaid() ? 'Paid plan ('.($tenant->hasPaidForPlan() ? 'payment received' : 'payment pending').')' : 'Free trial' }}<br>@endif
     @if ($license)<strong style="color:#111827;">License</strong> {{ $license->key_hint }}<br>@endif
 @endsection
 
