@@ -127,6 +127,27 @@
         }, 8000);
     }
 
+    /* "6 days 14 hours" left, kept ticking without a reload. */
+    function tickCountdowns() {
+        document.querySelectorAll('[data-license-countdown]').forEach(function (el) {
+            var left = parseInt(el.getAttribute('data-license-countdown'), 10) - Math.floor(Date.now() / 1000);
+            if (isNaN(left)) { return; }
+            if (left <= 0) { el.textContent = 'Expired'; el.classList.add('text-danger'); return; }
+
+            var d = Math.floor(left / 86400);
+            var h = Math.floor((left % 86400) / 3600);
+            var m = Math.floor((left % 3600) / 60);
+            var plural = function (n, word) { return n + ' ' + word + (n === 1 ? '' : 's'); };
+
+            el.textContent = d > 0 ? plural(d, 'day') + ' ' + plural(h, 'hour') : plural(h, 'hour') + ' ' + m + ' min';
+        });
+    }
+
+    if (document.querySelector('[data-license-countdown]')) {
+        tickCountdowns();
+        window.setInterval(tickCountdowns, 30000);
+    }
+
     var waiting = document.querySelector('[data-license-poll]');
     if (waiting) { poll(waiting); }
 })(window, document);

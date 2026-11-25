@@ -843,6 +843,36 @@ class LicenseTest extends TestCase
             ->assertJsonPath('message', 'The email could not be sent. Copy the key and send it yourself.');
     }
 
+    public function test_the_dashboard_tile_counts_down_in_days_and_hours_and_names_a_free_trial(): void
+    {
+        $this->register();
+        $this->approved(days: 10);
+
+        $this->signIn();
+        $this->get('/dashboard')
+            ->assertOk()
+            ->assertSee('Time remaining')
+            ->assertSee('data-license-countdown', false)
+            ->assertDontSee('Free trial');
+
+        $html = $this->get('/dashboard')->getContent();
+        $this->assertMatchesRegularExpression('/\b(9|10) days \d+ hours?/', $html);
+
+        // A company still on its sign-up trial is told so, with the hours left.
+        $tenant = $this->tenantOf('asha@spicegarden.test');
+        $tenant->forceFill(['license_exempt' => true])->save();
+        $sub = $tenant->subscription()->first();
+        $sub->forceFill(['trial_ends_at' => now()->addDays(6)->addHours(5), 'ends_at' => now()->addDays(6)->addHours(5)])->save();
+        PlanAccess::forget();
+
+        $this->get('/dashboard')
+            ->assertOk()
+            ->assertSee('Free trial ends in')
+            ->assertSee('Free trial');
+
+        $this->assertMatchesRegularExpression('/\b6 days (4|5) hours?/', $this->get('/dashboard')->getContent());
+    }
+
     public function test_enforcement_can_be_switched_off(): void
     {
         $this->register();

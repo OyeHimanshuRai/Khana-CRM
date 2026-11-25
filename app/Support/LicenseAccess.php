@@ -87,6 +87,10 @@ final class LicenseAccess
         $ends = $granted ? ($subscription?->ends_at ?? $license?->expires_at) : null;
         $left = $ends === null ? null : (int) now()->startOfDay()->diffInDays($ends->copy()->startOfDay(), false);
 
+        // To the second, for the "6 days 14 hours" countdown; negative once it has ended.
+        $seconds = $ends === null ? null : (int) now()->diffInSeconds($ends, false);
+        $onTrial = (bool) $subscription?->onTrial();
+
         // One badge, most serious first.
         $badge = match (true) {
             $tenant->isSuspended() => ['key' => 'suspended', 'label' => 'Blocked', 'tone' => 'danger'],
@@ -110,6 +114,9 @@ final class LicenseAccess
             'subscription_started_at' => $subscription?->starts_at,
             'expires_at' => $ends,
             'days_left' => $left,
+            'seconds_left' => $seconds,
+            'ends_timestamp' => $ends?->getTimestamp(),
+            'on_trial' => $onTrial,
             'subscription_status' => $subscription?->stateLabel(),
             'warning' => $left !== null && $left >= 0 && $left <= $warn && $state === self::OK
                 ? __('Your subscription expires in :n day(s) on :date. Contact support to renew and avoid interruption.', ['n' => $left, 'date' => $ends->format('j M Y')])

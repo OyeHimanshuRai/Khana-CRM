@@ -15,8 +15,11 @@
 <div class="card license-card">
     <div class="card-header" style="display:flex;align-items:center;justify-content:space-between;gap:10px;flex-wrap:wrap">
         <h3 class="card-title" style="margin:0">Plan &amp; License</h3>
+        <span style="display:inline-flex;gap:6px;align-items:center">
+        @if ($s['on_trial'])<span class="badge badge-info">Free trial</span>@endif
         <span class="badge badge-{{ $s['badge']['tone'] }}" data-license-badge="{{ $s['badge']['key'] }}">
             <span class="badge-dot"></span> {{ $s['badge']['label'] }}
+        </span>
         </span>
     </div>
 
@@ -27,17 +30,36 @@
         <div><dt>Subscription started</dt><dd>{{ $s['subscription_started_at']?->format('j M Y') ?? '—' }}</dd></div>
         <div><dt>Subscription expires</dt><dd>{{ $s['expires_at']?->format('j M Y') ?? 'No end date' }}</dd></div>
         <div>
-            <dt>Days remaining</dt>
+            <dt>{{ $s['on_trial'] ? 'Free trial ends in' : 'Time remaining' }}</dt>
             <dd>
-                @if ($s['days_left'] === null)
+                @if ($s['seconds_left'] === null)
                     —
-                @elseif ($s['days_left'] < 0)
-                    <span class="text-danger">Expired {{ abs($s['days_left']) }} day{{ abs($s['days_left']) === 1 ? '' : 's' }} ago</span>
+                @elseif ($s['seconds_left'] < 0)
+                    <span class="text-danger">Expired</span>
                 @else
-                    {{ $s['days_left'] }} day{{ $s['days_left'] === 1 ? '' : 's' }}
+                    {{-- Kept ticking by license.js; the server-rendered text is what shows without it. --}}
+                    <span data-license-countdown="{{ $s['ends_timestamp'] }}">
+                        @php
+                            $secs = (int) $s['seconds_left'];
+                            $d = intdiv($secs, 86400);
+                            $h = intdiv($secs % 86400, 3600);
+                            $m = intdiv($secs % 3600, 60);
+                        @endphp
+                        @if ($d > 0)
+                            {{ $d }} day{{ $d === 1 ? '' : 's' }} {{ $h }} hour{{ $h === 1 ? '' : 's' }}
+                        @else
+                            {{ $h }} hour{{ $h === 1 ? '' : 's' }} {{ $m }} min
+                        @endif
+                    </span>
                 @endif
             </dd>
         </div>
         <div><dt>Subscription status</dt><dd>{{ $s['subscription_status'] ?? '—' }}</dd></div>
     </dl>
 </div>
+
+@once
+    @push('scripts')
+        <script src="{{ asset('assets/js/license.js') }}?v={{ filemtime(public_path('assets/js/license.js')) }}" defer></script>
+    @endpush
+@endonce
