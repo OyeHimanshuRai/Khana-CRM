@@ -478,7 +478,8 @@ Route::prefix('superadmin')->name('admin.')->group(function () {
         ->name('impersonate.stop');
 
     Route::middleware(['auth', 'admin', 'password.strong', 'tenant.active', 'shop.subscribed', 'module', 'fragment.page'])->group(function () {
-        Route::get('/', fn () => redirect()->route('admin.dashboard'));
+        // A Super Admin's home is the platform overview; a restaurant's is its own dashboard.
+        Route::get('/', fn () => redirect()->route(\App\Support\Realm::isPlatform() ? 'admin.platform.dashboard' : 'admin.dashboard'));
         Route::post('logout', [LoginController::class, 'destroy'])->name('logout');
 
         Route::get('dashboard', DashboardController::class)

@@ -179,6 +179,20 @@ class PlatformDashboardTest extends TestCase
             ->assertDontSee('All reports');
     }
 
+    public function test_the_super_admins_menu_has_the_owner_dashboard_but_not_a_restaurants(): void
+    {
+        $html = $this->actingAs($this->owner)->get(route('admin.platform.dashboard'))->assertOk()->getContent();
+
+        $this->assertStringContainsString('Owner Dashboard', $html);
+        $this->assertStringContainsString(route('admin.platform.shops'), $html);
+
+        // No sidebar link to the one-restaurant dashboard (the page itself still exists for a company they enter).
+        $this->assertDoesNotMatchRegularExpression('#<a[^>]+href="'.preg_quote(route('admin.dashboard'), '#').'"[^>]*>\s*(<[^>]+>\s*)*Dashboard#s', $html);
+
+        // And the Super Admin's own root lands on the platform overview.
+        $this->get('/superadmin')->assertRedirect(route('admin.platform.dashboard'));
+    }
+
     public function test_the_project_owner_gets_no_restaurant_menus_even_inside_a_company(): void
     {
         $this->resetState();
@@ -227,16 +241,17 @@ class PlatformDashboardTest extends TestCase
         $this->actingAs($cashier)->get(route('admin.storefront.edit'))->assertForbidden();
     }
 
-    public function test_the_project_owner_finds_dashboard_under_platform(): void
+    public function test_the_project_owner_has_no_restaurant_dashboard_in_the_menu(): void
     {
         $this->resetState();
         $link = 'href="'.route('admin.dashboard').'"';
 
+        // Their dashboard is the Owner Dashboard; the one-restaurant dashboard is not offered.
         $this->actingAs($this->owner)->get(route('admin.platform.dashboard'))
             ->assertOk()
-            ->assertSee($link, false)
+            ->assertSee('Owner Dashboard')
+            ->assertDontSee($link, false)
             ->assertDontSee('<div class="nav-heading">Main</div>', false);
-
     }
 
     public function test_a_restaurant_owner_keeps_dashboard_under_main(): void

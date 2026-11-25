@@ -66,17 +66,6 @@ return [
                 'active' => 'admin.platform.finance*',
                 'can' => 'platform.finance.view',
             ],
-            /*
-             | One restaurant's dashboard, for the Project Owner. Asks for the
-             | platform right so it can never put a Platform heading in a
-             | restaurant's sidebar; they keep the entry under Main below.
-             */
-            [
-                'label' => 'Dashboard',
-                'icon' => 'grid',
-                'route' => 'admin.dashboard',
-                'can' => 'platform.overview.view',
-            ],
         ],
     ],
 
