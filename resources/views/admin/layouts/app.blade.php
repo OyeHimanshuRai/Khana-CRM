@@ -53,6 +53,9 @@
                 </div>
             @endif
 
+            {{-- The free trial's clock, or a plan about to end, on every page. --}}
+            @include('admin.partials.plan-banner')
+
             @yield('content')
         </main>
 

@@ -87,6 +87,13 @@ final class AccountAccess
          */
         [$license, $licenseMessage] = LicenseAccess::check($tenant);
 
+        // The trial or the plan has run out: nothing works until the plan they chose is paid for.
+        if ($license === LicenseAccess::EXPIRED) {
+            return self::lapsed($user, $tenant, $tenant->startedOnTrial()
+                ? __('Your free trial has ended. Pay for your plan to continue using :company.', ['company' => $tenant->name])
+                : __('Your plan for :company has ended. Pay to continue.', ['company' => $tenant->name]));
+        }
+
         if ($license !== LicenseAccess::OK) {
             return $user->can('settings.subscriptions.pay')
                 ? [self::LICENSE, $licenseMessage]
@@ -109,6 +116,27 @@ final class AccountAccess
         return self::lapsed($user, $tenant, $subscription->state() === Subscription::CANCELLED
             ? __('The subscription for :company has been cancelled. Choose a plan below to start again.', ['company' => $tenant->name])
             : __('Your subscription for :company has ended. Choose a plan below to continue.', ['company' => $tenant->name]));
+    }
+
+    /**
+     * Is this person kept to the licence or billing screen? (The sidebar then offers nothing else.)
+     * Memoised for the request: every page asks.
+     */
+    public static function restricted(User $user): ?string
+    {
+        static $memo = [];
+
+        if ($user->isSuperAdmin() || $user->tenant_id === null) {
+            return null;
+        }
+
+        $key = spl_object_id($user).'|'.(int) CurrentTenant::id();
+
+        if (! array_key_exists($key, $memo)) {
+            $memo = [$key => self::decide($user)[0]];
+        }
+
+        return $memo[$key] === self::OPEN ? null : $memo[$key];
     }
 
     /** A lapse: billing-only for whoever may pay, a clear refusal for everybody else. */

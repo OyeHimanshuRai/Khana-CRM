@@ -413,8 +413,9 @@ class LicenseTest extends TestCase
         Carbon::setTestNow(now()->addDays(12));
         $this->resetState();
 
-        $this->get('/dashboard')->assertRedirect();
-        $this->get('/license')->assertOk()->assertSee('expired', false);
+        // Nothing opens but the payment for their plan (see the trial test for the full story).
+        $this->get('/dashboard')->assertRedirect('/subscription');
+        $this->get('/subscription')->assertOk();
     }
 
     public function test_a_customer_sees_a_warning_before_expiry(): void
@@ -919,6 +920,58 @@ class LicenseTest extends TestCase
 
         // A trial license is the plan's trial days.
         $this->assertSame(7, $this->registrationLicense()->validity_days);
+    }
+
+    public function test_a_trial_counts_down_on_every_page_and_when_it_ends_only_the_payment_is_left(): void
+    {
+        $this->register();
+        $this->approved(days: 7);
+
+        // During the trial: the clock is at the top of every page, not just the dashboard.
+        $this->signIn();
+        foreach (['/dashboard', '/profile'] as $page) {
+            $this->get($page)->assertOk()
+                ->assertSee('Free trial ends in')
+                ->assertSee('nothing works until the plan you chose is paid for')
+                ->assertSee('Pay now to keep your plan');
+        }
+
+        // The trial runs out.
+        Carbon::setTestNow(now()->addDays(8));
+        PlanAccess::forget();
+        $this->resetState();
+
+        // Nothing opens but the payment for the plan they chose...
+        $this->get('/dashboard')->assertRedirect('/subscription');
+        $this->get('/products')->assertRedirect('/subscription');
+        $this->getJson('/products')->assertStatus(403);
+        $page = $this->get('/subscription')->assertOk()->getContent();
+
+        // ...and the menu offers nothing else.
+        $this->assertStringContainsString('Subscription &amp; payment', $page);
+        $this->assertStringNotContainsString('Menu Items', $page);
+        $this->assertStringNotContainsString('POS Billing', $page);
+
+        // Paying brings everything back, license included - no new key to ask for.
+        $tenant = $this->tenantOf('asha@spicegarden.test');
+        app(\App\Services\SubscriptionService::class)->recordPayment($tenant->subscription()->first(), 1999.0);
+        PlanAccess::forget();
+        $this->resetState();
+
+        $this->get('/dashboard')->assertOk()->assertDontSee('Free trial ends in');
+        $this->get('/products')->assertOk();
+        $this->assertSame(License::ACTIVE, $this->registrationLicense()->status);
+        $this->assertTrue($this->registrationLicense()->expires_at->isFuture());
+    }
+
+    public function test_a_company_without_a_license_is_offered_only_the_license_page(): void
+    {
+        $this->register();
+        $this->signIn();
+
+        $page = $this->get('/license')->assertOk()->getContent();
+        $this->assertStringContainsString('Your account', $page);
+        $this->assertStringNotContainsString('POS Billing', $page);
     }
 
     public function test_enforcement_can_be_switched_off(): void

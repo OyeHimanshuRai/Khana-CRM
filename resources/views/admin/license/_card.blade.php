@@ -58,8 +58,6 @@
     </dl>
 </div>
 
-@once
-    @push('scripts')
+    @pushOnce('scripts', 'license-js')
         <script src="{{ asset('assets/js/license.js') }}?v={{ filemtime(public_path('assets/js/license.js')) }}" defer></script>
-    @endpush
-@endonce
+    @endPushOnce

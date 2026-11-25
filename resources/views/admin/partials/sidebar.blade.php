@@ -111,6 +111,21 @@
         })
         ->filter(fn (array $group) => ! empty($group['items']))
         ->values();
+
+    /*
+     | A company whose trial or plan has ended, or that has no working license, is kept to one screen
+     | (the payment, or the license): the sidebar offers that and nothing else, not a menu that only bounces.
+     */
+    $restriction = auth()->user() ? \App\Support\AccountAccess::restricted(auth()->user()) : null;
+
+    if ($restriction !== null) {
+        $menu = collect([[
+            'heading' => 'Your account',
+            'items' => [$restriction === \App\Support\AccountAccess::LICENSE
+                ? ['label' => 'License', 'icon' => 'shield', 'route' => 'admin.license.show', 'active' => 'admin.license.*']
+                : ['label' => 'Subscription & payment', 'icon' => 'wallet', 'route' => 'admin.subscription.mine', 'active' => 'admin.subscription.*']],
+        ]]);
+    }
 @endphp
 
 <aside class="sidebar" id="sidebar">
