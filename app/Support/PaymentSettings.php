@@ -69,6 +69,25 @@ class PaymentSettings
                 config(['payments.gateways.'.$path => $value]);
             }
         }
+
+        /*
+         | The platform's own gateway - restaurants paying for their plan, on the registration form and
+         | the subscription screen - uses the same Razorpay keys saved in Settings > Online Payment,
+         | wherever its own PLATFORM_RAZORPAY_* environment variables say nothing. These are the platform
+         | owner's settings (only a Super Admin can edit them), so one place to put the keys is enough.
+         | The "Payment Provider" choice above is about guests paying at tables, and has no say here.
+         */
+        foreach ([
+            'platform.key' => ['PLATFORM_RAZORPAY_KEY', 'razorpay_key'],
+            'platform.secret' => ['PLATFORM_RAZORPAY_SECRET', 'razorpay_secret'],
+            'platform.webhook_secret' => ['PLATFORM_RAZORPAY_WEBHOOK_SECRET', 'razorpay_webhook_secret'],
+        ] as $path => [$env, $key]) {
+            $value = self::pick($env, $stored, $key);
+
+            if (filled($value)) {
+                config(['payments.'.$path => $value]);
+            }
+        }
     }
 
     /**
