@@ -85,6 +85,61 @@ final class PermissionRegistry
     }
 
     /**
+     * The tree split in two, the way the roles screen shows it.
+     *
+     * `platform` holds the abilities only the platform's own people can ever use
+     * (PlatformAbilities: plans, roles, landing-page content, every company's
+     * figures, licenses...); `restaurant` holds everything a restaurant's staff
+     * work with. A module that has both appears in both, with only its own
+     * actions, and a module with nothing left is dropped.
+     *
+     * @return array{platform: Collection<int, array<string, mixed>>, restaurant: Collection<int, array<string, mixed>>}
+     */
+    public static function split(): array
+    {
+        $tree = self::tree();
+
+        return [
+            'platform' => self::only($tree, fn (string $name) => PlatformAbilities::isPlatformOnly($name)),
+            'restaurant' => self::only($tree, fn (string $name) => ! PlatformAbilities::isPlatformOnly($name)),
+        ];
+    }
+
+    /**
+     * @param  Collection<int, array<string, mixed>>  $tree
+     * @return Collection<int, array<string, mixed>>
+     */
+    private static function only(Collection $tree, callable $keep): Collection
+    {
+        return $tree
+            ->map(function (array $module) use ($keep) {
+                $submodules = $module['submodules']
+                    ->map(function (array $sub) use ($keep) {
+                        $actions = $sub['actions']->filter(fn (array $a) => $keep($a['name']))->values();
+
+                        return $actions->isEmpty() ? null : [
+                            'actions' => $actions,
+                            'names' => $actions->pluck('name')->values(),
+                        ] + $sub;
+                    })
+                    ->filter()
+                    ->values();
+
+                if ($submodules->isEmpty()) {
+                    return null;
+                }
+
+                return [
+                    'submodules' => $submodules,
+                    'names' => $submodules->flatMap(fn (array $s) => $s['names'])->values(),
+                    'count' => $submodules->sum(fn (array $s) => $s['names']->count()),
+                ] + $module;
+            })
+            ->filter()
+            ->values();
+    }
+
+    /**
      * Whether a permission name is still declared in config.
      *
      * Used by the sync command to spot rows left behind after a rename.

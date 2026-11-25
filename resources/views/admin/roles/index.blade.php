@@ -57,7 +57,7 @@
                             </td>
                             <td>
                                 @if ($isSuper)
-                                    <span class="badge badge-success">All ({{ $totalPermissions }})</span>
+                                    <span class="badge badge-success">All platform ({{ $platformPermissions }})</span>
                                 @else
                                     <span class="badge">{{ $role->permissions_count }} / {{ $totalPermissions }}</span>
                                 @endif

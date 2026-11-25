@@ -44,6 +44,19 @@
                 </div>
                 <div class="card-body">
                     <x-permission-matrix :tree="$tree" :granted="$granted" />
+
+                    @if (($platformTree ?? null) && $platformTree->isNotEmpty())
+                        {{-- Only the platform's own staff can use these; a company's staff never can, whatever the role says. --}}
+                        <details class="pmatrix-platform" style="margin-top:16px">
+                            <summary class="pmatrix-platform-head">
+                                Platform-only permissions ({{ $platformTree->sum('count') }})
+                                <span class="text-xs text-muted">- for the platform's own staff, not a restaurant's</span>
+                            </summary>
+                            <div style="margin-top:12px">
+                                <x-permission-matrix :tree="$platformTree" :granted="$granted" />
+                            </div>
+                        </details>
+                    @endif
                 </div>
                 <div class="card-footer" style="display:flex;gap:9px;justify-content:flex-end">
                     <a class="btn" href="{{ route('admin.roles.index', $role->name === \App\Models\User::SUPER_ADMIN ? [] : ['scope' => 'restaurant']) }}">Cancel</a>
@@ -101,6 +114,19 @@
 
                 <div class="card-body">
                     <x-permission-matrix :tree="$tree" :granted="$granted" :locked="$locked" />
+
+                    @if (($platformTree ?? null) && $platformTree->isNotEmpty())
+                        {{-- Only the platform's own staff can use these; a company's staff never can, whatever the role says. --}}
+                        <details class="pmatrix-platform" style="margin-top:16px">
+                            <summary class="pmatrix-platform-head">
+                                Platform-only permissions ({{ $platformTree->sum('count') }})
+                                <span class="text-xs text-muted">- for the platform's own staff, not a restaurant's</span>
+                            </summary>
+                            <div style="margin-top:12px">
+                                <x-permission-matrix :tree="$platformTree" :granted="$granted" />
+                            </div>
+                        </details>
+                    @endif
                 </div>
 
                 @unless ($locked)

@@ -51,6 +51,8 @@ final class PlatformAbilities
         // A company pays for its plan; it does not edit one.
         'settings.subscriptions.edit',
         'settings.subscriptions.export',
+        // The platform issues, approves, blocks and revokes every company's license.
+        'settings.licenses.',
         'settings.tenants.create',
         'settings.tenants.delete',
     ];

@@ -93,6 +93,68 @@ class AdminManagementHttpTest extends TestCase
             ->assertSee('Cashier');
     }
 
+    public function test_the_super_admin_role_shows_only_the_platforms_own_permissions(): void
+    {
+        $super = Role::findByName('Super Admin');
+
+        $html = $this->get(route('admin.roles.edit', $super))->assertOk()->getContent();
+
+        // The platform's abilities, all of them ticked and locked...
+        $this->assertStringContainsString('value="settings.plans.edit"', $html);
+        $this->assertStringContainsString('value="settings.licenses.edit"', $html);
+        $this->assertStringContainsString('value="platform.overview.view"', $html);
+        $this->assertSame(substr_count($html, 'data-pm-item'), substr_count($html, 'checked'));
+
+        // ...and none of a restaurant's till, kitchen or stock.
+        $this->assertStringNotContainsString('value="pos.terminal.view"', $html);
+        $this->assertStringNotContainsString('value="kitchen.tickets.view"', $html);
+        $this->assertStringNotContainsString('value="inventory.stock.view"', $html);
+        $this->assertStringNotContainsString('Platform-only permissions', $html);
+    }
+
+    public function test_a_restaurant_role_keeps_the_platform_only_permissions_in_their_own_section(): void
+    {
+        $html = $this->get(route('admin.roles.edit', Role::findByName('Manager')))->assertOk()->getContent();
+
+        $section = strpos($html, 'Platform-only permissions');
+        $this->assertNotFalse($section, 'the platform-only section exists');
+
+        // Restaurant abilities come first, platform ones only inside the section.
+        $this->assertLessThan($section, strpos($html, 'value="pos.terminal.view"'));
+        $this->assertGreaterThan($section, strpos($html, 'value="settings.plans.edit"'));
+        $this->assertGreaterThan($section, strpos($html, 'value="settings.licenses.edit"'));
+        $this->assertSame(1, substr_count($html, 'value="settings.plans.edit"'));
+
+        // The new-role form is split the same way.
+        $new = $this->get(route('admin.roles.create'))->assertOk()->getContent();
+        $this->assertGreaterThan(strpos($new, 'Platform-only permissions'), strpos($new, 'value="settings.plans.edit"'));
+    }
+
+    public function test_saving_a_role_keeps_ticks_from_both_sections_and_the_list_counts_the_platform_role_honestly(): void
+    {
+        $clone = Role::create(['name' => 'Platform Support', 'guard_name' => 'web']);
+
+        $this->postJson(route('admin.roles.permissions', $clone->id), [
+            'permissions' => ['', 'inventory.products.view', 'content.faqs.view'],
+        ])->assertOk();
+
+        $this->assertEqualsCanonicalizing(
+            ['inventory.products.view', 'content.faqs.view'],
+            $clone->fresh()->permissions->pluck('name')->all(),
+        );
+
+        $edit = $this->get(route('admin.roles.edit', $clone))->assertOk()->getContent();
+        $this->assertMatchesRegularExpression('/value="content\.faqs\.view"[^>]*checked/s', $edit);
+
+        $this->get(route('admin.roles.index'))->assertOk()->assertSee('All platform (')->assertDontSee('All (423)');
+    }
+
+    public function test_company_staff_can_never_hold_the_license_permissions(): void
+    {
+        $this->assertTrue(\App\Support\PlatformAbilities::isPlatformOnly('settings.licenses.view'));
+        $this->assertTrue(\App\Support\PlatformAbilities::isPlatformOnly('settings.licenses.edit'));
+    }
+
     public function test_a_role_can_be_cloned_and_its_permissions_replaced(): void
     {
         $source = Role::findByName('Manager');

@@ -53,6 +53,8 @@ class RoleController extends Controller
         return view('admin.roles.index', [
             'roles' => $roles,
             'totalPermissions' => PermissionRegistry::count(),
+            // What the Super Admin role covers: the platform's own abilities, not a restaurant's.
+            'platformPermissions' => PermissionRegistry::split()['platform']->sum('count'),
             'search' => $request->string('q')->toString(),
             'scope' => $scope,
         ]);
@@ -60,9 +62,12 @@ class RoleController extends Controller
 
     public function create(): View
     {
+        $split = PermissionRegistry::split();
+
         return view('admin.roles.form', [
             'role' => new Role(),
-            'tree' => PermissionRegistry::tree(),
+            'tree' => $split['restaurant'],
+            'platformTree' => $split['platform'],
             'granted' => [],
             'locked' => false,
         ]);
@@ -94,11 +99,24 @@ class RoleController extends Controller
 
     public function edit(Role $role): View
     {
+        $split = PermissionRegistry::split();
+        $locked = $this->isProtected($role);
+
+        /*
+         | Super Admin is the platform's own role: it is shown the platform's abilities
+         | (all of them, ticked and locked - it draws them from Gate::before, not from
+         | stored rows) and none of a restaurant's till, kitchen or stock. Every other
+         | role is shown the restaurant's abilities, with the platform-only ones in a
+         | separate section: they matter only to platform staff, never to a company's.
+         */
         return view('admin.roles.form', [
             'role' => $role,
-            'tree' => PermissionRegistry::tree(),
-            'granted' => $role->permissions->pluck('name')->all(),
-            'locked' => $this->isProtected($role),
+            'tree' => $locked ? $split['platform'] : $split['restaurant'],
+            'platformTree' => $locked ? null : $split['platform'],
+            'granted' => $locked
+                ? $split['platform']->flatMap(fn (array $m) => $m['names'])->all()
+                : $role->permissions->pluck('name')->all(),
+            'locked' => $locked,
         ]);
     }
 
