@@ -11,7 +11,7 @@ use Illuminate\Support\Str;
  * sign-up form can be submitted.
  *
  * Stored in the cache (hashed, never the code itself) so nothing touches the
- * database: it lives ten minutes, allows five wrong tries, and a new code can
+ * database: it lives five minutes, allows five wrong tries, and a new code can
  * be asked for once a minute. A correct code is remembered in the visitor's
  * own session - and only there - which RegisterController checks.
  */
@@ -19,7 +19,7 @@ final class SignupOtp
 {
     public const SESSION_KEY = 'signup_otp_verified';
 
-    public const TTL_MINUTES = 10;
+    public const TTL_MINUTES = 5;
 
     public const MAX_TRIES = 5;
 
@@ -42,7 +42,10 @@ final class SignupOtp
         $email = self::normalise($email);
         $code = str_pad((string) random_int(0, 999999), 6, '0', STR_PAD_LEFT);
 
-        Cache::put(self::cacheKey($email, $scope), ['hash' => self::hash($email, $code), 'tries' => 0], now()->addMinutes(self::TTL_MINUTES));
+        $expires = now()->addMinutes(self::TTL_MINUTES);
+
+        // The deadline is written into the entry: a wrong try puts it back, and must not stretch it.
+        Cache::put(self::cacheKey($email, $scope), ['hash' => self::hash($email, $code), 'tries' => 0, 'exp' => $expires->getTimestamp()], $expires);
         RateLimiter::hit(self::sendKey($email, $scope), self::RESEND_SECONDS);
 
         return $code;
@@ -69,6 +72,12 @@ final class SignupOtp
             return 'expired';
         }
 
+        if (isset($entry['exp']) && now()->getTimestamp() >= (int) $entry['exp']) {
+            Cache::forget(self::cacheKey($email, $scope));
+
+            return 'expired';
+        }
+
         if (($entry['tries'] ?? 0) >= self::MAX_TRIES) {
             Cache::forget(self::cacheKey($email, $scope));
 
@@ -82,7 +91,8 @@ final class SignupOtp
         }
 
         $entry['tries'] = ($entry['tries'] ?? 0) + 1;
-        Cache::put(self::cacheKey($email, $scope), $entry, now()->addMinutes(self::TTL_MINUTES));
+        // Back with the time it had left, not a fresh five minutes.
+        Cache::put(self::cacheKey($email, $scope), $entry, isset($entry['exp']) ? \Illuminate\Support\Carbon::createFromTimestamp((int) $entry['exp']) : now()->addMinutes(self::TTL_MINUTES));
 
         return $entry['tries'] >= self::MAX_TRIES ? 'locked' : 'wrong';
     }

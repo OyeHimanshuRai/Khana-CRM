@@ -62,6 +62,21 @@ class SignupOtpTest extends TestCase
         return (string) $code;
     }
 
+    public function test_a_code_lives_five_minutes_and_wrong_tries_do_not_stretch_it(): void
+    {
+        $this->assertSame(5, SignupOtp::TTL_MINUTES);
+
+        $code = SignupOtp::issue('five@minutes.test');
+
+        // Four minutes in: a wrong try is just wrong...
+        $this->travel(4)->minutes();
+        $this->assertSame('wrong', SignupOtp::check('five@minutes.test', '000000' === $code ? '111111' : '000000'));
+
+        // ...and it did not buy the code another five minutes.
+        $this->travel(2)->minutes();
+        $this->assertSame('expired', SignupOtp::check('five@minutes.test', $code));
+    }
+
     public function test_the_form_has_the_code_step_and_hides_register_until_it_is_done(): void
     {
         $this->get('/register')->assertOk()
