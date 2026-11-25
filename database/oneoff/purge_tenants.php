@@ -98,11 +98,20 @@ try {
         }
     }
 
+    // 3. Polymorphic rows (roles, permissions, API tokens) point at users with no foreign key: tidy the ones left behind.
+    foreach ([['model_has_roles', 'model_type', 'model_id'], ['model_has_permissions', 'model_type', 'model_id'], ['personal_access_tokens', 'tokenable_type', 'tokenable_id']] as [$t, $typeCol, $idCol]) {
+        if (! $cols->contains(fn ($x) => $x->t === $t)) { continue; }
+        $n = DB::table($t)->where($typeCol, 'like', '%User')->whereNotIn($idCol, DB::table('users')->select('id'))->delete();
+        if ($n) { $deleted[$t] = ($deleted[$t] ?? 0) + $n; }
+    }
+
     ksort($deleted);
     foreach ($deleted as $t => $n) { echo ($commit ? 'deleted ' : 'would delete ').$n.' from '.$t.PHP_EOL; }
     foreach ($nulled as $k => $n) { echo 'detached '.$n.' link(s) in '.$k.PHP_EOL; }
     echo 'tenants left: '.DB::table('tenants')->count().', in-house exists: '.(int) DB::table('tenants')->where('code', 'MAIN')->exists().PHP_EOL;
-    echo 'users left: '.DB::table('users')->count().', super admins intact: '.(int) DB::table('model_has_roles')->count().' role links'.PHP_EOL;
+    $supers = DB::table('model_has_roles')->join('roles', 'roles.id', '=', 'model_has_roles.role_id')->where('roles.name', 'Super Admin')->count();
+    echo 'users left: '.DB::table('users')->count().', Super Admin role holders: '.$supers.PHP_EOL;
+    echo 'other companies untouched: '.DB::table('tenants')->whereNull('deleted_at')->pluck('name')->implode(', ').PHP_EOL;
 
     if ($commit) { DB::commit(); echo 'COMMITTED'.PHP_EOL; } else { DB::rollBack(); echo 'ROLLED BACK (dry run)'.PHP_EOL; }
 } catch (\Throwable $e) {
