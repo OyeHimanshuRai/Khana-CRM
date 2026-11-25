@@ -1,0 +1,39 @@
+name: Erase the removed test companies (manual)
+
+# One-off, run by hand. Never runs on push. "commit: no" is a dry run that rolls back and only prints what it
+# would delete; "commit: yes" takes a database backup first, then erases for good.
+
+on:
+  workflow_dispatch:
+    inputs:
+      commit:
+        description: 'Really erase? (no = dry run)'
+        required: true
+        default: 'no'
+        type: choice
+        options:
+          - 'no'
+          - 'yes'
+
+jobs:
+  run:
+    name: Purge
+    runs-on: ubuntu-latest
+    steps:
+      - name: Run on server
+        uses: appleboy/ssh-action@v1.0.3
+        with:
+          host: ${{ secrets.VPS_HOST }}
+          username: ${{ secrets.VPS_USER }}
+          key: ${{ secrets.VPS_SSH_KEY }}
+          port: ${{ secrets.VPS_PORT }}
+          envs: PURGE_INPUT
+          script: |
+            cd ${{ secrets.VPS_PROJECT_PATH }}
+            git fetch -q origin main && git show origin/main:database/oneoff/purge_tenants.php > /tmp/purge_tenants.php
+            if [ "$PURGE_INPUT" = "yes" ]; then export PURGE_COMMIT=1; else export PURGE_COMMIT=0; fi
+            php artisan tinker --execute="require '/tmp/purge_tenants.php';"
+            rm -f /tmp/purge_tenants.php
+            echo "### DONE"
+        env:
+          PURGE_INPUT: ${{ github.event.inputs.commit }}
