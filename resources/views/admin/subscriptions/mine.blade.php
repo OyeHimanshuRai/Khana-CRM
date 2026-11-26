@@ -164,6 +164,11 @@
             @php
                 $current = $billingTarget;
                 $startPeriod = $current?->billing_period === 'yearly' ? 'yearly' : 'monthly';
+                // A paid term with time to spare is not renewed yet; the button opens near the end, on trial or once it lapses.
+                $renewLocked = $current && ! $current->onTrial() && $current->isUsable() && ! $current->needsAttention()
+                    && $current->daysLeft() !== null && $current->daysLeft() > (int) config('license.warn_days', 7);
+                $currentPrice = $current?->plan?->priceFor('monthly');
+                $hasUpgrade = $current && $plans->contains(fn ($p) => $currentPrice !== null && $p->priceFor('monthly') > $currentPrice);
             @endphp
 
             <div class="card billing" id="billing" data-billing
@@ -202,6 +207,10 @@
                     <div class="alert alert-info">Ask your account owner to pay for or change the plan.</div>
                 @endif
 
+                @if ($current && $canPay && $hasUpgrade)
+                    <p class="billing-hint">Need more outlets, staff or modules? You can upgrade your plan at any time; the unused part of your current term is credited.</p>
+                @endif
+
                 <div class="billing-grid">
                     @foreach ($plans as $p)
                         @php
@@ -211,6 +220,8 @@
                                 ? (int) round((1 - $yearly / ($monthly * 12)) * 100)
                                 : 0;
                             $isCurrent = $current && $current->plan_id === $p->id;
+                            $isUpgrade = ! $isCurrent && $currentPrice !== null && $monthly > $currentPrice;
+                            $label = $isCurrent ? null : ($isUpgrade ? 'Upgrade to '.$p->name : 'Choose '.$p->name);
                         @endphp
 
                         <article class="billing-plan {{ $isCurrent ? 'is-current' : '' }}" data-plan="{{ $p->id }}">
@@ -232,9 +243,12 @@
                                 @foreach ($p->limitLines() as $line)<li>{{ $line }}</li>@endforeach
                             </ul>
 
-                            @if ($current && $canPay && $onlineBilling)
+                            @if ($isCurrent && $renewLocked && $canPay)
+                                <button type="button" class="btn" disabled title="Renewal opens {{ (int) config('license.warn_days', 7) }} days before your term ends">Current plan</button>
+                                <p class="text-xs text-muted billing-plan-note">Active until {{ $current->ends_at->format('j M Y') }}. Renewal opens {{ (int) config('license.warn_days', 7) }} days before it ends.</p>
+                            @elseif ($current && $canPay && $onlineBilling)
                                 <button type="button" class="btn {{ $isCurrent ? '' : 'btn-primary' }}" data-plan-select="{{ $p->id }}">
-                                    {{ $isCurrent ? 'Renew' : 'Choose '.$p->name }}
+                                    {{ $isCurrent ? 'Renew' : $label }}
                                 </button>
                             @elseif ($current && $canPay)
                                 {{-- Nothing is paid online here: ask for it instead, from this screen. --}}
@@ -243,7 +257,7 @@
                                     <input type="hidden" name="plan_id" value="{{ $p->id }}">
                                     <input type="hidden" name="period" value="{{ $startPeriod }}" data-renewal-period>
                                     <button type="submit" class="btn {{ $isCurrent ? '' : 'btn-primary' }}">
-                                        {{ $isCurrent ? 'Request renewal' : 'Request '.$p->name }}
+                                        {{ $isCurrent ? 'Request renewal' : ($isUpgrade ? 'Request upgrade to '.$p->name : 'Request '.$p->name) }}
                                     </button>
                                 </form>
                             @endif

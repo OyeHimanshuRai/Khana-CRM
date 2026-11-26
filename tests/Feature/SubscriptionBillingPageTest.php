@@ -137,9 +137,31 @@ class SubscriptionBillingPageTest extends TestCase
         $this->actingAs($this->user(['settings.subscriptions.pay']))
             ->get('/superadmin/subscription')
             ->assertOk()
-            ->assertSee('Renew')
-            ->assertSee('Choose Chain')
-            ->assertDontSee('Choose Starter');
+            ->assertSee('Upgrade to Chain')
+            ->assertSee('upgrade your plan at any time')
+            ->assertDontSee('Starter');
+    }
+
+    public function test_renewing_opens_only_near_the_end_of_a_paid_term(): void
+    {
+        $sub = $this->subscription();
+        $this->payment($sub);
+        $owner = $this->user(['settings.subscriptions.pay']);
+
+        // 25 days left: the current plan is shown, not yet renewable.
+        $this->actingAs($owner)->get('/superadmin/subscription')
+            ->assertOk()
+            ->assertSee('Current plan')
+            ->assertSee('Renewal opens')
+            ->assertDontSee('data-plan-select="'.$sub->plan_id.'"', false);
+
+        // Three days left: Renew is back.
+        $sub->forceFill(['ends_at' => now()->addDays(3)])->save();
+        \App\Support\PlanAccess::forget();
+        $this->actingAs($owner)->get('/superadmin/subscription')
+            ->assertOk()
+            ->assertSee('data-plan-select="'.$sub->plan_id.'"', false)
+            ->assertDontSee('Renewal opens');
     }
 
     public function test_someone_without_the_pay_permission_sees_plans_but_no_buttons(): void

@@ -58,13 +58,16 @@
 
 .billing-toggle button:focus-visible { outline: none; box-shadow: 0 0 0 3px var(--ring); }
 
-/* auto-fit, not auto-fill: three plans share the row instead of leaving a gap
-   where a fourth would have been. */
+/* Cards keep a readable width instead of stretching when only one or two plans are left. */
 .billing-grid {
     display: grid;
-    grid-template-columns: repeat(auto-fit, minmax(230px, 1fr));
+    grid-template-columns: repeat(auto-fill, minmax(240px, 320px));
     gap: 14px;
 }
+
+.billing-hint { margin: 0 0 12px; font-size: 13px; color: var(--muted); }
+.billing-plan-note { margin: -4px 0 0; text-align: center; }
+.billing-plan .btn[disabled] { opacity: .6; cursor: not-allowed; }
 
 .billing-plan {
     display: flex;
@@ -110,7 +113,7 @@
     transform: rotate(-45deg);
 }
 
-.billing-price { font-size: 28px; font-weight: 600; letter-spacing: -.03em; color: var(--heading); font-variant-numeric: tabular-nums; }
+.billing-price { font-size: 24px; font-weight: 600; letter-spacing: -.03em; color: var(--heading); font-variant-numeric: tabular-nums; }
 .billing-price small { font-size: 13px; font-weight: 400; letter-spacing: 0; color: var(--muted); margin-left: 3px; }
 .billing-price em { display: block; font-size: 12.5px; font-style: normal; font-weight: 500; letter-spacing: 0; color: var(--success); }
 
@@ -141,6 +144,7 @@
     .billing-toggle { width: 100%; }
     .billing-toggle button { flex: 1; }
     .billing-actions .btn { flex: 1; justify-content: center; }
+    .billing-grid { grid-template-columns: 1fr; }
 }
 
 /*
