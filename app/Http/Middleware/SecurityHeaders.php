@@ -33,9 +33,10 @@ class SecurityHeaders
             // Do not leak order and customer URLs to third-party links.
             'Referrer-Policy' => 'strict-origin-when-cross-origin',
             // The scanner needs the camera and the shop map needs location.
-            // Nothing here uses the microphone, payment sheet or USB.
-            'Permissions-Policy' => 'camera=(self), geolocation=(self), microphone=(), usb=(), payment=(self)',
-            'Cross-Origin-Opener-Policy' => 'same-origin',
+            // Nothing here uses the microphone or USB; Razorpay's checkout frame may use the payment sheet.
+            'Permissions-Policy' => 'camera=(self), geolocation=(self), microphone=(), usb=(), payment=(self "https://api.razorpay.com")',
+            // Razorpay opens its bank/card window as a popup and must keep talking to it; same-origin left it blank.
+            'Cross-Origin-Opener-Policy' => 'same-origin-allow-popups',
             /*
              | The parts of a Content Security Policy that cost nothing: no
              | plugins, no <base> tag rewriting every relative link to
