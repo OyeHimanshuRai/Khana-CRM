@@ -139,6 +139,20 @@ class SubscriptionBillingService
         if (! $plan->isAvailableTo($target->tenant_id, $target->plan_id)) {
             throw new RuntimeException('That plan is no longer on sale.');
         }
+
+        if (self::blocksDowngrade($target, $plan)) {
+            throw new RuntimeException('Your plan can be renewed or upgraded, not moved to a smaller one.');
+        }
+    }
+
+    // A business that has paid for a plan may renew or upgrade it, never step down; a trial may still pick any plan.
+    public static function blocksDowngrade(?Subscription $target, Plan $plan): bool
+    {
+        $tenant = $target?->tenant;
+
+        return $tenant !== null
+            && $plan->isBelow($target->plan)
+            && ($tenant->startedAsPaid() || $tenant->hasPaidForPlan());
     }
 
     /* ------------------------------------------------------------- checkout */

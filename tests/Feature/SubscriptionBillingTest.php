@@ -246,22 +246,33 @@ class SubscriptionBillingTest extends TestCase
         $this->service()->checkout($sub, $plan, 'monthly', null);
     }
 
-    public function test_a_downgrade_the_credit_covers_is_applied_without_any_payment(): void
+    public function test_a_paid_plan_cannot_step_down_to_a_cheaper_one(): void
     {
         $sub = $this->running($this->plan('Pro', 3000), 3000, 1);
         $basic = $this->plan('Basic', 1000);
 
-        $order = $this->service()->checkout($sub, $basic, 'monthly', null);
+        try {
+            $this->service()->checkout($sub, $basic, 'monthly', null);
+            $this->fail('A downgrade was allowed.');
+        } catch (RuntimeException $e) {
+            $this->assertStringContainsString('not moved to a smaller one', $e->getMessage());
+        }
 
-        $this->assertSame(BillingOrder::PAID, $order->status);
-        $this->assertSame('0.00', $order->amount);
+        $this->assertSame(0, BillingOrder::query()->count());
         Http::assertNothingSent();
+        $this->assertSame($sub->plan_id, Subscription::query()->where('tenant_id', $sub->tenant_id)->latest('id')->first()->plan_id);
+    }
 
-        PlanAccess::forget();
-        $current = Subscription::query()->where('tenant_id', $sub->tenant_id)->latest('id')->first();
-        $this->assertSame($basic->id, $current->plan_id);
-        $this->assertTrue($current->ends_at->isFuture());
-        $this->assertNotNull($sub->fresh()->cancelled_at);
+    public function test_a_trial_may_still_choose_a_cheaper_plan(): void
+    {
+        $pro = $this->plan('Pro', 3000);
+        $trial = Subscription::create([
+            'tenant_id' => $this->shop()->tenant_id, 'shop_id' => null, 'plan_id' => $pro->id,
+            'billing_period' => 'monthly', 'price' => 0, 'currency' => 'INR',
+            'starts_at' => now(), 'trial_ends_at' => now()->addDays(14), 'ends_at' => now()->addDays(14),
+        ]);
+
+        $this->assertFalse(SubscriptionBillingService::blocksDowngrade($trial, $this->plan('Basic', 1000)));
     }
 
     /* ------------------------------------------------- confirming (browser) */

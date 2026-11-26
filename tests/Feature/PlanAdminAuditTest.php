@@ -182,13 +182,8 @@ class PlanAdminAuditTest extends TestCase
     public function test_moving_to_a_free_plan_online_cannot_lapse_into_a_dead_end(): void
     {
         $free = $this->freePlan();
+        // Not yet paid for, so stepping down is still allowed (a paid plan only renews or upgrades).
         $current = $this->subscription();
-
-        SubscriptionPayment::unguarded(fn () => $current->payments()->create([
-            'tenant_id' => $this->tenant->id, 'reference' => 'SUB-T', 'amount' => 799, 'currency' => 'INR',
-            'method' => 'manual', 'paid_at' => now()->subDays(5),
-            'period_start' => now()->subDays(5), 'period_end' => now()->addDays(25),
-        ]));
 
         app(SubscriptionBillingService::class)->checkout($current, $free, 'monthly');
 

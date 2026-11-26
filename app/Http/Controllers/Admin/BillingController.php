@@ -162,6 +162,12 @@ class BillingController extends Controller
             ->availableTo($tenant->id, PlanAccess::billingTarget()?->plan_id)
             ->find($data['plan_id']);
 
+        if ($plan !== null && SubscriptionBillingService::blocksDowngrade(PlanAccess::billingTarget(), $plan)) {
+            $message = 'Your plan can be renewed or upgraded, not moved to a smaller one.';
+
+            return json_error($message, ['plan_id' => [$message]]);
+        }
+
         if ($plan === null) {
             $message = 'That plan is no longer available. Please choose another.';
 

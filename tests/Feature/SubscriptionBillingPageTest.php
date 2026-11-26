@@ -126,6 +126,22 @@ class SubscriptionBillingPageTest extends TestCase
             ->assertSee('Renew');
     }
 
+    public function test_a_paid_business_sees_only_its_plan_and_bigger_ones(): void
+    {
+        $sub = $this->subscription();
+        $this->payment($sub);
+        foreach (['Starter' => 500, 'Chain' => 5000] as $name => $price) {
+            Plan::create(['name' => $name, 'code' => $name.uniqid(), 'slug' => $name.uniqid(), 'monthly_price' => $price, 'currency' => 'INR', 'is_active' => true]);
+        }
+
+        $this->actingAs($this->user(['settings.subscriptions.pay']))
+            ->get('/superadmin/subscription')
+            ->assertOk()
+            ->assertSee('Renew')
+            ->assertSee('Choose Chain')
+            ->assertDontSee('Choose Starter');
+    }
+
     public function test_someone_without_the_pay_permission_sees_plans_but_no_buttons(): void
     {
         $this->subscription();

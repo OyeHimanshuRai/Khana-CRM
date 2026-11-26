@@ -149,6 +149,12 @@ class Plan extends Model
      * monthly-only plan can still be sold by the year without the screen
      * having to special-case it.
      */
+    // Cheaper than the given plan, measured by the monthly price.
+    public function isBelow(?Plan $current): bool
+    {
+        return $current !== null && $this->id !== $current->id && $this->priceFor(self::MONTHLY) < $current->priceFor(self::MONTHLY);
+    }
+
     public function priceFor(string $period): float
     {
         if ($period === self::YEARLY) {

@@ -5,6 +5,7 @@ namespace App\Http\Controllers\Admin;
 use App\Http\Controllers\Controller;
 use App\Models\ActivityLog;
 use App\Models\Plan;
+use App\Services\SubscriptionBillingService;
 use App\Models\Shop;
 use App\Models\Subscription;
 use App\Models\SubscriptionPayment;
@@ -181,7 +182,8 @@ class SubscriptionController extends Controller
             // Self-service billing: what can be bought, for which
             // subscription, and whether this user and this install can.
             'billingTarget' => $target,
-            'plans' => Plan::query()->availableTo($tenant->id, $target?->plan_id)->orderBy('sort_order')->orderBy('monthly_price')->get(),
+            'plans' => Plan::query()->availableTo($tenant->id, $target?->plan_id)->orderBy('sort_order')->orderBy('monthly_price')->get()
+                ->reject(fn (Plan $plan) => SubscriptionBillingService::blocksDowngrade($target, $plan))->values(),
             'canPay' => $target !== null && $user instanceof User && $user->can('settings.subscriptions.pay'),
             'onlineBilling' => app(GatewayManager::class)->platform()->isConfigured(),
         ]);
