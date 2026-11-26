@@ -712,6 +712,9 @@ Route::prefix('superadmin')->name('admin.')->group(function () {
         });
 
         Route::middleware('permission:dining.reservations.edit')->group(function () {
+            // Guests booking from the storefront: this branch's times, party size and advance.
+            Route::get('reservations/online', [\App\Http\Controllers\Admin\OnlineBookingController::class, 'edit'])->name('reservations.online');
+            Route::put('reservations/online', [\App\Http\Controllers\Admin\OnlineBookingController::class, 'update'])->name('reservations.online.update');
             Route::get('reservations/{reservation}/edit', [ReservationController::class, 'edit'])
                 ->whereNumber('reservation')
                 ->name('reservations.edit');

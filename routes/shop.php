@@ -2,6 +2,7 @@
 
 use App\Http\Controllers\Shop\AccountController;
 use App\Http\Controllers\Shop\AddressController;
+use App\Http\Controllers\Shop\BookingController;
 use App\Http\Controllers\Shop\Auth\LoginController;
 use App\Http\Controllers\Shop\Auth\PasswordResetController;
 use App\Http\Controllers\Shop\Auth\RegisterController;
@@ -41,6 +42,10 @@ Route::prefix('shop/{shop:slug}')
         Route::get('category/{category:slug}', [CatalogController::class, 'category'])->name('category');
         Route::get('product/{product:slug}', [ProductController::class, 'show'])->name('product');
 
+        // Book a table online (see OnlineBookingService); choosing a time needs no account.
+        Route::get('book', [BookingController::class, 'create'])->name('book');
+        Route::get('book/slots', [BookingController::class, 'slots'])->middleware('throttle:60,1')->name('book.slots');
+
         Route::get('cart', [CartController::class, 'index'])->name('cart');
         Route::post('cart/add', [CartController::class, 'add'])->name('cart.add');
         Route::patch('cart/{product}', [CartController::class, 'update'])->name('cart.update');
@@ -68,6 +73,14 @@ Route::prefix('shop/{shop:slug}')
 
             Route::get('orders', [OrderController::class, 'index'])->name('orders.index');
             Route::get('orders/{order}', [OrderController::class, 'show'])->name('orders.show');
+
+            Route::post('book', [BookingController::class, 'store'])->middleware('throttle:10,10')->name('book.store');
+            Route::get('bookings', [BookingController::class, 'index'])->name('bookings.index');
+            Route::get('bookings/{booking}', [BookingController::class, 'show'])->whereNumber('booking')->name('bookings.show');
+            Route::post('bookings/{booking}/pay', [BookingController::class, 'pay'])->whereNumber('booking')->middleware('throttle:10,10')->name('bookings.pay');
+            Route::post('bookings/{booking}/confirm', [BookingController::class, 'confirm'])->whereNumber('booking')->name('bookings.confirm');
+            Route::post('bookings/{booking}/failed', [BookingController::class, 'failed'])->whereNumber('booking')->name('bookings.failed');
+            Route::post('bookings/{booking}/cancel', [BookingController::class, 'cancel'])->whereNumber('booking')->name('bookings.cancel');
 
             Route::get('wishlist', [WishlistController::class, 'index'])->name('wishlist.index');
             Route::post('wishlist/{product}', [WishlistController::class, 'toggle'])->name('wishlist.toggle');

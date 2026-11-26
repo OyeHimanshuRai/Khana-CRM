@@ -53,6 +53,9 @@ class Alert extends Model
 
     public const FEEDBACK = 'feedback';
 
+    // A guest booked a table online.
+    public const RESERVATION = 'reservation';
+
     /** Platform-only: a business signed itself up. */
     public const SIGNUP = 'signup';
 
@@ -87,6 +90,7 @@ class Alert extends Model
         self::SECURITY => ['label' => 'Security', 'icon' => 'shield'],
         self::ORDER_PLACED => ['label' => 'New order', 'icon' => 'cart'],
         self::FEEDBACK => ['label' => 'Guest feedback', 'icon' => 'star'],
+        self::RESERVATION => ['label' => 'Table booking', 'icon' => 'calendar'],
         self::SIGNUP => ['label' => 'New sign-up', 'icon' => 'user-plus'],
         self::SUBSCRIPTION_PAID => ['label' => 'Plan payment', 'icon' => 'wallet'],
         self::DEMO_REQUEST => ['label' => 'Support request', 'icon' => 'phone'],
@@ -206,6 +210,10 @@ class Alert extends Model
             self::ORDER_PLACED => [
                 'en' => trim('New order, '.$where, ', '),
                 'hi' => trim('नया ऑर्डर, '.$whereHi, ', '),
+            ],
+            self::RESERVATION => [
+                'en' => 'New table booking',
+                'hi' => 'नई टेबल बुकिंग आई है',
             ],
             self::FEEDBACK => [
                 'en' => 'New guest feedback',

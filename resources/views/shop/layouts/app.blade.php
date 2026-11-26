@@ -42,6 +42,11 @@
                     </span>
                 @endif
 
+                @php $bookingOpen = \App\Support\OnlineBooking::isOpen($shop); @endphp
+                @if ($bookingOpen)
+                    <a href="{{ route('shop.book', $shop) }}" class="shop-btn shop-btn-sm">Book a table</a>
+                @endif
+
                 <a href="{{ route('shop.cart', $shop) }}" class="shop-cart-badge">
                     <svg viewBox="0 0 24 24" aria-hidden="true" focusable="false">
                         <path d="M3 4h2l2.1 10.1a2 2 0 0 0 2 1.6h8.8a2 2 0 0 0 1.95-1.55L21 8H6M10 20a1 1 0 1 0 0-2 1 1 0 0 0 0 2Zm8 0a1 1 0 1 0 0-2 1 1 0 0 0 0 2Z"/>
@@ -58,6 +63,9 @@
                 @auth('customer')
                     <a href="{{ route('shop.wishlist.index', $shop) }}" class="shop-header-secondary">Wishlist</a>
                     <a href="{{ route('shop.orders.index', $shop) }}" class="shop-header-secondary">Orders</a>
+                    @if ($bookingOpen)
+                        <a href="{{ route('shop.bookings.index', $shop) }}" class="shop-header-secondary">Bookings</a>
+                    @endif
                     <a href="{{ route('shop.account.edit', $shop) }}" class="shop-header-secondary">{{ auth('customer')->user()->name }}</a>
                     <form method="POST" action="{{ route('shop.logout', $shop) }}" class="shop-header-logout">
                         @csrf
@@ -126,6 +134,9 @@
             <a href="{{ route('shop.home', $shop) }}">Home</a>
             <a href="{{ route('shop.catalog', $shop) }}">Full menu</a>
             <a href="{{ route('shop.cart', $shop) }}">Cart</a>
+            @if ($bookingOpen)
+                <a href="{{ route('shop.book', $shop) }}">Book a table</a>
+            @endif
         </nav>
     </div>
 </footer>

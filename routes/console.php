@@ -21,6 +21,11 @@ Artisan::command('inspire', function () {
 | Both are idempotent: a missed run catches up, and a doubled run sends
 | nothing twice. See App\Services\ReminderService.
 */
+// Online table bookings: an unpaid hold gives its table back within a minute of running out.
+Schedule::command('reservations:expire-holds')
+    ->everyMinute()
+    ->withoutOverlapping();
+
 Schedule::command('reminders:schedule')
     ->dailyAt('08:30')
     ->withoutOverlapping()

@@ -9,6 +9,11 @@
         :crumbs="['Tables & QR' => null, 'Reservations' => null]"
     >
         <x-slot:actions>
+            @allows('dining.reservations.edit')
+                <a class="btn btn-sm" href="{{ route('admin.reservations.online') }}">
+                    <x-icon name="globe" :size="15" /> Online booking
+                </a>
+            @endallows
             @allows('dining.reservations.create')
                 <a class="btn btn-primary btn-sm"
                    href="{{ route('admin.reservations.create', ['day' => $day->toDateString()]) }}"

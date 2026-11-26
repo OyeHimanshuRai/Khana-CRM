@@ -32,6 +32,7 @@ class ShareStorefrontShop
     private const OPEN_WHILE_CLOSED = [
         'shop.login', 'shop.login.store', 'shop.logout', 'shop.password.*',
         'shop.orders.*', 'shop.account.*',
+        'shop.bookings.index', 'shop.bookings.show', 'shop.bookings.cancel',
     ];
 
     /**

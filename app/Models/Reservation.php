@@ -78,6 +78,8 @@ class Reservation extends Model
             'confirmed_at' => 'datetime',
             'seated_at' => 'datetime',
             'closed_at' => 'datetime',
+            'hold_expires_at' => 'datetime',
+            'deposit_amount' => 'decimal:2',
         ];
     }
 
@@ -143,6 +145,12 @@ class Reservation extends Model
     public function endsAt(): Carbon
     {
         return $this->reserved_for->copy()->addMinutes($this->duration_minutes);
+    }
+
+    // An online booking still waiting for its deposit, while its hold has not run out.
+    public function awaitingPayment(): bool
+    {
+        return $this->status === self::REQUESTED && $this->hold_expires_at !== null && $this->hold_expires_at->isFuture();
     }
 
     public function holdsATable(): bool

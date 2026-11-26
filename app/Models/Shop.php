@@ -58,6 +58,8 @@ class Shop extends Model
             'block_expired_sale' => 'boolean',
             // Null and [] are different answers here - see the migration.
             'modules' => 'array',
+            // Online table booking rules (App\Support\OnlineBooking); set only by the settings screen.
+            'online_booking' => 'array',
             'requires_otp' => 'boolean',
             'is_active' => 'boolean',
             'sort_order' => 'integer',

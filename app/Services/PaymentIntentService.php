@@ -259,6 +259,13 @@ class PaymentIntentService
     {
         $payable = $intent->payable;
 
+        // A table booking's deposit confirms the booking; it is not a bill to settle.
+        if ($payable instanceof \App\Models\Reservation) {
+            app(OnlineBookingService::class)->paid($payable, $intent);
+
+            return;
+        }
+
         if (! $payable instanceof TableSession) {
             return;
         }
