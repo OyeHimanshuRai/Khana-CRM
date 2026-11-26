@@ -12,8 +12,10 @@
 @section('content')
     {{-- The customer's plan, license and expiry (and the renewal warning). Not for the platform's own admin. --}}
     @php $licenseTenant = auth()->user()?->isSuperAdmin() ? null : \App\Support\CurrentTenant::get(); @endphp
-    @if ($licenseTenant)
-        @include('admin.license._card', ['summary' => \App\Support\LicenseAccess::summary($licenseTenant)])
+    @php $licenseSummary = $licenseTenant ? \App\Support\LicenseAccess::summary($licenseTenant) : null; @endphp
+    {{-- A paid plan in good standing needs no tile; it returns on trial, near the end, or once there is a problem. --}}
+    @if ($licenseSummary && ($licenseSummary['on_trial'] || $licenseSummary['badge']['key'] !== 'active'))
+        @include('admin.license._card', ['summary' => $licenseSummary])
     @endif
 
     @php

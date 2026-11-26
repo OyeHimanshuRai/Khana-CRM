@@ -866,7 +866,9 @@ class LicenseTest extends TestCase
         PlanAccess::forget();
         $this->resetState();
 
-        $this->get('/dashboard')
+        // A paid plan in good standing leaves the dashboard; the license page keeps the tile.
+        $this->get('/dashboard')->assertOk()->assertDontSee('Plan &amp; License', false);
+        $this->get('/license')
             ->assertOk()
             ->assertSee('Time remaining')
             ->assertSee('Paid plan')
