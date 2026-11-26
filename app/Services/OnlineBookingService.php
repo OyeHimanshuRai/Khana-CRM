@@ -270,6 +270,13 @@ class OnlineBookingService
         return $this->refundAll($reservation, 'Cancelled by the guest');
     }
 
+    // The restaurant cancelled: any payment still open on the booking can no longer be used.
+    public function releaseHold(Reservation $reservation): void
+    {
+        $reservation->forceFill(['hold_expires_at' => null])->save();
+        $this->failOpenIntents($reservation, 'Booking cancelled');
+    }
+
     // Unpaid holds past their time (plus grace) give the table back; run every minute by the scheduler.
     public function expireHolds(): int
     {

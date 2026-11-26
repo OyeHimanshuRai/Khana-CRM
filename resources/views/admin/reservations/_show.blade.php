@@ -7,6 +7,14 @@
 
 @php
     $overdue = $reservation->isOverdue($grace);
+
+    // What became of an online booking's advance.
+    $advanceIntent = $reservation->source === 'online'
+        ? \App\Models\PaymentIntent::allShops()->where('payable_type', $reservation->getMorphClass())->where('payable_id', $reservation->id)
+            ->whereIn('status', [\App\Models\PaymentIntent::PAID, \App\Models\PaymentIntent::REFUNDED])->latest('id')->first()
+        : null;
+    $advance = $advanceIntent?->status;
+    $advanceRef = $advanceIntent?->provider_payment_id;
 @endphp
 
 <div class="sec-name">{{ $reservation->guest_name }}</div>
@@ -55,6 +63,19 @@
         <div><dt>What happened</dt><dd>{{ $reservation->outcome_note }}</dd></div>
     @endif
     <div><dt>Taken by</dt><dd>{{ $reservation->creator?->name ?? '—' }}</dd></div>
+    @if ($reservation->source === 'online' && (float) $reservation->deposit_amount > 0)
+        <div>
+            <dt>Advance</dt>
+            <dd>
+                ₹{{ number_format((float) $reservation->deposit_amount, 2) }} ·
+                @if ($advance === \App\Models\PaymentIntent::PAID) <span class="text-success">Paid</span>
+                @elseif ($advance === \App\Models\PaymentIntent::REFUNDED) Refunded
+                @elseif ($reservation->awaitingPayment()) Waiting for payment
+                @else Not paid @endif
+                @if ($advanceRef) <span class="text-sm text-muted">({{ $advanceRef }})</span> @endif
+            </dd>
+        </div>
+    @endif
 </dl>
 
 @allows('dining.reservations.adjust')
@@ -164,8 +185,14 @@
         @unless ($reservation->isClosed() || $reservation->status === App\Models\Reservation::SEATED)
             <form method="POST" action="{{ route('admin.reservations.cancel', $reservation) }}"
                   data-ajax data-close-modal data-refresh-list style="display:inline"
-                  onsubmit="return confirm('Cancel {{ $reservation->guest_name }}’s booking?')">
+                  onsubmit="return confirm('Cancel {{ $reservation->guest_name }}’s booking?{{ $advance === \App\Models\PaymentIntent::PAID ? ' Their advance will be refunded.' : '' }}')">
                 @csrf @method('PUT')
+                @if ($advance === \App\Models\PaymentIntent::PAID)
+                    <label class="check" style="margin-right:8px;display:inline-flex">
+                        <input type="hidden" name="refund" value="0">
+                        <input type="checkbox" name="refund" value="1" checked> Refund the advance
+                    </label>
+                @endif
                 <button type="submit" class="btn is-danger">Cancel booking</button>
             </form>
         @endunless

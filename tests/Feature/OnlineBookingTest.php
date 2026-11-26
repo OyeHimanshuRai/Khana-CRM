@@ -481,6 +481,85 @@ class OnlineBookingTest extends TestCase
 
     /* ------------------------------------------------------------ admin */
 
+    private function staff(array $permissions): User
+    {
+        $shop = $this->shop();
+        $user = User::factory()->create(['tenant_id' => $shop->tenant_id, 'is_admin' => true]);
+        $user->shops()->syncWithoutDetaching([$shop->id => ['is_default' => true]]);
+        $user->forceFill(['current_shop_id' => $shop->id, 'all_shops_view' => false])->save();
+        $user->givePermissionTo(array_merge(['dining.reservations.view'], $permissions));
+
+        return $user->fresh();
+    }
+
+    public function test_the_restaurant_cancelling_refunds_the_advance_by_default(): void
+    {
+        $this->enable();
+        $this->table('1', 4);
+        $this->live();
+        $guest = $this->guest();
+        $held = $this->book($guest)->json('data');
+        $this->payBrowser($guest, $held);
+        $staff = $this->staff(['dining.reservations.adjust']);
+
+        $this->actingAs($staff)->get(route('admin.reservations.show', $held['booking']))
+            ->assertOk()->assertSee('Refund the advance')->assertSee('Paid');
+
+        $this->actingAs($staff)->putJson(route('admin.reservations.cancel', $held['booking']), ['outcome_note' => 'Kitchen closed'])
+            ->assertOk()->assertJsonPath('message', 'Booking cancelled and the advance refunded. The table is free again.');
+
+        $this->assertSame(Reservation::CANCELLED, Reservation::allShops()->find($held['booking'])->status);
+        $this->assertSame(PaymentIntent::REFUNDED, PaymentIntent::allShops()->where('provider_payment_id', 'pay_OK1')->first()->status);
+
+        $this->actingAs($staff)->get(route('admin.reservations.show', $held['booking']))->assertOk()->assertSee('Refunded');
+    }
+
+    public function test_the_restaurant_can_cancel_and_keep_the_advance(): void
+    {
+        $this->enable();
+        $this->table('1', 4);
+        $this->live();
+        $guest = $this->guest();
+        $held = $this->book($guest)->json('data');
+        $this->payBrowser($guest, $held);
+
+        $this->actingAs($this->staff(['dining.reservations.adjust']))
+            ->putJson(route('admin.reservations.cancel', $held['booking']), ['refund' => 0])
+            ->assertOk()->assertJsonPath('message', 'Booking cancelled. The table is free again.');
+
+        $this->assertSame(PaymentIntent::PAID, PaymentIntent::allShops()->where('provider_payment_id', 'pay_OK1')->first()->status);
+    }
+
+    public function test_cancelling_an_unpaid_online_booking_closes_its_payment(): void
+    {
+        $this->enable();
+        $this->table('1', 4);
+        $this->live();
+        $held = $this->book($this->guest())->json('data');
+
+        $this->actingAs($this->staff(['dining.reservations.adjust']))
+            ->putJson(route('admin.reservations.cancel', $held['booking']))->assertOk();
+
+        $this->assertSame(PaymentIntent::FAILED, PaymentIntent::allShops()->where('reference', $held['reference'])->first()->status);
+        $this->assertNull(Reservation::allShops()->find($held['booking'])->hold_expires_at);
+    }
+
+    public function test_a_phone_booking_cancels_as_before_with_no_refund_attempt(): void
+    {
+        $this->enable();
+        $this->table('1', 4);
+        $this->live();
+        $reservation = Reservation::allShops()->create([
+            'shop_id' => $this->shop()->id, 'guest_name' => 'Walk Phone', 'party_size' => 2,
+            'reserved_for' => now()->addDays(2), 'duration_minutes' => 90, 'status' => Reservation::CONFIRMED, 'source' => 'phone',
+        ]);
+
+        $this->actingAs($this->staff(['dining.reservations.adjust']))
+            ->putJson(route('admin.reservations.cancel', $reservation->id))->assertOk()
+            ->assertJsonPath('message', 'Booking cancelled. The table is free again.');
+        Http::assertNothingSent();
+    }
+
     public function test_the_owner_saves_the_rules_and_an_advance_needs_online_payment(): void
     {
         $shop = $this->shop();

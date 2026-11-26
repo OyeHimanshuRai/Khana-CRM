@@ -3,16 +3,18 @@
 namespace App\Http\Controllers\Admin;
 
 use App\Http\Controllers\Controller;
-use App\Support\CurrentShop;
 use App\Models\ActivityLog;
 use App\Models\Reservation;
 use App\Models\RestaurantTable;
+use App\Services\OnlineBookingService;
 use App\Services\ReservationService;
 use App\Support\ApiResponse;
+use App\Support\CurrentShop;
 use Illuminate\Database\Eloquent\Builder;
 use Illuminate\Http\JsonResponse;
 use Illuminate\Http\Request;
 use Illuminate\Support\Carbon;
+use Illuminate\Support\Collection;
 use Illuminate\Validation\Rule;
 use Illuminate\View\View;
 use RuntimeException;
@@ -36,7 +38,10 @@ use RuntimeException;
  */
 class ReservationController extends Controller
 {
-    public function __construct(private readonly ReservationService $reservations) {}
+    public function __construct(
+        private readonly ReservationService $reservations,
+        private readonly OnlineBookingService $onlineBookings,
+    ) {}
 
     /* -------------------------------------------------------------- list */
 
@@ -259,13 +264,15 @@ class ReservationController extends Controller
 
         ActivityLog::record('reservation.no_show', "{$reservation->guest_name} did not arrive", $reservation);
 
-        return ApiResponse::success("Recorded as a no-show. The table is free again.");
+        return ApiResponse::success('Recorded as a no-show. The table is free again.');
     }
 
     public function cancel(Request $request, Reservation $reservation): JsonResponse
     {
         $data = $request->validate([
             'outcome_note' => ['nullable', 'string', 'max:190'],
+            // An online booking's advance goes back by default; untick to keep it (e.g. a late cancellation).
+            'refund' => ['nullable', 'boolean'],
         ]);
 
         try {
@@ -276,7 +283,18 @@ class ReservationController extends Controller
 
         ActivityLog::record('reservation.cancelled', "Cancelled the booking for {$reservation->guest_name}", $reservation);
 
-        return ApiResponse::success('Booking cancelled. The table is free again.');
+        // The restaurant cancelled: an unpaid hold is dropped, and a paid advance is refunded unless told otherwise.
+        $refunded = false;
+        if ($reservation->source === 'online') {
+            $this->onlineBookings->releaseHold($reservation);
+            if ($request->boolean('refund', true)) {
+                $refunded = $this->onlineBookings->refundAll($reservation, filled($data['outcome_note'] ?? null) ? $data['outcome_note'] : 'Cancelled by the restaurant');
+            }
+        }
+
+        return ApiResponse::success($refunded
+            ? 'Booking cancelled and the advance refunded. The table is free again.'
+            : 'Booking cancelled. The table is free again.');
     }
 
     public function destroy(Reservation $reservation): JsonResponse
@@ -333,7 +351,7 @@ class ReservationController extends Controller
      * it anyway, but a form that only refuses after submitting is a form that
      * wastes the caller's time.
      *
-     * @return \Illuminate\Support\Collection<int, RestaurantTable>
+     * @return Collection<int, RestaurantTable>
      */
     private function tables()
     {
